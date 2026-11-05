@@ -8,6 +8,18 @@ All notable changes to Mirante are documented in this file. The format is based 
 
 ### Added
 
+- **The Samsung Tizen app.** `make package-tizen` turns the build into an **unsigned**
+  `build/tizen/Mirante.wgt` (and the folder `build/tizen/widget/` it is made from), zipped by the
+  packaging script itself: the bundle as `make build` checked it, `tizen/config.xml` (the widget
+  `MirantTV01.Mirante`, Tizen 6.5, access to any origin and the `internet` privilege only) with the
+  version of `package.json`, a 117x117 icon drawn by the same script as the webOS icons, and a
+  `config.json` from `tizen/config.json` or `MIRANTE_IMMICH_URL`, with the full address of the proxy
+  and no API key. The owner signs it with the Tizen CLI and his own Samsung certificates, which list
+  the TV's DUID, before installing it. `make test-tizen` runs the package from `file://` in a
+  headless Chromium against a fake Immich. [docs/tizen.md](docs/tizen.md) covers Developer Mode,
+  the certificates and signing, installing, opening and debugging the app on the TV.
+- **Back leaves the app on its first screen on Tizen** too
+  (`tizen.application.getCurrentApplication().exit()`).
 - **The LG webOS app.** `make package-webos` turns the build into
   `build/webos/com.mathmed.mirante_<version>_all.ipk` with LG's `ares-package`: the bundle as
   `make build` checked it, `webos/appinfo.json` with the version of `package.json`, the 80x80 and

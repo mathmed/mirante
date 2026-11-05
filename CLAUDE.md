@@ -6,8 +6,8 @@ Cursor, Codex and other tools that read `AGENTS.md` follow the same rules.
 ## Project
 
 **Mirante** is an open-source (MIT) photo gallery viewer for TVs: it runs in the browsers of a Samsung
-Tizen 6.5 TV (Chromium ~85) and an LG webOS TV (Chromium 68 or later), and later as an app packaged for
-each (`.wgt`, `.ipk`). It reads the photos of an Immich server with `@immich/sdk`, read only, and is
+Tizen 6.5 TV (Chromium ~85) and an LG webOS TV (Chromium 68 or later), and as an app packaged for each
+(an unsigned `.wgt` the owner signs, an `.ipk`). It reads the photos of an Immich server with `@immich/sdk`, read only, and is
 driven by the remote control alone. TypeScript and Preact, built with Vite; the tooling runs on Node.js
 24 and npm. See the README for the v1 scope and what is deliberately out of it.
 
@@ -19,6 +19,8 @@ make dev               # serve the app with hot reload (Vite); public/config.jso
 make build             # bundle the app into dist/ (Vite) and check it against ES2018 (es-check)
 make package-webos     # the build as the LG webOS app: build/webos/com.mathmed.mirante_<version>_all.ipk
 make test-webos        # end-to-end: the .ipk unpacked and run from file:// in a headless Chromium
+make package-tizen     # the build as the Samsung Tizen app, unsigned: build/tizen/Mirante.wgt and build/tizen/widget/
+make test-tizen        # end-to-end: the .wgt unzipped and run from file:// in a headless Chromium
 make format            # format with Prettier and apply the fixes ESLint can make
 make lint              # ESLint (strict, complexity, security, browser support), Stylelint and the Prettier check
 make typecheck         # tsc 7 strict: the app, the pure core alone, the tests and the tooling
@@ -48,16 +50,20 @@ src/platform/  what differs between TVs and browsers: config.json, polyfills, th
                codes of the remote controls of Tizen and webOS
 src/ui/        Preact components and src/ui/messages.ts, every text people read
 src/main.tsx   composition root: wires the adapters into the UI
-scripts/       tooling: the webOS packaging (scripts/webos), Quality Report, suppression ratchet,
+scripts/       tooling: the TV packages (scripts/packaging, shared: the icon, the packaged config.json,
+               the app folder; scripts/webos; scripts/tizen), Quality Report, suppression ratchet,
                mutation runner, risk label check
 test/          test support: the fake Immich server (MSW) and its sample library, the stub photo
                library and the fake remote control of the component tests, the test setup, throwaway
-               git repositories, the .ipk and PNG helpers of the packaging tests
+               git repositories, the .ipk, .wgt (zip) and PNG helpers of the packaging tests
 webos/         the appinfo.json of the webOS app (no version: it comes from package.json) and
                config.example.json; webos/config.json is gitignored
-e2e/           the end-to-end test of the webOS package (Playwright, vitest.e2e.config.ts) and the
-               fake Immich it runs against on a real port
-docs/          docs/webos.md: packaging, Developer Mode, installing and debugging on an LG TV
+tizen/         the config.xml of the Tizen widget (no version: it comes from package.json) and
+               config.example.json; tizen/config.json is gitignored
+e2e/           the end-to-end tests of the TV packages (Playwright, vitest.e2e.config.ts), what they
+               share, and the fake Immich they run against on a real port
+docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signing (Tizen),
+               installing and debugging on an LG or a Samsung TV
 ```
 
 - `src/core` imports nothing from the other layers and no package at all (not even Preact or the
@@ -131,6 +137,14 @@ docs/          docs/webos.md: packaging, Developer Mode, installing and debuggin
   the package holds the bundle es-check verified. `@webos-tools/cli` runs through `npx` at the version
   pinned in `scripts/webos/ares.ts`, never as a devDependency: its shrinkwrapped dependencies fail
   `npm audit`. `webos/appinfo.json` keeps `disableBackHistoryAPI: true`, or Back never reaches the app.
+- **The Tizen app** (`make package-tizen`, `docs/tizen.md`) loads from `file://` too, with the same
+  `config.json` rules (`scripts/packaging/`). The packaging zips the widget itself
+  (`scripts/tizen/zip.ts`, deterministic) into an **unsigned** `.wgt`, with no Tizen tool: signing
+  needs the owner's Samsung author and distributor certificates (the latter bound to the TV's DUID)
+  and stays a manual step with the Tizen CLI. Never commit a certificate, a profile, a DUID or a TV's
+  address. `tizen/config.xml` keeps `<access origin="*" subdomains="true"/>` and the `internet`
+  privilege, or the app never reaches the proxy; it asks for no other privilege (`tv.inputdevice`
+  only if a key beyond arrows, Enter and Back is ever registered).
 - **Runtime configuration**: `config.json` next to `index.html` (`immichUrl`, the optional `apiKey`
   and `slideshowSeconds`) is read on every start and never committed (`.gitignore`);
   `public/config.example.json` documents it. Its fields are the public contract of every installation.
@@ -149,7 +163,8 @@ does.
   gitignored. The TV packages never carry one (`scripts/packaging/packaged-config.ts`).
 - **What the TVs run**: the build target, the polyfills and the compatibility checks (`vite.config.ts`,
   `.escheckrc.json`, `src/platform/polyfills.ts`, `browserslist`, `stylelint.config.mjs`), and the
-  webOS package (`webos/appinfo.json`, `scripts/webos/`). A gap shows as a blank screen on the TV,
+  TV packages (`webos/appinfo.json`, `tizen/config.xml`, `scripts/packaging/`, `scripts/webos/`,
+  `scripts/tizen/`). A gap shows as a blank screen on the TV,
   where there is no developer at hand.
 
 Usually high rather than critical: the fields of `config.json` (a rename breaks every installation

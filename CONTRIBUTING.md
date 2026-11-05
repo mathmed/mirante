@@ -24,27 +24,29 @@ load where the key reaches them without the app.
 
 ### Make targets
 
-| Command                    | Description                                                                |
-| -------------------------- | -------------------------------------------------------------------------- |
-| `make setup`               | Install the locked dependencies and the git hooks.                         |
-| `make dev`                 | Serve the app with hot reload (Vite).                                      |
-| `make build`               | Bundle the app into `dist/` (Vite) and check it against ES2018 (es-check). |
-| `make package-webos`       | Package the build as the LG webOS app (`.ipk`), see `docs/webos.md`.       |
-| `make test-webos`          | Run the `.ipk` from `file://` in a headless Chromium (Playwright).         |
-| `make format`              | Format (Prettier) and apply the fixes ESLint can make.                     |
-| `make lint`                | ESLint, Stylelint and the Prettier check.                                  |
-| `make typecheck`           | tsc 7 strict: the app, the core alone, the tests and the tooling.          |
-| `make test`                | Unit tests with coverage (100%, a ratchet).                                |
-| `make lint-arch`           | Architecture contracts (dependency-cruiser).                               |
-| `make dead-code`           | Unused files, exports and dependencies (knip).                             |
-| `make audit`               | Known vulnerabilities in the dependencies.                                 |
-| `make suppressions`        | Suppression ratchet against `suppressions-baseline.json`.                  |
-| `make quality`             | All of the above but the build: what the pre-commit hook runs.             |
-| `make mutation`            | Mutation testing of the whole core (weekly in CI).                         |
-| `make mutation-changed`    | Mutation testing of the core files changed against `BASE` (`origin/main`). |
-| `make suppressions-update` | Lower the suppression baseline after removing suppressions.                |
-| `make risk-labels`         | Create or update the `risk:<level>` labels on GitHub (needs `gh`).         |
-| `make all`                 | Everything CI runs on a pull request.                                      |
+| Command                    | Description                                                                        |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| `make setup`               | Install the locked dependencies and the git hooks.                                 |
+| `make dev`                 | Serve the app with hot reload (Vite).                                              |
+| `make build`               | Bundle the app into `dist/` (Vite) and check it against ES2018 (es-check).         |
+| `make package-webos`       | Package the build as the LG webOS app (`.ipk`), see `docs/webos.md`.               |
+| `make test-webos`          | Run the `.ipk` from `file://` in a headless Chromium (Playwright).                 |
+| `make package-tizen`       | Package the build as the Samsung Tizen app (unsigned `.wgt`), see `docs/tizen.md`. |
+| `make test-tizen`          | Run the `.wgt` from `file://` in a headless Chromium (Playwright).                 |
+| `make format`              | Format (Prettier) and apply the fixes ESLint can make.                             |
+| `make lint`                | ESLint, Stylelint and the Prettier check.                                          |
+| `make typecheck`           | tsc 7 strict: the app, the core alone, the tests and the tooling.                  |
+| `make test`                | Unit tests with coverage (100%, a ratchet).                                        |
+| `make lint-arch`           | Architecture contracts (dependency-cruiser).                                       |
+| `make dead-code`           | Unused files, exports and dependencies (knip).                                     |
+| `make audit`               | Known vulnerabilities in the dependencies.                                         |
+| `make suppressions`        | Suppression ratchet against `suppressions-baseline.json`.                          |
+| `make quality`             | All of the above but the build: what the pre-commit hook runs.                     |
+| `make mutation`            | Mutation testing of the whole core (weekly in CI).                                 |
+| `make mutation-changed`    | Mutation testing of the core files changed against `BASE` (`origin/main`).         |
+| `make suppressions-update` | Lower the suppression baseline after removing suppressions.                        |
+| `make risk-labels`         | Create or update the `risk:<level>` labels on GitHub (needs `gh`).                 |
+| `make all`                 | Everything CI runs on a pull request.                                              |
 
 ## Making a change
 
@@ -120,7 +122,12 @@ Dependabot proposes grouped weekly updates after a cooldown (major 15 days, mino
   fake Immich of `e2e/`. Both stay out of `make quality` and CI: they need the webOS CLI from npm
   (through `npx`, see `docs/webos.md` for why it is not a devDependency) and a browser download. Run
   `make test-webos` when a change touches the packaging, `webos/`, the startup or the remote control.
-  The Tizen app (`.wgt`) is a later step.
+- **Tizen package**: `make package-tizen` packages the same build, unchanged, as an unsigned `.wgt`
+  that `scripts/tizen/zip.ts` writes itself (no Tizen tool; signing is the owner's manual step, see
+  `docs/tizen.md`); `make test-tizen` unzips it and opens it from `file://` in the same headless
+  Chromium, with a `tizen` global. It stays out of `make quality` and CI for the browser download. Run
+  it when a change touches the packaging, `tizen/`, the startup or the remote control. What both
+  packages share lives in `scripts/packaging/` and `e2e/packaged-app.ts`.
 - **Mutation testing**: [Stryker](https://stryker-mutator.io/) mutates `src/core` (the pure logic,
   `stryker.config.json`) and runs the related tests against each mutant through its Vitest runner,
   with the TypeScript checker discarding mutants that do not compile. For each **survivor**, add the
