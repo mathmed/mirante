@@ -50,11 +50,13 @@ describe('listRandomPhotos', () => {
         id: 'trip-00',
         takenAtMs: Date.parse('2024-03-20T12:00:00.000Z'),
         date: { year: 2024, month: 3, day: 20 },
+        aspectRatio: 1.5,
       },
       {
         id: 'trip-01',
         takenAtMs: Date.parse('2024-03-20T12:01:00.000Z'),
         date: { year: 2024, month: 3, day: 20 },
+        aspectRatio: 1.5,
       },
     ])
     expect(bodies).toStrictEqual([
@@ -74,9 +76,29 @@ describe('listRandomPhotos', () => {
         id: 'family-dinner',
         takenAtMs: Date.parse('2023-12-25T01:30:00.000Z'),
         date: { year: 2023, month: 12, day: 24 },
+        aspectRatio: 1.5,
       },
     ])
   })
+
+  it.each([
+    { width: 3000, height: 4000, read: 0.75 },
+    { width: null, height: 4000, read: 1 },
+    { width: 3000, height: null, read: 1 },
+    { width: 3000, height: 0, read: 1 },
+  ])(
+    'should read the ratio of a photo of $width by $height as $read',
+    async ({ width, height, read }) => {
+      const [photo] = randomAnswer()
+      fakeServer.use(
+        http.post(`${API}/search/random`, () => HttpResponse.json([{ ...photo, width, height }])),
+      )
+
+      const [drawn] = await library().listRandomPhotos(1)
+
+      expect(drawn?.aspectRatio).toBe(read)
+    },
+  )
 
   it('should leave out what is not a photo', async () => {
     const [photo] = randomAnswer()

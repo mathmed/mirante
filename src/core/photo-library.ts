@@ -19,6 +19,9 @@ export interface Photo {
   // The instant it was taken, in milliseconds since the epoch: what photos are sorted by.
   readonly takenAtMs: number
   readonly date: PhotoDate
+  // Its width over its height, as the server reports them (1 when it does not know them): what a
+  // book lays its pages out with.
+  readonly aspectRatio: number
 }
 
 export const PhotoOrder = {

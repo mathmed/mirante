@@ -22,7 +22,12 @@ export interface FakeAsset {
   readonly isArchived?: boolean
   // The caption written for it in Immich.
   readonly description?: string
+  // Its width over its height; 3:2 when left out.
+  readonly ratio?: number
 }
+
+const DEFAULT_RATIO = 1.5
+const HEIGHT = 1000
 
 interface FakeAlbum {
   readonly id: string
@@ -94,7 +99,7 @@ export function bucketOf(library: FakeLibrary, url: URL): TimeBucketAssetRespons
     livePhotoVideoId: assets.map(() => null),
     ownerId: assets.map(() => 'owner'),
     projectionType: assets.map(() => null),
-    ratio: assets.map(() => 1.5),
+    ratio: assets.map(ratioOf),
     thumbhash: assets.map(() => null),
     visibility: assets.map(() => AssetVisibility.Timeline),
   }
@@ -125,7 +130,7 @@ function assetResponseOf(asset: FakeAsset, hasExif: boolean): AssetResponseDto {
     fileCreatedAt: asset.takenAt,
     fileModifiedAt: asset.takenAt,
     hasMetadata: true,
-    height: 1000,
+    height: HEIGHT,
     id: asset.id,
     isArchived: asset.isArchived === true,
     isEdited: false,
@@ -140,9 +145,13 @@ function assetResponseOf(asset: FakeAsset, hasExif: boolean): AssetResponseDto {
     type: asset.isImage ? AssetTypeEnum.Image : AssetTypeEnum.Video,
     updatedAt: asset.takenAt,
     visibility: asset.isArchived === true ? AssetVisibility.Archive : AssetVisibility.Timeline,
-    width: 1500,
+    width: Math.round(HEIGHT * ratioOf(asset)),
     ...(hasExif ? { exifInfo: { description: asset.description ?? '' } } : {}),
   }
+}
+
+function ratioOf(asset: FakeAsset): number {
+  return asset.ratio ?? DEFAULT_RATIO
 }
 
 function monthOf(asset: FakeAsset): string {

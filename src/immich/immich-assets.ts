@@ -15,6 +15,8 @@ import { malformed } from './immich-request.ts'
 const MONTH_OF_BUCKET = /^(\d{4})-(\d{2})/
 const FIRST_MONTH = 1
 const LAST_MONTH = 12
+// What Immich reports for a photo whose dimensions it does not know yet: a square.
+const UNKNOWN_ASPECT_RATIO = 1
 
 // One asset of a time bucket, read across its columns.
 interface AssetRow {
@@ -22,6 +24,7 @@ interface AssetRow {
   readonly isImage: unknown
   readonly fileCreatedAt: unknown
   readonly localOffsetHours: unknown
+  readonly ratio: unknown
 }
 
 // The SDK does not check what the server sends: every answer is checked here, where it enters.
@@ -123,20 +126,48 @@ function rowsOf(bucket: TimeBucketAssetResponseDto): readonly AssetRow[] {
   const isImage = listOf(bucket.isImage, 'asset kinds').values()
   const fileCreatedAt = listOf(bucket.fileCreatedAt, 'asset dates').values()
   const localOffsetHours = listOf(bucket.localOffsetHours, 'asset offsets').values()
+  const ratio = listOf(bucket.ratio, 'asset ratios').values()
   return listOf(bucket.id, 'asset ids').map((id) => ({
     id,
     isImage: isImage.next().value,
     fileCreatedAt: fileCreatedAt.next().value,
     localOffsetHours: localOffsetHours.next().value,
+    ratio: ratio.next().value,
   }))
 }
 
-function photoOf({ id, fileCreatedAt, localOffsetHours }: AssetRow): Photo {
+function photoOf({ id, fileCreatedAt, localOffsetHours, ratio }: AssetRow): Photo {
   if (typeof id !== 'string' || typeof localOffsetHours !== 'number') {
     throw malformed('asset')
   }
   const takenAtMs = instantOf(fileCreatedAt, 'asset date')
-  return { id, takenAtMs, date: photoDateOf(takenAtMs, localOffsetHours) }
+  return {
+    id,
+    takenAtMs,
+    date: photoDateOf(takenAtMs, localOffsetHours),
+    aspectRatio: aspectRatioOf(ratio),
+  }
+}
+
+// The width over the height Immich computed; a photo it has not measured yet (no ratio, or none
+// that makes sense) counts as a square.
+function aspectRatioOf(ratio: unknown): number {
+  if (ratio === null) {
+    return UNKNOWN_ASPECT_RATIO
+  }
+  if (typeof ratio !== 'number') {
+    throw malformed('asset ratio')
+  }
+  return Number.isFinite(ratio) && ratio > 0 ? ratio : UNKNOWN_ASPECT_RATIO
+}
+
+// The dimensions of a drawn photo, when Immich knows them.
+function dimensionsRatioOf(asset: AssetResponseDto): number {
+  const { width, height } = asset
+  if (typeof width !== 'number' || typeof height !== 'number') {
+    return UNKNOWN_ASPECT_RATIO
+  }
+  return aspectRatioOf(width / height)
 }
 
 // localDateTime is the time on the clock where the photo was taken, written as if it were UTC: its
@@ -147,7 +178,12 @@ function drawnPhotoOf(asset: AssetResponseDto): Photo {
   }
   const takenAtMs = instantOf(asset.fileCreatedAt, 'asset date')
   const localMs = instantOf(asset.localDateTime, 'asset local date')
-  return { id: asset.id, takenAtMs, date: photoDateOf(localMs, 0) }
+  return {
+    id: asset.id,
+    takenAtMs,
+    date: photoDateOf(localMs, 0),
+    aspectRatio: dimensionsRatioOf(asset),
+  }
 }
 
 function listOf<T>(answer: readonly T[], what: string): readonly T[] {

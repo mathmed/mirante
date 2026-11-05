@@ -57,6 +57,7 @@ interface Month {
 const MARCH_2024: Month = { year: 2024, month: 3 }
 
 const DAYS_IN_ANY_MONTH = 28
+const PHOTO_RATIO = 1.5
 
 // Photos of a month, in the order they were taken, one a day (and around again after the 28th),
 // named <prefix>-1, <prefix>-2...
@@ -69,5 +70,6 @@ export function photos(
     id: `${prefix}-${String(index + 1)}`,
     takenAtMs: Date.UTC(year, month - 1, 1) + index,
     date: { year, month, day: (index % DAYS_IN_ANY_MONTH) + 1 },
+    aspectRatio: PHOTO_RATIO,
   }))
 }

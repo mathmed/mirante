@@ -190,6 +190,7 @@ describe('listAlbumPhotos', () => {
       id: 'trip-00',
       takenAtMs: Date.parse('2024-03-20T12:00:00.000Z'),
       date: { year: 2024, month: 3, day: 20 },
+      aspectRatio: 1.5,
     })
   })
 
@@ -276,6 +277,7 @@ describe('listMonthPhotos', () => {
         id: 'family-dinner',
         takenAtMs: Date.parse('2023-12-25T01:30:00.000Z'),
         date: { year: 2023, month: 12, day: 24 },
+        aspectRatio: 1.5,
       },
     ])
   })
@@ -285,7 +287,28 @@ describe('listMonthPhotos', () => {
     isImage: [true],
     fileCreatedAt: ['2024-01-01T00:00:00Z'],
     localOffsetHours: [0],
+    ratio: [1.5],
   }
+
+  it.each([
+    { reported: 0.75, read: 0.75 },
+    { reported: 0, read: 1 },
+    { reported: -2, read: 1 },
+    { reported: null, read: 1 },
+  ])('should read the ratio $reported as $read', async ({ reported, read }) => {
+    fakeServer.use(
+      http.get(`${API}/timeline/bucket`, () => HttpResponse.json({ ...VALID, ratio: [reported] })),
+    )
+
+    const [photo] = await library().listMonthPhotos({
+      key: '2024-01-01',
+      year: 2024,
+      month: 1,
+      photoCount: 1,
+    })
+
+    expect(photo?.aspectRatio).toBe(read)
+  })
 
   it.each([
     { missing: 'the ids', bucket: { ...VALID, id: 'a' } },
@@ -296,6 +319,8 @@ describe('listMonthPhotos', () => {
     { missing: 'an offset', bucket: { ...VALID, localOffsetHours: [] } },
     { missing: 'a date', bucket: { ...VALID, fileCreatedAt: ['soon'] } },
     { missing: 'a date as text', bucket: { ...VALID, fileCreatedAt: [1_700_000_000] } },
+    { missing: 'the ratios', bucket: { ...VALID, ratio: undefined } },
+    { missing: 'a ratio as a number', bucket: { ...VALID, ratio: ['wide'] } },
   ])('should fail as not Immich without $missing', async ({ bucket }) => {
     fakeServer.use(http.get(`${API}/timeline/bucket`, () => HttpResponse.json(bucket)))
 

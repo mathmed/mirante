@@ -19,7 +19,7 @@ function album(id: string, lastPhotoAtMs?: number): Album {
 }
 
 function photo(id: string, takenAtMs: number): Photo {
-  return { id, takenAtMs, date: { year: 2024, month: 1, day: 1 } }
+  return { id, takenAtMs, date: { year: 2024, month: 1, day: 1 }, aspectRatio: 1 }
 }
 
 function month(
