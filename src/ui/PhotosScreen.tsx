@@ -13,7 +13,7 @@ import {
 import { Frame } from './Frame.tsx'
 import { Grid } from './Grid.tsx'
 import { Loaded } from './Loaded.tsx'
-import { MESSAGES, monthTitle, photoDateText } from './messages.ts'
+import { MESSAGES, monthTitle, type PanelText, photoDateText } from './messages.ts'
 import { Picture } from './Picture.tsx'
 import type { ScreenProps } from './screen-props.ts'
 import { useLibraryLoad } from './use-load.ts'
@@ -55,7 +55,7 @@ export function MonthScreen(props: MonthScreenProps): JSX.Element {
 interface PhotosScreenProps extends PhotoScreenProps {
   readonly title: string
   readonly task: () => Promise<readonly Photo[]>
-  readonly emptyText: string
+  readonly emptyText: PanelText
 }
 
 // The photos of an album or of a month in a grid of thumbnails; Enter opens the viewer over it.

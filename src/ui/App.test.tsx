@@ -60,9 +60,11 @@ function renderApp(
 }
 
 describe('App', () => {
-  it('should say it is connecting while the startup runs', () => {
+  it('should open on the logo and say it is connecting while the startup runs', () => {
     renderApp(pendingStartup().start)
 
+    expect(screen.getByRole('heading', { level: 1, name: MESSAGES.appName })).toBeTruthy()
+    expect(document.querySelector('.splash .logo-stacked')).not.toBeNull()
     expect(screen.getByRole('status').textContent).toBe(MESSAGES.connecting)
   })
 

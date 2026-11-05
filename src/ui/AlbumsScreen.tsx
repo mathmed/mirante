@@ -7,6 +7,7 @@ import { type Album, ImageSize, type PhotoLibrary } from '../core/photo-library.
 import { Frame } from './Frame.tsx'
 import { Grid } from './Grid.tsx'
 import { Loaded } from './Loaded.tsx'
+import { Mark } from './Logo.tsx'
 import { MESSAGES, photoCountText, shortText } from './messages.ts'
 import { Picture } from './Picture.tsx'
 import type { ScreenProps } from './screen-props.ts'
@@ -68,7 +69,9 @@ function AlbumTile({ album, library }: AlbumTileProps): JSX.Element {
   return (
     <>
       <div class="album-cover">
-        {album.coverPhotoId !== undefined && (
+        {album.coverPhotoId === undefined ? (
+          <Mark class="album-cover-mark" />
+        ) : (
           <Picture
             url={library.imageUrl(album.coverPhotoId, ImageSize.Thumbnail)}
             alt=""

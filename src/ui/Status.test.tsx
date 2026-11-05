@@ -26,6 +26,7 @@ describe('Waiting', () => {
     remote.press(RemoteKey.Enter, RemoteKey.Down, RemoteKey.Back)
 
     expect(screen.getByRole('status').textContent).toBe(MESSAGES.loading)
+    expect(document.querySelector('.status .status-mark')).not.toBeNull()
     expect(backs.count()).toBe(1)
   })
 
@@ -47,6 +48,7 @@ describe('Failure', () => {
     )
 
     const alert = screen.getByRole('alert')
+    expect(alert.querySelector('.panel-mark')).not.toBeNull()
     expect(alert.textContent).toContain(failureText(LoadFailure.Unreachable).title)
     expect(alert.textContent).toContain(failureText(LoadFailure.Unreachable).hint)
     await waitFor(() => {
@@ -91,7 +93,8 @@ describe('Empty', () => {
     const backs = counter()
     render(<Empty text={MESSAGES.emptyAlbum} keys={remote.keys} onBack={backs.add} />)
 
-    expect(screen.getByRole('status').textContent).toContain(MESSAGES.emptyAlbum)
+    expect(screen.getByRole('status').textContent).toContain(MESSAGES.emptyAlbum.title)
+    expect(screen.getByRole('status').textContent).toContain(MESSAGES.emptyAlbum.hint)
     await waitFor(() => {
       expect(document.activeElement).toBe(screen.getByRole('button', { name: MESSAGES.back }))
     })

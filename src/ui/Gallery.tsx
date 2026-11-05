@@ -5,6 +5,7 @@ import type { GridPosition } from '../core/grid.ts'
 import {
   depthOf,
   goBack,
+  type Navigation,
   openScreen,
   type Screen,
   ScreenKind,
@@ -17,6 +18,7 @@ import { HomeScreen } from './HomeScreen.tsx'
 import { AlbumScreen, MonthScreen } from './PhotosScreen.tsx'
 import type { ScreenProps } from './screen-props.ts'
 import { MonthsScreen, YearsScreen } from './TimelineScreens.tsx'
+import { useBackdrop } from './use-backdrop.ts'
 
 export interface GalleryProps {
   readonly session: Session
@@ -29,17 +31,8 @@ export interface GalleryProps {
 // The screens of the library, one on top of the other: Enter opens the next, Back returns to the
 // one below with the focus where it was; on the start screen, Back leaves the app.
 export function Gallery({ session, keys, reportError, leave }: GalleryProps): JSX.Element {
-  const [navigation, setNavigation] = useState(startNavigation)
-  const depth = depthOf(navigation)
-  const open = useCallback(
-    (from: GridPosition, screen: Screen) => {
-      setNavigation((previous) => openScreen(previous, { depth, position: from }, screen))
-    },
-    [depth],
-  )
-  const back = useCallback(() => {
-    setNavigation((previous) => goBack(previous, depth))
-  }, [depth])
+  const { navigation, depth, open, back } = useNavigation()
+  const backdropUrl = useBackdrop(session.library, reportError)
   const props: ScreenProps = {
     library: session.library,
     keys,
@@ -55,8 +48,32 @@ export function Gallery({ session, keys, reportError, leave }: GalleryProps): JS
       session={session}
       props={props}
       leave={leave}
+      backdropUrl={backdropUrl}
     />
   )
+}
+
+interface NavigationControls {
+  readonly navigation: Navigation
+  readonly depth: number
+  readonly open: (from: GridPosition, screen: Screen) => void
+  readonly back: () => void
+}
+
+// The stack of screens; a request from a screen no longer on top changes nothing.
+function useNavigation(): NavigationControls {
+  const [navigation, setNavigation] = useState(startNavigation)
+  const depth = depthOf(navigation)
+  const open = useCallback(
+    (from: GridPosition, screen: Screen) => {
+      setNavigation((previous) => openScreen(previous, { depth, position: from }, screen))
+    },
+    [depth],
+  )
+  const back = useCallback(() => {
+    setNavigation((previous) => goBack(previous, depth))
+  }, [depth])
+  return { navigation, depth, open, back }
 }
 
 interface ScreenViewProps {
@@ -67,12 +84,15 @@ interface ScreenViewProps {
 
 interface StackViewProps extends ScreenViewProps {
   readonly leave: () => void
+  readonly backdropUrl: string | undefined
 }
 
-function ScreenView({ screen, session, props, leave }: StackViewProps): JSX.Element {
+function ScreenView({ screen, session, props, leave, backdropUrl }: StackViewProps): JSX.Element {
   switch (screen.kind) {
     case ScreenKind.Home:
-      return <HomeScreen {...props} back={leave} server={session.server} />
+      return (
+        <HomeScreen {...props} back={leave} server={session.server} backdropUrl={backdropUrl} />
+      )
     case ScreenKind.Albums:
       return <AlbumsScreen {...props} />
     case ScreenKind.Years:

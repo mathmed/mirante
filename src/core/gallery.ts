@@ -40,6 +40,12 @@ export async function loadMonthPhotos(
   return sortPhotos(await library.listMonthPhotos(month), PhotoOrder.OldestFirst)
 }
 
+// The photo behind the start screen: the cover of the first album that has one, in the order the
+// albums screen shows them (the most recent first); none for a library without covers.
+export function backdropPhotoId(albums: readonly Album[]): string | undefined {
+  return albums.find((album) => album.coverPhotoId !== undefined)?.coverPhotoId
+}
+
 export function sortAlbums(albums: readonly Album[]): readonly Album[] {
   const sorted = [...albums]
   sorted.sort((first, second) =>
