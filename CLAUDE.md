@@ -55,10 +55,11 @@ src/platform/  what differs between TVs and browsers: config.json, polyfills, th
                codes of the remote controls of Tizen and webOS (and the Info key Tizen registers),
                the localStorage of the settings, the random seeds
 src/ui/        Preact components, src/ui/messages.ts (every text people read), styles.css, the
-               fonts it ships (src/ui/fonts) and the mark of the logo (src/ui/assets, written by
-               make logo)
+               fonts it ships (src/ui/fonts) and the mark and the icon of the logo (src/ui/assets,
+               written by make logo)
 src/main.tsx   composition root: wires the adapters into the UI
-scripts/       tooling: the logo (scripts/logo: its shapes, the SVG files and their check), the TV
+scripts/       tooling: the logo (scripts/logo: its shapes, the SVG files and their check, and the
+               two alternatives of the icon, only drawn into a screenshot), the TV
                packages (scripts/packaging, shared: the icon, the packaged config.json, the app
                folder; scripts/webos, with the classic-script plugin of the webOS build;
                scripts/tizen), the browser API check (scripts/browser-apis), Quality Report,
@@ -155,15 +156,19 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   and `opacity` change, few elements animate, and nothing relies on `overflow`, which Chromium 68
   supports only in part: screens are `position: fixed` and off-screen cells are hidden.
 - **Overscan**: every screen keeps its content inside the safe area, 5% of each edge.
-- **The look** (CONTRIBUTING.md, "The look of the app"): the palette of the logo (warm near-black,
-  golds, warm text; every text at a contrast of 4.5:1 or more; the dark gold only draws lines) as
-  custom properties of `src/ui/styles.css`, Playfair Display for titles (Latin-subset WOFF2 shipped
-  in `src/ui/fonts`, OFL, `font-display: swap`) and the system font for the rest; never a font or an
-  image from the network but Immich's. Only `opacity` and `transform` animate; glows stay on the
+- **The look** (CONTRIBUTING.md, "The look of the app"): the palette of the logo (neutral graphite
+  with one soft amber accent, the `--gold` names; every text at a contrast of 4.5:1 or more, which
+  `src/ui/palette.test.ts` checks) as custom properties of `src/ui/styles.css`, the only place a
+  color is written: shades with transparency are `rgb(var(--name-rgb) / alpha)` of the channels
+  declared there, never a loose value in a rule. Manrope 400, 600 and 700 for the whole interface,
+  titles included, tabular figures where numbers count, and the italic of Playfair Display only for
+  the captions (the photo book, when it comes, keeps it for the title of its cover), Latin-subset
+  WOFF2 shipped in `src/ui/fonts`, OFL, `font-display: swap`; never a font or an image from the
+  network but Immich's. Focus: an amber ring, one short glow and `scale(1.04)`. Only `opacity` and `transform` animate; glows stay on the
   focused element; darken with gradients, never `filter: blur` or `backdrop-filter` (Stylelint bans
   `blur()` and the individual `translate`, `scale` and `rotate` properties). The logo is drawn from
-  `scripts/logo/mark.ts` (the TV icons too): run `make logo` after changing it, never edit its SVG
-  files by hand. After a visual change, run `make screenshots` and commit `docs/screenshots/`.
+  `scripts/logo/mark.ts` (the app's icon and the TV icons too): run `make logo` after changing it,
+  never edit its SVG files by hand. After a visual change, run `make screenshots` and commit `docs/screenshots/`.
 - **Relative paths** (`base: './'`) and **no service worker**: the packaged apps load from `file://`.
 - **No module script on webOS**: webOS serves `file://` without a MIME type, and its Chromium refuses
   a module script then (the owner's LG showed a grey screen). The webOS build

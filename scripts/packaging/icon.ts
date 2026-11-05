@@ -1,30 +1,25 @@
-import { MARK, PALETTE } from '../logo/mark.ts'
+import { ICON_BACKGROUND, MARK } from '../logo/mark.ts'
 import {
   type Bounds,
   boundsOf,
   type Color,
   isInShape,
+  mixOf,
   type Point,
   type Shape,
 } from '../logo/shapes.ts'
 import { BYTES_PER_PIXEL, type Image } from './png.ts'
 
-// The icon of the app: the mark of the logo (scripts/logo/mark.ts) on the dark background of the
-// app, in a square with rounded corners. Every pixel is computed, so the same size always gives the
-// same image.
-const CORNER_RADIUS = 0.2
+// The icon of the app: the mark of the logo (scripts/logo/mark.ts) on its rounded graphite square,
+// the same as docs/logo/mirante-icon.svg. Every pixel is computed, so the same size always gives
+// the same image.
+const CORNER_RADIUS = ICON_BACKGROUND.cornerRadius
 const OPAQUE = 255
 // Samples per pixel along each axis: 4x4 of them smooth the edges.
 const SAMPLES = 4
 const HALF = 0.5
 const NO_COLOR: Color = { red: 0, green: 0, blue: 0 }
 const TRANSPARENT: readonly number[] = [0, 0, 0, 0]
-const BACKGROUND: readonly number[] = [
-  PALETTE.background.red,
-  PALETTE.background.green,
-  PALETTE.background.blue,
-  OPAQUE,
-]
 
 // Where the samples fall inside a pixel, from its top left corner.
 const OFFSETS: readonly number[] = [...new Array<undefined>(SAMPLES).keys()].map(
@@ -65,7 +60,11 @@ function pixelAt(corner: Point, size: number): readonly number[] {
     ({ shape }) => shape,
   )
   if (shapes.length === 0 && isAwayFromTheCorners(box)) {
-    return BACKGROUND
+    const { red, green, blue } = backgroundAt({
+      x: (box.left + box.right) * HALF,
+      y: (box.top + box.bottom) * HALF,
+    })
+    return [red, green, blue, OPAQUE]
   }
   return sampled(corner, size, shapes)
 }
@@ -100,7 +99,13 @@ function colorAt(point: Point, shapes: readonly Shape[]): Color | undefined {
   if (!isInRoundedSquare(point)) {
     return undefined
   }
-  return shapes.find((shape) => isInShape(shape, point))?.color ?? PALETTE.background
+  return shapes.find((shape) => isInShape(shape, point))?.color ?? backgroundAt(point)
+}
+
+// The diagonal gradient of the square, from its top left corner to its bottom right one, as the
+// SVG icon draws it.
+function backgroundAt({ x, y }: Point): Color {
+  return mixOf(ICON_BACKGROUND.from, ICON_BACKGROUND.to, (x + y) * HALF)
 }
 
 function overlaps(first: Bounds, second: Bounds): boolean {

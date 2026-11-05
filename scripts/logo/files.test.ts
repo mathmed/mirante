@@ -10,6 +10,7 @@ import { LOGO_FONT, logoFiles, writeLogoFiles } from './files.ts'
 const REPOSITORY = join(import.meta.dirname, '../..')
 const PATHS = [
   'src/ui/assets/mirante-mark.svg',
+  'src/ui/assets/mirante-icon.svg',
   'docs/logo/mirante-icon.svg',
   'docs/logo/mirante-logo.svg',
 ]
@@ -29,7 +30,7 @@ describe('logoFiles', () => {
     }
   })
 
-  it('should give the mark of the app and the icon and the logo of the docs', async () => {
+  it('should give the mark and the icon of the app and the icon and the logo of the docs', async () => {
     const sut = await logoFiles(root)
 
     expect(sut.map((file) => file.path)).toStrictEqual(PATHS)

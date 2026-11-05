@@ -4,10 +4,8 @@ import { type DecodedPng, pixelOf, readPng } from '../../test/support/png.ts'
 import { drawIcon } from './icon.ts'
 import { encodePng } from './png.ts'
 
-const BACKGROUND = [0x0e, 0x0c, 0x09, 255]
-const GOLD = [0xd4, 0xa9, 0x3c, 255]
-const LIGHT_GOLD = [0xf0, 0xcf, 0x7a, 255]
-const DARK_GOLD = [0x8a, 0x6a, 0x1f, 255]
+const AMBER = [0xf0, 0xb6, 0x5a, 255]
+const LIGHT_AMBER = [0xff, 0xd0, 0x8a, 255]
 const TRANSPARENT = [0, 0, 0, 0]
 
 function icon(size: number): DecodedPng {
@@ -26,15 +24,23 @@ describe('drawIcon', () => {
     expect([sut.width, sut.height]).toStrictEqual([size, size])
   })
 
-  it('should draw the mark of the logo in its golds on the dark background of the app', () => {
+  it('should draw the M of the mark in amber and its sun in the light amber', () => {
     const sut = icon(130)
 
-    expect(at(sut, 0.5, 0.265)).toStrictEqual(GOLD)
-    expect(at(sut, 0.62, 0.48)).toStrictEqual(LIGHT_GOLD)
-    expect(at(sut, 0.15, 0.615)).toStrictEqual(GOLD)
-    expect(at(sut, 0.5, 0.775)).toStrictEqual(DARK_GOLD)
-    expect(at(sut, 0.5, 0.33)).toStrictEqual(BACKGROUND)
-    expect(at(sut, 0.5, 0.9)).toStrictEqual(BACKGROUND)
+    expect(at(sut, 0.385, 0.42)).toStrictEqual(AMBER)
+    expect(at(sut, 0.5, 0.6)).toStrictEqual(AMBER)
+    expect(at(sut, 0.625, 0.36)).toStrictEqual(AMBER)
+    expect(at(sut, 0.25, 0.69)).toStrictEqual(AMBER)
+    expect(at(sut, 0.75, 0.29)).toStrictEqual(LIGHT_AMBER)
+  })
+
+  it('should fill the square with a graphite gradient, lighter at the top left', () => {
+    const sut = icon(130)
+
+    expect(at(sut, 0.5, 0.15)).toStrictEqual([0x17, 0x17, 0x1b, 255])
+    expect(at(sut, 0.15, 0.5)).toStrictEqual([0x17, 0x17, 0x1b, 255])
+    expect(at(sut, 0.5, 0.9)).toStrictEqual([0x12, 0x12, 0x15, 255])
+    expect(at(sut, 0.85, 0.85)).toStrictEqual([0x10, 0x10, 0x13, 255])
   })
 
   it('should leave the corners outside the rounded square transparent', () => {
@@ -42,7 +48,7 @@ describe('drawIcon', () => {
 
     expect(pixelOf(sut, 0, 0)).toStrictEqual(TRANSPARENT)
     expect(pixelOf(sut, 79, 79)).toStrictEqual(TRANSPARENT)
-    expect(pixelOf(sut, 79, 30)).toStrictEqual(BACKGROUND)
+    expect(pixelOf(sut, 79, 40)[3]).toBe(255)
   })
 
   it('should smooth the edges with pixels partly covered', () => {

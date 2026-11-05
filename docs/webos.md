@@ -86,13 +86,19 @@ of `make quality`) would fail. Instead:
 
 What goes into the package:
 
-| File                    | Where it comes from                                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------------------- |
-| `index.html`, `assets/` | `build/webos-dist/`, byte for byte: `ares-package` runs with `--no-minify`, so it does not minify again |
-| `appinfo.json`          | `webos/appinfo.json`, plus the `version` of `package.json`                                              |
-| `config.json`           | `MIRANTE_IMMICH_URL`, or `webos/config.json`                                                            |
-| `icon.png`              | 80x80, the mark of the logo drawn by `scripts/packaging/icon.ts` (no image is committed)                |
-| `largeIcon.png`         | 130x130, drawn the same way                                                                             |
+| File                    | Where it comes from                                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| `index.html`, `assets/` | `build/webos-dist/`, byte for byte: `ares-package` runs with `--no-minify`, so it does not minify again  |
+| `appinfo.json`          | `webos/appinfo.json`, plus the `version` of `package.json`                                               |
+| `config.json`           | `MIRANTE_IMMICH_URL`, or `webos/config.json`                                                             |
+| `icon.png`              | 80x80, the icon of the app (the amber mark on its graphite square), drawn by `scripts/packaging/icon.ts` |
+| `largeIcon.png`         | 130x130, drawn the same way                                                                              |
+
+<img src="logo/mirante-icon.svg" alt="The icon of Mirante" width="130">
+
+The icons are drawn from the same shapes as [`docs/logo/mirante-icon.svg`](logo/mirante-icon.svg):
+nothing is committed, and a package made after `make logo` changes them always carries the current
+icon.
 
 `webos/appinfo.json` declares the app (`com.mathmed.mirante`, a `web` app opening `index.html` at
 1920x1080). It has no `version`: the version is always the one of `package.json`. It sets

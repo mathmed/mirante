@@ -2,8 +2,9 @@ import type { JSX } from 'preact'
 
 import { ScreenKind } from '../core/navigation.ts'
 
-// The line icons of the start screen, drawn in the color of the text around them, by the screen
-// each card opens.
+// The line icons of the start screen, by the screen each card opens: one line of 2 on a grid of
+// 24, with round ends and corners, drawn in the color of the text around them (amber on the
+// focused card).
 export interface HomeIconProps {
   readonly kind: ScreenKind
 }
@@ -12,11 +13,11 @@ export function HomeIcon({ kind }: HomeIconProps): JSX.Element {
   return (
     <svg
       class="home-icon"
-      viewBox="0 0 64 64"
+      viewBox="0 0 24 24"
       aria-hidden="true"
       fill="none"
       stroke="currentColor"
-      stroke-width="2.75"
+      stroke-width="2"
       stroke-linecap="round"
       stroke-linejoin="round"
     >
@@ -38,38 +39,37 @@ function Lines({ kind }: HomeIconProps): JSX.Element {
   }
 }
 
-// Two frames, one behind the other, with a sun over the hills in the front one.
+// A photo, with a sun over a hill, and the edge of another one behind it.
 function AlbumsLines(): JSX.Element {
   return (
     <>
-      <path d="M18 14V12a4 4 0 0 1 4-4h32a4 4 0 0 1 4 4v26a4 4 0 0 1-4 4h-2" opacity="0.55" />
-      <rect x="6" y="20" width="44" height="36" rx="4" />
-      <circle cx="19" cy="31" r="3.5" />
-      <path d="M10 50l12-11 8 7 6-5 10 9" />
+      <path d="M7 3.5h11.5A2.5 2.5 0 0 1 21 6v10" />
+      <rect x="3" y="7" width="14" height="14" rx="2.5" />
+      <circle cx="8" cy="12" r="1.5" />
+      <path d="M3 18.5l4.5-4 3 2.5 2-1.5 4.5 3.5" />
     </>
   )
 }
 
-// A line through time, with the moments on it.
+// A line through time, with three moments on it.
 function TimelineLines(): JSX.Element {
   return (
     <>
-      <path d="M4 32h56" />
-      <circle cx="14" cy="32" r="4.5" />
-      <circle cx="32" cy="32" r="4.5" fill="currentColor" />
-      <circle cx="50" cy="32" r="4.5" />
-      <path d="M14 26V14M32 38v12M50 26V14" opacity="0.55" />
+      <path d="M2.5 12h19" />
+      <circle cx="6" cy="12" r="2" fill="currentColor" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" />
+      <circle cx="18" cy="12" r="2" fill="currentColor" />
     </>
   )
 }
 
-// A screen with the sign of play, and the edge of the next photo behind it.
+// A screen on its stand, with the sign of play.
 function PresentLines(): JSX.Element {
   return (
     <>
-      <path d="M14 10h40a4 4 0 0 1 4 4v28" opacity="0.55" />
-      <rect x="6" y="18" width="44" height="36" rx="4" />
-      <path d="M23 28l13 8-13 8z" fill="currentColor" />
+      <rect x="2.5" y="4" width="19" height="13" rx="2.5" />
+      <path d="M10 8.5l4.5 2.5-4.5 2.5z" />
+      <path d="M8.5 21h7" />
     </>
   )
 }
@@ -78,10 +78,10 @@ function PresentLines(): JSX.Element {
 function SettingsLines(): JSX.Element {
   return (
     <>
-      <path d="M8 16h48M8 32h48M8 48h48" opacity="0.55" />
-      <circle cx="22" cy="16" r="5" fill="currentColor" />
-      <circle cx="44" cy="32" r="5" fill="currentColor" />
-      <circle cx="30" cy="48" r="5" fill="currentColor" />
+      <path d="M3 6h18M3 12h18M3 18h18" />
+      <circle cx="8" cy="6" r="2" fill="currentColor" />
+      <circle cx="16" cy="12" r="2" fill="currentColor" />
+      <circle cx="11" cy="18" r="2" fill="currentColor" />
     </>
   )
 }
