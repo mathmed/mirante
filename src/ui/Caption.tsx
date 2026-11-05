@@ -19,7 +19,7 @@ interface KnownCaption {
   readonly text: string | undefined
 }
 
-// The caption written for the photo in Immich, under it, in the golden italic serif. It fades in
+// The caption written for the photo in Immich, under it, in the italic serif. It fades in
 // when it arrives; without one nothing shows, and nothing else on the screen moves.
 export function Caption({ captions, photoId, nextPhotoId }: CaptionProps): JSX.Element {
   const text = useCaption(captions, photoId)

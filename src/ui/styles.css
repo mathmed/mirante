@@ -1,19 +1,36 @@
-/* Sized for a TV seen from the couch: 1920x1080, large type, and a golden focus nobody can miss.
+/* Sized for a TV seen from the couch: 1920x1080, large type, and an amber focus nobody can miss.
    Only features Chromium 68 has (stylelint checks them against browserslist): no gap in flexbox,
    no inset, no clamp(), no :is(), no blur. Every screen keeps its content inside the safe area:
    TVs may hide up to 5% of each edge (overscan). Only opacity and transform animate, on few
    elements. Nothing relies on overflow (Chromium 68 supports it only in part): a screen is fixed to
    the viewport, so what lies past its edges never scrolls the page, and the cells off the screen are
-   hidden. Colors with transparency are 8-digit hex, which Chromium 68 reads. */
+   hidden. */
 
-/* The serif of the titles, shipped with the app (SIL Open Font License, fonts/OFL.txt): the Latin
-   subset only. The rest of the text is the font of the system. */
+/* The fonts, shipped with the app (SIL Open Font License, fonts/OFL.txt), Latin subsets only:
+   Manrope for the whole interface, in three weights, and the italic of Playfair Display for the
+   captions of the photos alone. */
 @font-face {
-  font-family: 'Playfair Display';
+  font-family: Manrope;
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('./fonts/playfair-display-latin-400-normal.woff2') format('woff2');
+  src: url('./fonts/manrope-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: Manrope;
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/manrope-latin-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: Manrope;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/manrope-latin-700-normal.woff2') format('woff2');
 }
 
 @font-face {
@@ -24,19 +41,39 @@
   src: url('./fonts/playfair-display-latin-400-italic.woff2') format('woff2');
 }
 
-/* The palette of the logo (scripts/logo/mark.ts). Every text keeps a contrast of 4.5:1 or more
-   with what is behind it; the dark gold only draws lines. */
+/* The palette, the only place colors are written (the logo, scripts/logo/mark.ts, draws with the
+   same): graphite with one amber accent. Each color is set on its own line; those that also show
+   with transparency are set as their channels, and every shade of them is
+   rgb(var(--name-rgb) / alpha). The --gold names are the amber accent. Every text keeps a contrast
+   of 4.5:1 or more with what is behind it (palette.test.ts). */
 :root {
-  --background: #0e0c09;
-  --surface: #1b1710;
-  --surface-raised: #2a2318;
-  --gold: #d4a93c;
-  --gold-light: #f0cf7a;
-  --gold-dark: #8a6a1f;
-  --text: #f4eedf;
-  --text-secondary: #a89b7c;
+  --background-rgb: 12 12 14;
+  --surface-rgb: 23 23 27;
+  --text-rgb: 244 244 246;
+  --gold-rgb: 240 182 90;
+  --shade-rgb: 0 0 0;
+  --background: rgb(var(--background-rgb));
+  --surface: rgb(var(--surface-rgb));
+  --surface-raised: #222228;
+  --border: #2b2b33;
+  --text: rgb(var(--text-rgb));
+  --text-secondary: #9b9ba7;
+  --gold: rgb(var(--gold-rgb));
+  --gold-light: #ffd08a;
+  --gold-dark: #b8802d;
+
+  /* For the destructive actions to come; nothing uses it yet. */
+  --danger: #e5625a;
+  --sans: manrope, system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
   --serif: 'Playfair Display', georgia, 'Times New Roman', serif;
-  --focus-glow: 0 0 0 1px #f0cf7a80, 0 0 28px #d4a93c59, 0 12px 32px #0000008c;
+  --radius-card: 24px;
+  --radius-large: 28px;
+  --focus-scale: 1.04;
+
+  /* The ring of the focus, then one short glow and the shadow that lifts the element. */
+  --focus-glow:
+    0 0 0 3px var(--gold), 0 0 22px rgb(var(--gold-rgb) / 28%),
+    0 14px 32px rgb(var(--shade-rgb) / 55%);
   --enter: 320ms ease-out both;
 }
 
@@ -49,12 +86,7 @@ body {
 body {
   background: var(--background);
   color: var(--text);
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  font-family: var(--sans);
   font-size: 28px;
   line-height: 1.4;
 }
@@ -69,10 +101,23 @@ body {
   }
 }
 
+/* The icon of the opening: it fades in and settles to its size. */
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(24px);
+    transform: translateY(16px);
   }
 
   to {
@@ -125,29 +170,20 @@ body {
 .screen-header {
   display: flex;
   flex: none;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 3vh;
+  margin-bottom: 4vh;
 }
 
+/* Titles stand out by their weight and size alone. */
 .screen-title {
   margin: 0;
-  color: var(--gold-light);
-  font-family: var(--serif);
-  font-size: 56px;
-  font-weight: 400;
+  color: var(--text);
+  font-size: 52px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1.2;
   white-space: nowrap;
-}
-
-/* A thin golden line under each title, fading to the right. */
-.screen-title::after {
-  content: '';
-  display: block;
-  width: 120px;
-  height: 2px;
-  margin-top: 16px;
-  background: linear-gradient(90deg, var(--gold), #d4a93c00);
 }
 
 .mark {
@@ -155,13 +191,10 @@ body {
 }
 
 .screen-mark {
-  height: 52px;
-  margin-top: 8px;
-  opacity: 0.85;
+  height: 44px;
 }
 
-/* The logo: the mark with the name, widely spaced; the spacing after the last letter is balanced
-   by a padding before the first. */
+/* The logo: the mark, or the icon, with the name in lowercase, slightly tightened. */
 .logo {
   display: flex;
   align-items: center;
@@ -172,36 +205,38 @@ body {
 }
 
 .logo-name {
-  padding-left: 0.42em;
-  color: var(--gold-light);
-  font-family: var(--serif);
-  font-weight: 400;
-  letter-spacing: 0.42em;
-  text-transform: uppercase;
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
 }
 
 .logo-stacked .logo-mark {
-  height: 220px;
-  margin-bottom: 44px;
+  width: 200px;
+  height: 200px;
+  margin-bottom: 40px;
+  border-radius: 45px;
+  box-shadow: 0 24px 60px rgb(var(--shade-rgb) / 60%);
+  animation: appear 700ms ease-out both;
 }
 
 .logo-stacked .logo-name {
-  font-size: 68px;
+  font-size: 64px;
   line-height: 1;
+  animation: rise-in 600ms ease-out 200ms both;
 }
 
 .logo-inline .logo-mark {
-  height: 76px;
-  margin-right: 28px;
+  height: 60px;
+  margin-right: 22px;
 }
 
 .logo-inline .logo-name {
-  padding-left: 0;
-  font-size: 42px;
+  font-size: 48px;
   line-height: 1;
 }
 
-/* Waiting, empty and failed: the small mark, a few warm words, and the button already focused. */
+/* Waiting, empty and failed: the small mark, a few words, and the button already focused. */
 .status {
   display: flex;
   flex-direction: column;
@@ -210,7 +245,7 @@ body {
 }
 
 .status-mark {
-  height: 76px;
+  height: 64px;
   margin-bottom: 28px;
   animation: breathe 1800ms ease-in-out infinite;
 }
@@ -218,9 +253,7 @@ body {
 .status-text {
   margin: 0;
   color: var(--text-secondary);
-  font-family: var(--serif);
-  font-size: 34px;
-  font-style: italic;
+  font-size: 30px;
 }
 
 .panel {
@@ -233,27 +266,28 @@ body {
 }
 
 .panel-mark {
-  height: 68px;
-  margin-bottom: 32px;
+  height: 60px;
+  margin-bottom: 36px;
 }
 
 .panel-title {
   margin: 0 0 16px;
-  color: var(--gold-light);
-  font-family: var(--serif);
-  font-size: 46px;
-  font-weight: 400;
+  color: var(--text);
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   line-height: 1.2;
 }
 
 .panel-hint {
-  margin: 0 0 48px;
+  max-width: 900px;
+  margin: 0 0 52px;
   color: var(--text-secondary);
 }
 
 .action {
-  padding: 16px 56px;
-  border: 3px solid transparent;
+  padding: 18px 56px;
+  border: 0;
   border-radius: 48px;
   background: var(--surface-raised);
   color: var(--text);
@@ -262,12 +296,11 @@ body {
   transition: transform 180ms ease-out;
 }
 
-/* The opening: the logo rises into view; the status under it only shows when the server is slow. */
+/* The opening: the icon appears; the status under it only shows when the server is slow. */
 .splash-logo {
   margin: 0 0 64px;
   font-size: inherit;
   font-weight: inherit;
-  animation: rise-in 900ms ease-out both;
 }
 
 .splash .status {
@@ -284,7 +317,7 @@ body {
   display: none;
 }
 
-/* The start screen: the logo, two large cards over a darkened photo of the library, the server. */
+/* The start screen: the logo, four cards over a darkened photo of the library, the server. */
 .home {
   justify-content: space-between;
 }
@@ -302,11 +335,9 @@ body {
 }
 
 .home-tagline {
-  margin: 24px 0 0;
+  margin: 20px 0 0;
   color: var(--text-secondary);
-  font-family: var(--serif);
-  font-size: 32px;
-  font-style: italic;
+  font-size: 28px;
 }
 
 .backdrop {
@@ -339,8 +370,18 @@ body {
   width: 100%;
   height: 100%;
   background:
-    linear-gradient(0deg, #0e0c09f2 0%, #0e0c098c 35%, #0e0c0900 65%),
-    linear-gradient(90deg, #0e0c09f2 0%, #0e0c09a6 40%, #0e0c0933 100%);
+    linear-gradient(
+      0deg,
+      rgb(var(--background-rgb) / 96%) 0%,
+      rgb(var(--background-rgb) / 60%) 35%,
+      rgb(var(--background-rgb) / 0%) 65%
+    ),
+    linear-gradient(
+      90deg,
+      rgb(var(--background-rgb) / 95%) 0%,
+      rgb(var(--background-rgb) / 65%) 40%,
+      rgb(var(--background-rgb) / 20%) 100%
+    );
 }
 
 .footnote {
@@ -355,7 +396,7 @@ body {
   position: relative;
   flex: 1 1 0;
   min-height: 0;
-  margin: 0 -12px;
+  margin: 0 -14px;
   padding: 0;
   list-style: none;
   animation: fade-in var(--enter);
@@ -372,7 +413,7 @@ body {
   top: 0;
   left: 0;
   box-sizing: border-box;
-  padding: 12px;
+  padding: 14px;
   outline: none;
 }
 
@@ -386,6 +427,7 @@ body {
   visibility: hidden;
 }
 
+/* A flat graphite card; the focused one is raised and ringed in amber. */
 .tile {
   position: relative;
   box-sizing: border-box;
@@ -394,8 +436,7 @@ body {
   align-items: center;
   justify-content: center;
   height: 100%;
-  border: 3px solid transparent;
-  border-radius: 16px;
+  border-radius: var(--radius-card);
   background: var(--surface);
   transition: transform 180ms ease-out;
 }
@@ -403,6 +444,8 @@ body {
 .tile-title {
   max-width: 90%;
   font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   text-align: center;
   white-space: nowrap;
 }
@@ -410,13 +453,14 @@ body {
 .tile-detail {
   color: var(--text-secondary);
   font-size: 22px;
+  font-variant-numeric: tabular-nums;
 }
 
 .picture {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 13px;
+  border-radius: var(--radius-card);
   object-fit: cover;
 }
 
@@ -432,29 +476,33 @@ body {
   text-align: center;
 }
 
+/* The cards of the start screen, over the photo: the surface lets a little of it through. */
 .grid-home .tile,
 .grid-choices .tile {
   align-items: flex-start;
   justify-content: space-between;
   padding: 36px 40px;
-  border-color: #d4a93c40;
-  background: #1b1710e0;
+  border-radius: var(--radius-large);
+}
+
+.grid-home .tile {
+  background: rgb(var(--surface-rgb) / 90%);
+  box-shadow: inset 0 0 0 2px var(--border);
 }
 
 .home-icon {
-  width: 84px;
-  height: 84px;
-  color: var(--gold);
+  width: 60px;
+  height: 60px;
+  color: var(--text-secondary);
 }
 
 .grid-home .tile-title {
-  font-family: var(--serif);
-  font-size: 46px;
+  font-size: 40px;
   line-height: 1.1;
   text-align: left;
 }
 
-/* The choices of a presentation: four cards, what each presents in the serif, how below it. */
+/* The choices of a presentation: four cards, what each presents, and how below it. */
 .grid-choices {
   flex: none;
   height: 34vh;
@@ -463,23 +511,22 @@ body {
 
 .grid-choices .tile {
   justify-content: flex-end;
-  background: linear-gradient(180deg, #231d14 0%, #16120c 100%);
 }
 
 .grid-choices .tile-title {
-  color: var(--gold-light);
-  font-family: var(--serif);
-  font-size: 46px;
+  font-size: 42px;
+  font-weight: 700;
   line-height: 1.15;
   text-align: left;
 }
 
 .grid-choices .tile-detail {
   margin-top: 12px;
+  font-size: 24px;
   text-align: left;
 }
 
-/* The albums: the cover above, the name in the golden serif and the count below it. */
+/* The albums: the cover above, the name and the count below it. */
 .grid-albums .tile {
   align-items: stretch;
   justify-content: flex-start;
@@ -491,76 +538,60 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 0;
-  border-radius: 13px 13px 0 0;
-  background: #15120d;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  background: var(--surface-raised);
 }
 
 .album-cover .picture {
-  border-radius: 13px 13px 0 0;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
 }
 
 .album-cover-mark {
-  width: 36%;
-  opacity: 0.3;
+  width: 34%;
+  opacity: 0.35;
 }
 
 .grid-albums .tile-title {
   max-width: none;
-  margin: 14px 22px 0;
-  color: var(--gold-light);
-  font-family: var(--serif);
-  font-size: 31px;
+  margin: 16px 26px 0;
+  font-size: 30px;
   line-height: 1.3;
   text-align: left;
 }
 
 .grid-albums .tile-detail {
-  margin: 2px 22px 16px;
+  margin: 2px 26px 18px;
 }
 
-/* The timeline: years and months in the serif, under a thin golden band. */
-.grid-years .tile,
-.grid-months .tile {
-  background: linear-gradient(180deg, #231d14 0%, #16120c 100%);
-}
-
-.grid-years .tile::before,
-.grid-months .tile::before {
-  content: '';
-  position: absolute;
-  top: -3px;
-  left: 18%;
-  width: 64%;
-  height: 2px;
-  background: linear-gradient(90deg, #d4a93c00, var(--gold), #d4a93c00);
-}
-
+/* The timeline: the years large, the months beside them, in the weight of the titles. */
 .grid-years .tile-title {
-  color: var(--gold-light);
-  font-family: var(--serif);
   font-size: 88px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
   line-height: 1.1;
 }
 
 .grid-years .tile-detail {
-  margin-top: 12px;
-  font-size: 20px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  margin-top: 10px;
 }
 
 .grid-months .tile-title {
-  font-family: var(--serif);
-  font-size: 46px;
+  font-size: 44px;
 }
 
-/* The photos: thumbnails with soft corners. */
+/* The photos: thumbnails with round corners, on the raised surface while they load. */
 .grid-photos .cell {
   padding: 10px;
 }
 
 .grid-photos .tile {
-  background: #15120d;
+  border-radius: 20px;
+  background: var(--surface-raised);
+}
+
+.grid-photos .picture {
+  border-radius: 20px;
 }
 
 /* The settings: the list on the left, every value always on the screen, and what the focused one
@@ -587,10 +618,9 @@ body {
   align-items: center;
   justify-content: space-between;
   height: 62px;
-  margin-bottom: 6px;
-  padding: 0 28px;
-  border: 2px solid transparent;
-  border-radius: 12px;
+  margin-bottom: 10px;
+  padding: 0 30px;
+  border-radius: 18px;
   background: var(--surface);
   outline: none;
   transition: transform 180ms ease-out;
@@ -602,18 +632,20 @@ body {
 
 .setting-value {
   color: var(--gold-light);
-  font-family: var(--serif);
-  font-size: 29px;
+  font-size: 27px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .setting-restore {
   justify-content: center;
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
 .setting-restore .setting-label {
   color: var(--gold-light);
+  font-weight: 600;
 }
 
 .settings-side {
@@ -623,28 +655,28 @@ body {
 
 .settings-preview {
   margin: 0 0 32px;
-  padding: 8px 0 8px 32px;
-  border-left: 2px solid var(--gold-dark);
-  font-family: var(--serif);
-  font-size: 34px;
-  font-style: italic;
+  padding: 6px 0 6px 30px;
+  border-left: 3px solid var(--gold-dark);
+  font-size: 32px;
   line-height: 1.45;
 }
 
 .settings-keys {
   margin: 0;
-  padding-left: 34px;
+  padding-left: 33px;
   color: var(--text-secondary);
   font-size: 22px;
 }
 
-/* Every focusable element shows where the remote control is: a golden ring, a contained glow and
-   a slight growth. */
-.setting:focus {
-  border-color: var(--gold);
+/* Every focusable element shows where the remote control is: an amber ring, one short glow and a
+   slight growth. */
+.setting:focus,
+.action:focus,
+.cell:focus .tile {
+  outline: none;
   background: var(--surface-raised);
   box-shadow: var(--focus-glow);
-  transform: scale(1.02);
+  transform: scale(var(--focus-scale));
 }
 
 .setting:focus .setting-value::before {
@@ -657,23 +689,13 @@ body {
   color: var(--text-secondary);
 }
 
-.action:focus,
-.cell:focus .tile {
-  border-color: var(--gold);
-  outline: none;
-  background: var(--surface-raised);
-  box-shadow: var(--focus-glow);
-  transform: scale(1.04);
-}
-
 .action:focus {
   background: var(--gold);
   color: var(--background);
 }
 
-.grid-home .cell:focus .tile-title,
-.grid-months .cell:focus .tile-title {
-  color: var(--gold-light);
+.cell:focus .home-icon {
+  color: var(--gold);
 }
 
 /* The viewer: the photo inside the safe area, the next ones waiting, invisible, beside it. The
@@ -685,7 +707,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: #000;
+  background: var(--background);
   outline: none;
   animation: fade-in 300ms ease-out both;
 }
@@ -849,7 +871,7 @@ body {
   }
 }
 
-/* A light vignette, drawn once: a gradient, never a filter. */
+/* A subtle vignette, drawn once: a gradient, never a filter. */
 .viewer-vignette {
   position: absolute;
   top: 0;
@@ -857,7 +879,11 @@ body {
   z-index: 2;
   width: 100%;
   height: 100%;
-  background: radial-gradient(ellipse at center, #0000 58%, #0000008c 100%);
+  background: radial-gradient(
+    ellipse at center,
+    rgb(var(--shade-rgb) / 0%) 62%,
+    rgb(var(--shade-rgb) / 45%) 100%
+  );
   pointer-events: none;
 }
 
@@ -875,7 +901,11 @@ body {
   width: 100%;
   height: 100%;
   padding: calc(5vh + 12px) 5vw 0;
-  background: linear-gradient(180deg, #000000b3 0%, #0000 24%);
+  background: linear-gradient(
+    180deg,
+    rgb(var(--shade-rgb) / 70%) 0%,
+    rgb(var(--shade-rgb) / 0%) 24%
+  );
   opacity: 0;
   transition: opacity 600ms;
 }
@@ -890,13 +920,12 @@ body {
 }
 
 .viewer-date {
-  margin-bottom: 10px;
-  color: var(--gold-light);
-  font-family: var(--serif);
-  font-size: 42px;
-  font-style: italic;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 32px;
+  font-weight: 600;
   line-height: 1.2;
-  text-shadow: 0 2px 8px #000000b3;
+  text-shadow: 0 2px 8px rgb(var(--shade-rgb) / 70%);
 }
 
 .viewer-hint {
@@ -907,29 +936,33 @@ body {
 .viewer-counter {
   color: var(--text);
   font-size: 26px;
-  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
-/* The interval of the slideshow: a thin golden line that fills up, on the bottom of the safe area. */
+/* The interval of the slideshow: a thin amber line that fills up, on the bottom of the safe
+   area. */
 .viewer-progress {
   position: absolute;
   bottom: 5vh;
   left: 5vw;
   width: 90vw;
   height: 3px;
-  background: #f4eedf26;
+  border-radius: 2px;
+  background: rgb(var(--text-rgb) / 15%);
 }
 
 .viewer-progress-bar {
   display: block;
   height: 100%;
+  border-radius: 2px;
   background: var(--gold);
   transform-origin: left center;
   animation: fill linear both;
 }
 
-/* The caption of the photo, under it: a sentence in the golden italic serif on a dark band, which
-   fades in; the space it takes never moves anything else. */
+/* The caption of the photo, under it: a sentence in the italic serif, the one place it shows, on a
+   dark band, which fades in; the space it takes never moves anything else. */
 .viewer-caption {
   position: absolute;
   bottom: calc(5vh + 28px);
@@ -945,9 +978,9 @@ body {
   display: inline-block;
   margin: 0;
   padding: 12px 36px 14px;
-  border-radius: 14px;
-  background: #0e0c09cc;
-  color: var(--gold-light);
+  border-radius: 18px;
+  background: rgb(var(--background-rgb) / 80%);
+  color: var(--text);
   font-family: var(--serif);
   font-size: 38px;
   font-style: italic;
@@ -973,16 +1006,21 @@ body {
   width: 100%;
   height: 100%;
   padding: 5vh 5vw;
-  background: linear-gradient(90deg, #0e0c09f5 0%, #0e0c09eb 60%, #0e0c09c7 100%);
+  background: linear-gradient(
+    90deg,
+    rgb(var(--background-rgb) / 96%) 0%,
+    rgb(var(--background-rgb) / 92%) 60%,
+    rgb(var(--background-rgb) / 78%) 100%
+  );
   animation: fade-in 250ms ease-out both;
 }
 
 .viewer-settings-title {
   flex: none;
-  margin: 0 0 3vh;
-  color: var(--gold-light);
-  font-family: var(--serif);
-  font-size: 56px;
-  font-weight: 400;
+  margin: 0 0 4vh;
+  color: var(--text);
+  font-size: 52px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1.2;
 }
