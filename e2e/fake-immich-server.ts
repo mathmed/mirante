@@ -12,7 +12,7 @@ import {
   type TimeBucketAssetResponseDto,
 } from '@immich/sdk'
 
-import { encodePng } from '../scripts/webos/png.ts'
+import { encodePng } from '../scripts/packaging/png.ts'
 
 export const ALBUM_NAME = 'Viagem a Lisboa'
 export const PHOTO_IDS = ['photo-1', 'photo-2'] as const

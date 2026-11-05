@@ -143,7 +143,7 @@ does.
   in the `x-api-key` header and never in a URL. A call that writes changes the library for good.
 - **The API key**: read from `config.json` (`src/core/runtime-config.ts`,
   `src/platform/config-file.ts`), kept out of logs, messages, URLs and the repository; `config.json` is
-  gitignored. The webOS package never carries one (`scripts/webos/packaged-config.ts`).
+  gitignored. The TV packages never carry one (`scripts/packaging/packaged-config.ts`).
 - **What the TVs run**: the build target, the polyfills and the compatibility checks (`vite.config.ts`,
   `.escheckrc.json`, `src/platform/polyfills.ts`, `browserslist`, `stylelint.config.mjs`), and the
   webOS package (`webos/appinfo.json`, `scripts/webos/`). A gap shows as a blank screen on the TV,

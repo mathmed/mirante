@@ -86,7 +86,7 @@ What goes into the package:
 | `index.html`, `assets/` | `dist/`, byte for byte: `ares-package` runs with `--no-minify`, so it does not minify again |
 | `appinfo.json`          | `webos/appinfo.json`, plus the `version` of `package.json`                                  |
 | `config.json`           | `MIRANTE_IMMICH_URL`, or `webos/config.json`                                                |
-| `icon.png`              | 80x80, drawn by `scripts/webos/icon.ts` (no image is committed)                             |
+| `icon.png`              | 80x80, drawn by `scripts/packaging/icon.ts` (no image is committed)                         |
 | `largeIcon.png`         | 130x130, drawn the same way                                                                 |
 
 `webos/appinfo.json` declares the app (`com.mathmed.mirante`, a `web` app opening `index.html` at
