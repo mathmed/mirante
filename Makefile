@@ -1,4 +1,4 @@
-.PHONY: setup dev build package-webos test-webos package-tizen format lint typecheck test lint-arch dead-code audit suppressions suppressions-update quality mutation mutation-changed risk-labels all
+.PHONY: setup dev build package-webos test-webos package-tizen test-tizen format lint typecheck test lint-arch dead-code audit suppressions suppressions-update quality mutation mutation-changed risk-labels all
 
 # Base branch of mutation-changed
 BASE ?= origin/main
@@ -31,6 +31,11 @@ package-tizen: build
 # the .ipk and runs it from file:// in a headless Chromium (Playwright). Not part of make quality
 test-webos: build
 	npm run test:webos
+
+# End-to-end test of the Tizen package: packages against a fake Immich that answers CORS, unzips the
+# .wgt and runs it from file:// in a headless Chromium (Playwright). Not part of make quality
+test-tizen: build
+	npm run test:tizen
 
 # Format every file and apply the fixes ESLint can make on its own
 format:

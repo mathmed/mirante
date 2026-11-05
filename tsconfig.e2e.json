@@ -1,5 +1,5 @@
-// The end-to-end test of the webOS package (e2e/): Node.js 24, plus the DOM for the functions it
-// runs in the page through Playwright.
+// The end-to-end tests of the TV packages (e2e/): Node.js 24, plus the DOM for the functions they
+// run in the page through Playwright.
 {
   "extends": "./tsconfig.node.json",
   "compilerOptions": {
