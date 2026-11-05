@@ -4,8 +4,10 @@ Mirante can be installed on an LG TV as a webOS app (`.ipk`), so it opens from t
 instead of its browser. This page explains how to build the package, how to put the TV in
 Developer Mode, and how to install, open and debug the app with LG's webOS CLI.
 
-> Nothing here has been tried on a real TV yet. The package is checked by `make test-webos` in a
-> headless Chromium (see [Testing the package](#testing-the-package)), not on a webOS device.
+> The first package was installed on the owner's LG, whose webOS runs **Chromium 68**, and showed a
+> grey screen; [What the LG taught us](#what-the-lg-taught-us) explains the two causes and the fix.
+> The package is checked by `make test-webos` in a headless Chromium made to look like that TV (see
+> [Testing the package](#testing-the-package)), not on a webOS device.
 
 ## How the packaged app reaches Immich
 
@@ -74,20 +76,21 @@ of `make quality`) would fail. Instead:
    make package-webos
    ```
 
-   It runs `make build` (the bundle checked against ES2018 for Chromium 68), lays out
-   `build/webos/app/` with the build, `appinfo.json`, `config.json` and the icons, and writes
+   It runs `make build`, which also bundles the webOS build into `build/webos-dist/` (one classic
+   script, see below; checked against ES2018 and the browser APIs of Chromium 68), lays out
+   `build/webos/app/` with that build, `appinfo.json`, `config.json` and the icons, and writes
    `build/webos/com.mathmed.mirante_<version>_all.ipk`. It then reads the package back and fails
    unless it holds exactly those files, and lists them.
 
 What goes into the package:
 
-| File                    | Where it comes from                                                                         |
-| ----------------------- | ------------------------------------------------------------------------------------------- |
-| `index.html`, `assets/` | `dist/`, byte for byte: `ares-package` runs with `--no-minify`, so it does not minify again |
-| `appinfo.json`          | `webos/appinfo.json`, plus the `version` of `package.json`                                  |
-| `config.json`           | `MIRANTE_IMMICH_URL`, or `webos/config.json`                                                |
-| `icon.png`              | 80x80, drawn by `scripts/packaging/icon.ts` (no image is committed)                         |
-| `largeIcon.png`         | 130x130, drawn the same way                                                                 |
+| File                    | Where it comes from                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- |
+| `index.html`, `assets/` | `build/webos-dist/`, byte for byte: `ares-package` runs with `--no-minify`, so it does not minify again |
+| `appinfo.json`          | `webos/appinfo.json`, plus the `version` of `package.json`                                              |
+| `config.json`           | `MIRANTE_IMMICH_URL`, or `webos/config.json`                                                            |
+| `icon.png`              | 80x80, drawn by `scripts/packaging/icon.ts` (no image is committed)                                     |
+| `largeIcon.png`         | 130x130, drawn the same way                                                                             |
 
 `webos/appinfo.json` declares the app (`com.mathmed.mirante`, a `web` app opening `index.html` at
 1920x1080). It has no `version`: the version is always the one of `package.json`. It sets
@@ -149,6 +152,35 @@ The app also appears in the TV's launcher as **Mirante**. To install a new packa
 ares-install --device tv --remove com.mathmed.mirante
 ```
 
+## What the LG taught us
+
+The owner's LG runs webOS with **Chromium 68**, the oldest engine Mirante supports (the Samsung in
+the living room runs Chromium 85). The first `.ipk` opened to a grey screen, for two reasons the
+console showed one after the other:
+
+1. **`Failed to load module script: The server responded with a non-JavaScript MIME type of ''`.**
+   Vite loads the bundle with `<script type="module" crossorigin>`. webOS opens the app from
+   `file://` and gives its files no MIME type, and Chromium refuses a module script without a
+   JavaScript one; nothing ran. A classic script has no such check.
+2. **`ReferenceError: queueMicrotask is not defined`.** Once loaded as a classic script, the bundle
+   stopped at the first render: Preact schedules its renders with `queueMicrotask`, which Chrome
+   only has since 71. `make build` checked the syntax (es-check) but not the runtime APIs, and the
+   ESLint compatibility check only looked at Mirante's own calls, not at the dependencies.
+
+What Mirante does about it:
+
+- The webOS build (`vite.webos.config.ts`, part of `make build`) bundles the app as **one classic
+  script** (`iife`) into `build/webos-dist/`, and its `index.html` loads it with
+  `<script defer src="./assets/index-….js">` and links the stylesheet without `crossorigin`
+  (`scripts/webos/classic-script.ts`). es-check reads it as a script, so `import`, `export`,
+  `import.meta` and a top-level `await` fail the build. The web build in `dist/`, served behind the
+  proxy over HTTP, stays a module.
+- `src/platform/polyfills.ts` adds `queueMicrotask` and `Object.fromEntries` where the engine lacks
+  them, from the first module of the bundle (`src/platform/install-polyfills.ts`).
+- `make lint` and `make build` check every global API the code reaches, the bundled dependencies
+  included, against the browser tables of MDN for Chrome 68 (`scripts/browser-apis/`): a new API
+  Chromium 68 lacks fails the build until it is polyfilled and listed in `.browser-apis.json`.
+
 ## Debugging
 
 ```sh
@@ -159,6 +191,18 @@ opens Chrome's developer tools on the app running on the TV. The console shows M
 tagged `[mirante]`, and the package carries the source maps of the build. A request the proxy
 refuses (no CORS) shows there as a CORS error, and on the screen as **O Immich não respondeu**.
 
+Without `--open`, `ares-inspect` prints the address of the app's inspector on the TV instead of
+opening a browser. Besides opening it in Chrome, a script can talk to it with the Chrome DevTools
+Protocol (CDP): the `/json/list` path of that address lists the pages of the app with their
+`webSocketDebuggerUrl`, and the `Runtime.enable` and `Log.enable` commands sent over that socket
+send back the console messages the page already logged, the errors that stop it included. The
+first things to look at:
+
+- a console with **nothing at all**: the script did not load; check the `<script>` tag of the
+  installed `index.html` (no `type="module"`);
+- a **`ReferenceError`** naming a function: an API Chromium 68 lacks; add it to
+  `src/platform/polyfills.ts` and `.browser-apis.json`.
+
 ## Testing the package
 
 ```sh
@@ -167,9 +211,13 @@ make test-webos
 
 builds and packages the app against a fake Immich on a local port that answers CORS like the
 proxy, unpacks the `.ipk` and opens its `index.html` from `file://` in Playwright's headless
-Chromium, with access to its own files as the TV's web app runtime gives. It checks the files of
-the package and its `appinfo.json`, that the albums, thumbnails and previews load across origins
-without a key, that Back leaves the app from the start screen, and that an Immich without CORS is
-reported as unreachable. It installs Playwright's Chromium the first time, and is not part of
-`make quality` or CI. A current Chromium is not the TV's Chromium 68: the bundle's syntax and
-built-ins are checked by `make build` instead.
+Chromium, with access to its own files as the TV's web app runtime gives. The browser is made to
+look like the LG (`e2e/legacy-chromium.ts`): the scripts are served without a MIME type, so it
+refuses module scripts as the TV does, and `queueMicrotask` and `Object.fromEntries` are removed
+before any script runs. It checks the files of the package, its `appinfo.json` and that its
+`index.html` loads no module; that the app starts with the polyfills in place, while the web build
+(a module) stays blank in the same browser, as on the TV; that the albums, thumbnails and previews
+load across origins without a key; that Back leaves the app from the start screen; and that an
+Immich without CORS is reported as unreachable. It installs Playwright's Chromium the first time,
+and is not part of `make quality` or CI. A current Chromium is still not the TV's Chromium 68: the
+bundle's syntax, built-ins and global APIs are checked by `make build` against it.

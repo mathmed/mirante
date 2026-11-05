@@ -30,11 +30,14 @@ Immich. Mirante never changes your library.
 | Desktop browsers, for development  | Chrome, Edge, Firefox | current        |
 
 Chromium 68 is the floor, and the build enforces it: the bundle targets ES2018 and is checked with
-es-check, TypeScript only knows the ES2018 built-ins, ESLint rejects web APIs Chromium 68 lacks
-(`structuredClone`...) and Stylelint rejects CSS it lacks (`:has`, `aspect-ratio`, `gap` in flexbox,
-`:focus-visible`...). The one built-in a dependency needs beyond that, `Object.fromEntries`, is
-polyfilled. Assets load through relative paths and there is no service worker, so the same `dist/`
-works from a web server, packaged as a webOS `.ipk` and as a Tizen `.wgt`.
+es-check, TypeScript only knows the ES2018 built-ins, ESLint and `make build` reject the web APIs
+Chromium 68 lacks (`structuredClone`...) in Mirante's code and in the dependencies it bundles, and
+Stylelint rejects CSS it lacks (`:has`, `aspect-ratio`, `gap` in flexbox, `:focus-visible`...). The
+two the dependencies need anyway, `queueMicrotask` (Preact) and `Object.fromEntries` (the Immich
+SDK), are polyfilled. Assets load through relative paths and there is no service worker, so the same
+`dist/` works from a web server and packaged as a Tizen `.wgt`. The webOS `.ipk` gets the same app
+as one classic script instead of a module, because webOS refuses module scripts from the TV's file
+system (see [docs/webos.md](docs/webos.md#what-the-lg-taught-us)).
 
 ### Remote control
 
@@ -124,7 +127,7 @@ You need Node.js 24 and npm.
 ```sh
 make setup    # locked dependencies and the git hooks
 make dev      # http://localhost:5173, with public/config.json
-make build    # dist/: the app the TVs load, checked against ES2018
+make build    # dist/: the app the TVs load, and build/webos-dist/ for webOS, checked against Chromium 68
 ```
 
 Serve `dist/` (plus its `config.json`) behind the proxy in front of Immich (see
@@ -135,7 +138,7 @@ Serve `dist/` (plus its `config.json`) behind the proxy in front of Immich (see
 ```sh
 cp webos/config.example.json webos/config.json   # or: export MIRANTE_IMMICH_URL=http://...
 make package-webos   # build/webos/com.mathmed.mirante_<version>_all.ipk
-make test-webos      # runs the package from file:// in a headless Chromium
+make test-webos      # runs the package from file:// in a headless Chromium made to look like the LG
 ```
 
 The packaged app loads from the TV's file system, so its `config.json` names the **full address**

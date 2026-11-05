@@ -16,7 +16,7 @@ driven by the remote control alone. TypeScript and Preact, built with Vite; the 
 ```bash
 make setup             # install the locked dependencies and the git hooks
 make dev               # serve the app with hot reload (Vite); public/config.json points it at Immich
-make build             # bundle the app into dist/ (Vite) and check it against ES2018 (es-check)
+make build             # bundle dist/ and the webOS build/webos-dist/ (Vite), check them against ES2018 (es-check) and Chrome 68's APIs
 make package-webos     # the build as the LG webOS app: build/webos/com.mathmed.mirante_<version>_all.ipk
 make test-webos        # end-to-end: the .ipk unpacked and run from file:// in a headless Chromium
 make package-tizen     # the build as the Samsung Tizen app, unsigned: build/tizen/Mirante.wgt and build/tizen/widget/
@@ -51,8 +51,9 @@ src/platform/  what differs between TVs and browsers: config.json, polyfills, th
 src/ui/        Preact components and src/ui/messages.ts, every text people read
 src/main.tsx   composition root: wires the adapters into the UI
 scripts/       tooling: the TV packages (scripts/packaging, shared: the icon, the packaged config.json,
-               the app folder; scripts/webos; scripts/tizen), Quality Report, suppression ratchet,
-               mutation runner, risk label check
+               the app folder; scripts/webos, with the classic-script plugin of the webOS build;
+               scripts/tizen), the browser API check (scripts/browser-apis), Quality Report,
+               suppression ratchet, mutation runner, risk label check
 test/          test support: the fake Immich server (MSW) and its sample library, the stub photo
                library and the fake remote control of the component tests, the test setup, throwaway
                git repositories, the .ipk, .wgt (zip) and PNG helpers of the packaging tests
@@ -61,7 +62,8 @@ webos/         the appinfo.json of the webOS app (no version: it comes from pack
 tizen/         the config.xml of the Tizen widget (no version: it comes from package.json) and
                config.example.json; tizen/config.json is gitignored
 e2e/           the end-to-end tests of the TV packages (Playwright, vitest.e2e.config.ts), what they
-               share, and the fake Immich they run against on a real port
+               share, the emulation of the LG's Chromium 68 (legacy-chromium.ts), and the fake Immich
+               they run against on a real port
 docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signing (Tizen),
                installing and debugging on an LG or a Samsung TV
 ```
@@ -110,9 +112,13 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
 
 - **Chromium 68 is the floor.** Target ES2018; no newer syntax or built-in (`Array.prototype.flat`,
   `Object.fromEntries`, `globalThis`, `structuredClone`, top-level `await`...), no CSS Chromium 68
-  lacks (`:has`, `aspect-ratio`, `gap` in flexbox, `:focus-visible`, `inset`...). The ES2018 library,
-  `eslint-plugin-compat`, Stylelint and es-check enforce it. A built-in a dependency needs is
-  polyfilled in `src/platform/polyfills.ts` and named in `.escheckrc.json`, never ignored otherwise.
+  lacks (`:has`, `aspect-ratio`, `gap` in flexbox, `:focus-visible`, `inset`...), no runtime API it
+  lacks (`queueMicrotask`, `structuredClone`, `AbortSignal.timeout`...). The ES2018 library,
+  `eslint-plugin-compat`, the `mirante/browser-apis` rule (the app in `make lint`, every script of
+  the bundles in `make build`), Stylelint and es-check enforce it. An API the code or a dependency
+  needs is polyfilled in `src/platform/polyfills.ts` (run first, from
+  `src/platform/install-polyfills.ts`) and named in `.browser-apis.json` (and in the `ignore` of
+  `.escheckrc.json` when es-check knows it), never ignored otherwise.
 - **The remote control is the only input**: arrows, Enter and Back (`keyCode` 10009 on Tizen, 461 on
   webOS, Escape and Backspace on the desktop). Every action is reachable with them; the focus is
   always visible (`:focus` styles) and never lost when a screen changes. Navigation logic (where the
@@ -130,11 +136,17 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   supports only in part: screens are `position: fixed` and off-screen cells are hidden.
 - **Overscan**: every screen keeps its content inside the safe area, 5% of each edge.
 - **Relative paths** (`base: './'`) and **no service worker**: the packaged apps load from `file://`.
+- **No module script on webOS**: webOS serves `file://` without a MIME type, and its Chromium refuses
+  a module script then (the owner's LG showed a grey screen). The webOS build
+  (`vite.webos.config.ts`, into `build/webos-dist/`) is one classic script (`iife`) that `index.html`
+  loads with `<script defer>`, without `crossorigin` (`scripts/webos/classic-script.ts`); es-check
+  reads it as a script. The web build of `dist/` stays a module, and so does the Tizen package, which
+  works on the Samsung's Chromium 85.
 - **The webOS app** (`make package-webos`, `docs/webos.md`) loads from `file://`, another origin than
   Immich: its `config.json` holds the full address of the proxy, which answers CORS and adds the key.
   The packaging (`scripts/webos/`) refuses a relative `immichUrl` and any `apiKey`, takes the version
-  from `package.json`, draws the icons (no committed images) and runs `ares-package --no-minify`, so
-  the package holds the bundle es-check verified. `@webos-tools/cli` runs through `npx` at the version
+  from `package.json`, draws the icons (no committed images) and runs `ares-package --no-minify` on
+  the webOS build, so the package holds the bundle es-check verified. `@webos-tools/cli` runs through `npx` at the version
   pinned in `scripts/webos/ares.ts`, never as a devDependency: its shrinkwrapped dependencies fail
   `npm audit`. `webos/appinfo.json` keeps `disableBackHistoryAPI: true`, or Back never reaches the app.
 - **The Tizen app** (`make package-tizen`, `docs/tizen.md`) loads from `file://` too, with the same
@@ -162,7 +174,9 @@ does.
   `src/platform/config-file.ts`), kept out of logs, messages, URLs and the repository; `config.json` is
   gitignored. The TV packages never carry one (`scripts/packaging/packaged-config.ts`).
 - **What the TVs run**: the build target, the polyfills and the compatibility checks (`vite.config.ts`,
-  `.escheckrc.json`, `src/platform/polyfills.ts`, `browserslist`, `stylelint.config.mjs`), and the
+  `vite.webos.config.ts`, `.escheckrc.json`, `.browser-apis.json`, `scripts/browser-apis/`,
+  `src/platform/polyfills.ts`, `src/platform/install-polyfills.ts`, `browserslist`,
+  `stylelint.config.mjs`), and the
   TV packages (`webos/appinfo.json`, `tizen/config.xml`, `scripts/packaging/`, `scripts/webos/`,
   `scripts/tizen/`). A gap shows as a blank screen on the TV,
   where there is no developer at hand.
@@ -189,7 +203,7 @@ contract needs the owner's explicit approval. The one committed baseline, `suppr
 is empty and only goes down.
 
 - **ESLint**: typescript-eslint `strictTypeChecked` and `stylisticTypeChecked`, SonarJS, the security
-  rules, `eslint-plugin-compat` on the app, the React and hooks rules on the components and the project
+  rules, `eslint-plugin-compat` and `mirante/browser-apis` on the app, the React and hooks rules on the components and the project
   rules in `eslint.config.ts`, every one an error, `--max-warnings 0`. The complexity limits (cyclomatic
   complexity 5 like xenon A, cognitive complexity 5, nesting depth 2, 30 lines per function, 3
   parameters, 300 lines per file) cannot be disabled inline: split the code. Any other `eslint-disable`
@@ -210,8 +224,11 @@ is empty and only goes down.
   only ever raises the numbers in `vitest.config.ts`), components and the composition root included.
   Write the missing test or remove the unreachable code. Only the command-line entry points
   `scripts/*.ts` are excluded: CI runs them for real.
-- **Build**: `make build` bundles with Vite and runs es-check on every script of `dist/`: ES2018
-  syntax, and no newer built-in but the polyfilled ones of `.escheckrc.json`.
+- **Build**: `make build` bundles with Vite into `dist/` (a module) and `build/webos-dist/` (a classic
+  script), runs es-check on every script of both: ES2018 syntax (the webOS one parsed as a script),
+  and no newer built-in but the polyfilled ones of `.escheckrc.json`; then
+  `scripts/browser-apis.ts` on both: no global API, or member of one, that Chrome 68 lacks per MDN's
+  browser data, but the polyfilled ones of `.browser-apis.json`.
 - **Mutation testing** runs on every PR (`Mutation testing` workflow, only the `src/core` files changed
   in the diff) and weekly on the whole core. The job fails when the score is below `MUTATION_MIN_SCORE`
   (repository variable, default 95). Survivors are listed in the Quality Report and the job summary with
