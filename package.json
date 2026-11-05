@@ -36,6 +36,7 @@
     "package:tizen": "node scripts/tizen.ts package",
     "test:webos": "playwright install --only-shell chromium && vitest run --config vitest.e2e.config.ts e2e/webos-package.test.ts",
     "test:tizen": "playwright install --only-shell chromium && vitest run --config vitest.e2e.config.ts e2e/tizen-package.test.ts",
+    "screenshots": "playwright install --only-shell chromium && vitest run --config vitest.e2e.config.ts e2e/screenshots.test.ts",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings 0",
     "lint:css": "stylelint \"src/**/*.css\" --max-warnings 0",
