@@ -38,6 +38,9 @@ updates:
       # package names, so these two are updated by hand until the tools support TypeScript 7.
       - dependency-name: "typescript"
       - dependency-name: "@typescript/native"
+      # Pinned to the version of the owner's Immich server (3.3.6): the SDK is generated from the
+      # server's API, so it is bumped by hand together with the server.
+      - dependency-name: "@immich/sdk"
 
   - package-ecosystem: "github-actions"
     directory: "/"
