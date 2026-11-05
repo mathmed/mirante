@@ -10,15 +10,16 @@ import {
   serveImmich,
   serveLibrary,
 } from '../../test/fake-immich.ts'
+import { failureOf } from '../../test/library-failure.ts'
 import { EMPTY, FAMILY, SAMPLE_LIBRARY, TRIP, TRIP_PHOTOS } from '../../test/sample-library.ts'
 import {
   type Album,
   ImageSize,
   LibraryFailure,
   type PhotoLibrary,
-  PhotoLibraryError,
   PhotoOrder,
 } from '../core/photo-library.ts'
+import { DEFAULT_PRESENTATION } from '../core/presentation-settings.ts'
 import type { RuntimeConfig } from '../core/runtime-config.ts'
 import { createImmichLibrary } from './immich-library.ts'
 
@@ -28,25 +29,21 @@ const SHORT_TIMEOUT_MS = 50
 const API = `${IMMICH_URL}/api`
 const VERSION_URL = `${API}/server/version`
 const JSON_CONTENT = { 'Content-Type': 'application/json' }
-const CONFIG: RuntimeConfig = { immichUrl: IMMICH_URL, apiKey: API_KEY, slideshowSeconds: 8 }
+const CONFIG: RuntimeConfig = {
+  immichUrl: IMMICH_URL,
+  apiKey: API_KEY,
+  presentation: DEFAULT_PRESENTATION,
+}
 
 function library(config: Partial<RuntimeConfig> = {}, timeoutMs = TIMEOUT_MS): PhotoLibrary {
   return createImmichLibrary({ config: { ...CONFIG, ...config }, timeoutMs })
 }
 
 function withoutKey(immichUrl = IMMICH_URL): PhotoLibrary {
-  return createImmichLibrary({ config: { immichUrl, slideshowSeconds: 8 }, timeoutMs: TIMEOUT_MS })
-}
-
-async function failureOf(promise: Promise<unknown>): Promise<LibraryFailure> {
-  const error: unknown = await promise.then(
-    () => undefined,
-    (reason: unknown) => reason,
-  )
-  if (!(error instanceof PhotoLibraryError)) {
-    throw new Error(`expected a PhotoLibraryError, got ${String(error)}`)
-  }
-  return error.failure
+  return createImmichLibrary({
+    config: { immichUrl, presentation: DEFAULT_PRESENTATION },
+    timeoutMs: TIMEOUT_MS,
+  })
 }
 
 async function albumNamed(sut: PhotoLibrary, id: string): Promise<Album> {

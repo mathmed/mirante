@@ -1,6 +1,8 @@
 import {
   type AlbumResponseDto,
   AssetOrder,
+  type AssetResponseDto,
+  AssetTypeEnum,
   AssetVisibility,
   type TimeBucketAssetResponseDto,
   type TimeBucketsResponseDto,
@@ -18,6 +20,8 @@ export interface FakeAsset {
   readonly albumIds: readonly string[]
   // Archived assets are in their albums, never in the timeline.
   readonly isArchived?: boolean
+  // The caption written for it in Immich.
+  readonly description?: string
 }
 
 interface FakeAlbum {
@@ -93,6 +97,51 @@ export function bucketOf(library: FakeLibrary, url: URL): TimeBucketAssetRespons
     ratio: assets.map(() => 1.5),
     thumbhash: assets.map(() => null),
     visibility: assets.map(() => AssetVisibility.Timeline),
+  }
+}
+
+// GET /assets/{id}: the asset with its EXIF data, where its description is; undefined for an id
+// the library does not have.
+export function assetOf(library: FakeLibrary, id: string): AssetResponseDto | undefined {
+  const asset = library.assets.find((candidate) => candidate.id === id)
+  return asset === undefined ? undefined : assetResponseOf(asset, true)
+}
+
+// POST /search/random: the photos of the timeline, up to the size asked for. A fake server draws
+// "at random" in the order of the library, so that the tests know what comes.
+export function randomOf(library: FakeLibrary, size: number): AssetResponseDto[] {
+  return assetsAsked(library, new URL('http://immich.test/'))
+    .filter((asset) => asset.isImage)
+    .slice(0, size)
+    .map((asset) => assetResponseOf(asset, false))
+}
+
+function assetResponseOf(asset: FakeAsset, hasExif: boolean): AssetResponseDto {
+  const local = new Date(Date.parse(asset.takenAt) + asset.offsetHours * 3_600_000).toISOString()
+  return {
+    checksum: 'checksum',
+    createdAt: asset.takenAt,
+    duration: null,
+    fileCreatedAt: asset.takenAt,
+    fileModifiedAt: asset.takenAt,
+    hasMetadata: true,
+    height: 1000,
+    id: asset.id,
+    isArchived: asset.isArchived === true,
+    isEdited: false,
+    isFavorite: false,
+    isOffline: false,
+    isTrashed: false,
+    localDateTime: local,
+    originalFileName: `${asset.id}.jpg`,
+    originalPath: `/photos/${asset.id}.jpg`,
+    ownerId: 'owner',
+    thumbhash: null,
+    type: asset.isImage ? AssetTypeEnum.Image : AssetTypeEnum.Video,
+    updatedAt: asset.takenAt,
+    visibility: asset.isArchived === true ? AssetVisibility.Archive : AssetVisibility.Timeline,
+    width: 1500,
+    ...(hasExif ? { exifInfo: { description: asset.description ?? '' } } : {}),
   }
 }
 

@@ -1,7 +1,15 @@
 import { http, HttpResponse, type JsonBodyType, type StrictRequest } from 'msw'
 import { setupServer } from 'msw/node'
 
-import { albumsOf, assetsAsked, bucketOf, bucketsOf, type FakeLibrary } from './immich-answers.ts'
+import {
+  albumsOf,
+  assetOf,
+  assetsAsked,
+  bucketOf,
+  bucketsOf,
+  type FakeLibrary,
+  randomOf,
+} from './immich-answers.ts'
 
 // A fake Immich server (MSW): no test reaches a real server or uses a real API key. Requests nobody
 // answers fail the test (`onUnhandledFrame: 'error'` in test/setup.ts). Its answers have the shapes
@@ -49,7 +57,7 @@ export function serveImmich(options: ServeOptions = {}): void {
 }
 
 // The reads of the gallery: the albums, the months of the timeline and of an album, their assets,
-// and the images.
+// the random draws of the presentations, the captions and the images.
 export function serveLibrary(library: FakeLibrary, options: ServeOptions = {}): void {
   serveImmich(options)
   const api = `${options.url ?? IMMICH_URL}/api`
@@ -65,10 +73,30 @@ export function serveLibrary(library: FakeLibrary, options: ServeOptions = {}): 
     http.get(`${api}/timeline/bucket`, ({ request }) =>
       guarded(request, options, () => HttpResponse.json(bucketOf(library, new URL(request.url)))),
     ),
+    http.post(`${api}/search/random`, async ({ request }) => {
+      const size = await sizeOf(request)
+      return guarded(request, options, () => HttpResponse.json(randomOf(library, size)))
+    }),
     http.get(`${api}/assets/:id/thumbnail`, ({ request }) =>
       guarded(request, options, () => imageOf(request)),
     ),
+    http.get(`${api}/assets/:id`, ({ request, params }) =>
+      guarded(request, options, () => assetAnswer(library, params['id'])),
+    ),
   )
+}
+
+async function sizeOf(request: Request): Promise<number> {
+  const body: unknown = await request.json()
+  const size: unknown = typeof body === 'object' && body !== null ? Reflect.get(body, 'size') : 0
+  return typeof size === 'number' ? size : 0
+}
+
+function assetAnswer(library: FakeLibrary, id: unknown): Response {
+  const asset = typeof id === 'string' ? assetOf(library, id) : undefined
+  return asset === undefined
+    ? HttpResponse.json({ message: 'Not found' }, { status: 400 })
+    : HttpResponse.json(asset)
 }
 
 function guarded(
