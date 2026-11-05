@@ -1,4 +1,4 @@
-.PHONY: setup dev build package-webos test-webos format lint typecheck test lint-arch dead-code audit suppressions suppressions-update quality mutation mutation-changed risk-labels all
+.PHONY: setup dev build package-webos test-webos package-tizen format lint typecheck test lint-arch dead-code audit suppressions suppressions-update quality mutation mutation-changed risk-labels all
 
 # Base branch of mutation-changed
 BASE ?= origin/main
@@ -20,6 +20,12 @@ build:
 # the config.json of webos/config.json or MIRANTE_IMMICH_URL (see docs/webos.md)
 package-webos: build
 	npm run package:webos
+
+# Package dist/ as the app of Samsung's Tizen TVs, unsigned: build/tizen/Mirante.wgt and the folder
+# build/tizen/widget/ the Tizen CLI signs, with the config.json of tizen/config.json or
+# MIRANTE_IMMICH_URL (see docs/tizen.md)
+package-tizen: build
+	npm run package:tizen
 
 # End-to-end test of the webOS package: packages against a fake Immich that answers CORS, unpacks
 # the .ipk and runs it from file:// in a headless Chromium (Playwright). Not part of make quality

@@ -32,6 +32,7 @@
     "dev": "vite",
     "build": "vite build && es-check",
     "package:webos": "node scripts/webos.ts package",
+    "package:tizen": "node scripts/tizen.ts package",
     "test:webos": "playwright install --only-shell chromium && vitest run --config vitest.e2e.config.ts",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings 0",
