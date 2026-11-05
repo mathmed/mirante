@@ -25,6 +25,7 @@ import { emulateChromium68, MISSING_APIS, MODULE_REFUSED, nativeApis } from './l
 import {
   expectBackToLeave,
   expectBrowsingAcrossOrigins,
+  expectEveryPhoto,
   expectLibraryPresentation,
   expectReportedUnreachable,
   launchBrowser,
@@ -162,6 +163,14 @@ describe('the webOS package', () => {
     const app = await open()
 
     await expectBrowsingAcrossOrigins(app, immich)
+    await app.page.close()
+  })
+
+  it('should show every photo, the most recent first, read month by month across origins', async () => {
+    immich.requests.length = 0
+    const app = await open()
+
+    await expectEveryPhoto(app, immich)
     await app.page.close()
   })
 

@@ -1,7 +1,16 @@
 import { screen, waitFor } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { focusedOn, KEY, press, sources, startApp, stopApp, title } from '../test/app-page.ts'
+import {
+  focusedOn,
+  KEY,
+  onAlbumsCard,
+  press,
+  sources,
+  startApp,
+  stopApp,
+  title,
+} from '../test/app-page.ts'
 import {
   fakeServer,
   IMMICH_URL,
@@ -12,10 +21,12 @@ import {
   VALID_CONFIG,
 } from '../test/fake-immich.ts'
 import { SAMPLE_LIBRARY, TRIP, TRIP_PHOTOS } from '../test/sample-library.ts'
+import { ScreenKind } from './core/navigation.ts'
 import { StartupFailure } from './core/startup.ts'
-import { failureText, MESSAGES } from './ui/messages.ts'
+import { failureText, homeTitle, MESSAGES } from './ui/messages.ts'
 
 const { escape: ESCAPE, backspace: BACKSPACE } = KEY
+const ALL_PHOTOS = homeTitle(ScreenKind.AllPhotos)
 const start = startApp
 
 beforeEach(() => {
@@ -39,6 +50,8 @@ describe('main', () => {
         `${IMMICH_URL}/api/assets/trip-00/thumbnail?size=preview`,
       )
     })
+    // Immich counts the video of the trip with its photos.
+    expect(await screen.findByText('16 fotos · de 2023 a 2024')).toBeTruthy()
   })
 
   it('should explain a rejected API key and log why', async () => {
@@ -74,7 +87,7 @@ describe('main', () => {
     serveLibrary(SAMPLE_LIBRARY, { url: PAGE_ORIGIN, isKeyAdded: true })
     await start()
     expect(await screen.findByText('Immich 3.3.6 em localhost:3000')).toBeTruthy()
-    await focusedOn(MESSAGES.albums)
+    await onAlbumsCard()
 
     press(KEY.enter)
     await focusedOn(TRIP.name)
@@ -107,6 +120,7 @@ describe('main', () => {
     serveLibrary(SAMPLE_LIBRARY, { isKeyAdded: true })
     await start()
     expect(await screen.findByText('Immich 3.3.6 em immich.test')).toBeTruthy()
+    await onAlbumsCard()
 
     press(KEY.enter)
     await focusedOn(TRIP.name)
@@ -127,7 +141,7 @@ describe('main', () => {
     serveConfig(VALID_CONFIG)
     serveLibrary(SAMPLE_LIBRARY)
     await start()
-    await focusedOn(MESSAGES.albums)
+    await focusedOn(ALL_PHOTOS)
 
     press(KEY.webOsBack)
 
@@ -140,7 +154,7 @@ describe('main', () => {
     serveConfig(VALID_CONFIG)
     serveLibrary(SAMPLE_LIBRARY)
     await start()
-    await focusedOn(MESSAGES.albums)
+    await onAlbumsCard()
     press(KEY.enter)
     await focusedOn(TRIP.name)
 
@@ -156,11 +170,11 @@ describe('main', () => {
     serveConfig(VALID_CONFIG)
     serveLibrary(SAMPLE_LIBRARY)
     await start()
-    await focusedOn(MESSAGES.albums)
+    await focusedOn(ALL_PHOTOS)
 
     press(ESCAPE)
 
-    await focusedOn(MESSAGES.albums)
+    await focusedOn(ALL_PHOTOS)
     expect(screen.getByRole('heading', { level: 1, name: MESSAGES.appName })).toBeTruthy()
   })
 
@@ -174,7 +188,7 @@ describe('main', () => {
     serveConfig(VALID_CONFIG)
     serveLibrary(SAMPLE_LIBRARY)
     await start()
-    await focusedOn(MESSAGES.albums)
+    await onAlbumsCard()
 
     press(KEY.enter)
     await focusedOn(TRIP.name)
@@ -189,7 +203,7 @@ describe('main', () => {
     serveConfig(VALID_CONFIG)
     serveLibrary(SAMPLE_LIBRARY)
     await start()
-    await focusedOn(MESSAGES.albums)
+    await onAlbumsCard()
 
     press(KEY.right, KEY.enter)
     await focusedOn('2024')

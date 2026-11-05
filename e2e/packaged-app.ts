@@ -90,6 +90,8 @@ export async function expectBrowsingAcrossOrigins(
 ): Promise<void> {
   const { page } = app
   await page.getByText(`Immich 3.3.6 em ${immich.url.replace('http://', '')}`).waitFor()
+  await expect.poll(async () => focusedText(page)).toBe('Todas')
+  await page.keyboard.press('ArrowRight')
   await page.keyboard.press('Enter')
   await page.getByText(ALBUM_NAME).waitFor()
   await expect.poll(async () => loadedImages(page, 'thumbnail')).toBe(1)
@@ -120,7 +122,8 @@ function expectCrossOriginCalls(immich: FakeImmich): void {
 // lets Content-Type through), playing at once with the caption of its first photo.
 export async function expectLibraryPresentation(app: OpenedApp, immich: FakeImmich): Promise<void> {
   const { page } = app
-  await expect.poll(async () => focusedText(page)).toBe('Álbuns')
+  await expect.poll(async () => focusedText(page)).toBe('Todas')
+  await page.keyboard.press('ArrowRight')
   await page.keyboard.press('ArrowRight')
   await page.keyboard.press('ArrowRight')
   await page.keyboard.press('Enter')
@@ -134,10 +137,32 @@ export async function expectLibraryPresentation(app: OpenedApp, immich: FakeImmi
   expect(calls).toContain(`GET /api/assets/${PHOTO_IDS[0]}`)
 }
 
+// Every photo, the most recent first under the heading of its month, read from the timeline across
+// origins; the viewer opens on the photo in focus and gives the focus back to it.
+export async function expectEveryPhoto(app: OpenedApp, immich: FakeImmich): Promise<void> {
+  const { page } = app
+  await expect.poll(async () => focusedText(page)).toBe('Todas')
+  await page.keyboard.press('Enter')
+  await page.getByRole('heading', { level: 2, name: 'Março de 2024' }).waitFor()
+  await expect.poll(async () => loadedImages(page, 'thumbnail')).toBe(PHOTO_IDS.length)
+  await page.keyboard.press('Enter')
+  await page.getByRole('dialog', { name: `1 de ${String(PHOTO_IDS.length)}` }).waitFor()
+  await expect.poll(async () => loadedImages(page, 'preview')).toBeGreaterThan(0)
+  await page.keyboard.press('Escape')
+  await expect.poll(async () => loadedImages(page, 'thumbnail')).toBe(PHOTO_IDS.length)
+  const calls = immich.requests.map((request) => `${request.method} ${request.url}`)
+  expect(calls).toContain('GET /api/timeline/buckets?visibility=timeline')
+  expect(calls).toContain('GET /api/timeline/bucket?timeBucket=2024-03-01&visibility=timeline')
+  expect(immich.requests.map((request) => request.url)).toContain(
+    `/api/assets/${PHOTO_IDS[1]}/thumbnail?size=preview`,
+  )
+}
+
 // Back returns one screen, then asks the TV to leave from the start screen, once.
 export async function expectBackToLeave(app: OpenedApp, backKeyCode: number): Promise<void> {
   const { page, exits } = app
-  await expect.poll(async () => focusedText(page)).toBe('Álbuns')
+  await expect.poll(async () => focusedText(page)).toBe('Todas')
+  await page.keyboard.press('ArrowRight')
   await page.keyboard.press('Enter')
   await expect.poll(async () => focusedText(page)).toContain(ALBUM_NAME)
 

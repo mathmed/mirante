@@ -98,8 +98,9 @@ describe('goBack', () => {
 })
 
 describe('HOME_ENTRIES', () => {
-  it('should open the albums, the timeline by year, the presentations and their settings', () => {
+  it('should open every photo, the albums, the timeline by year, the presentations and their settings', () => {
     expect(HOME_ENTRIES).toStrictEqual([
+      { kind: ScreenKind.AllPhotos },
       { kind: ScreenKind.Albums, intent: Intent.Browse },
       { kind: ScreenKind.Years, intent: Intent.Browse },
       { kind: ScreenKind.Present },

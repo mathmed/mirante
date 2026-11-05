@@ -1,7 +1,16 @@
 import { screen, waitFor } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { focusedOn, KEY, press, sources, startApp, stopApp, title } from '../test/app-page.ts'
+import {
+  focusedOn,
+  KEY,
+  onAlbumsCard,
+  press,
+  sources,
+  startApp,
+  stopApp,
+  title,
+} from '../test/app-page.ts'
 import {
   fakeServer,
   IMMICH_URL,
@@ -48,7 +57,7 @@ beforeEach(async () => {
   serveConfig(VALID_CONFIG)
   serveLibrary(SAMPLE_LIBRARY)
   await startApp()
-  await focusedOn(MESSAGES.albums)
+  await onAlbumsCard()
 })
 
 afterEach(stopApp)

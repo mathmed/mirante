@@ -4,11 +4,12 @@ import { describe, expect, it, vi } from 'vitest'
 import { memoryLibrary } from '../../test/library-stub.ts'
 import { memoryStorage } from '../../test/memory-storage.ts'
 import { fakeRemote, type FakeRemote } from '../../test/remote.ts'
+import { ScreenKind } from '../core/navigation.ts'
 import { DEFAULT_PRESENTATION } from '../core/presentation-settings.ts'
 import { RemoteKey } from '../core/remote-key.ts'
 import { StartupFailure, type StartupOutcome, StartupStatus } from '../core/startup.ts'
 import { App } from './App.tsx'
-import { failureText, MESSAGES } from './messages.ts'
+import { failureText, homeTitle, MESSAGES } from './messages.ts'
 
 const SERVER = { address: '192.168.0.10:2283', version: '3.3.6' }
 const LIBRARY = memoryLibrary({
@@ -84,7 +85,7 @@ describe('App', () => {
 
     expect(await screen.findByText('Immich 3.3.6 em 192.168.0.10:2283')).toBeTruthy()
     await waitFor(() => {
-      expect(document.activeElement?.textContent).toBe(MESSAGES.albums)
+      expect(document.activeElement?.textContent).toBe(homeTitle(ScreenKind.AllPhotos))
     })
   })
 

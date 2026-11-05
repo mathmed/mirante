@@ -5,6 +5,8 @@ import { LIBRARY_SOURCE, type PresentationSource, SourceKind } from './presentat
 
 export const ScreenKind = {
   Home: 'home',
+  // Every photo of the library, the most recent first.
+  AllPhotos: 'all-photos',
   Albums: 'albums',
   Album: 'album',
   Years: 'years',
@@ -30,6 +32,7 @@ export type Intent = (typeof Intent)[keyof typeof Intent]
 
 export type Screen =
   | { readonly kind: typeof ScreenKind.Album; readonly album: Album }
+  | { readonly kind: typeof ScreenKind.AllPhotos }
   | { readonly kind: typeof ScreenKind.Albums; readonly intent: Intent }
   | { readonly kind: typeof ScreenKind.Home }
   | { readonly kind: typeof ScreenKind.Month; readonly month: TimelineMonth }
@@ -64,9 +67,10 @@ export interface Opener {
 
 export const HOME: Screen = { kind: ScreenKind.Home }
 
-// What the start screen opens: the albums, the timeline by year, the choices of a presentation and
-// its settings.
+// What the start screen opens: every photo, the albums, the timeline by year, the choices of a
+// presentation and its settings.
 export const HOME_ENTRIES: readonly Screen[] = [
+  { kind: ScreenKind.AllPhotos },
   { kind: ScreenKind.Albums, intent: Intent.Browse },
   { kind: ScreenKind.Years, intent: Intent.Browse },
   { kind: ScreenKind.Present },

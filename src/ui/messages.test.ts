@@ -11,6 +11,7 @@ import {
   photoDateText,
   serverText,
   shortText,
+  summaryText,
 } from './messages.ts'
 
 const FAILURES = Object.values(StartupFailure)
@@ -44,6 +45,16 @@ describe('failureText', () => {
   })
 })
 
+describe('summaryText', () => {
+  it.each([
+    [{ photoCount: 12_340, firstYear: 2019, lastYear: 2026 }, '12.340 fotos · de 2019 a 2026'],
+    [{ photoCount: 1, firstYear: 2026, lastYear: 2026 }, '1 foto · de 2026'],
+    [{ photoCount: 2, firstYear: 2025, lastYear: 2026 }, '2 fotos · de 2025 a 2026'],
+  ])('should say what the library holds: %j', (summary, text) => {
+    expect(summaryText(summary)).toBe(text)
+  })
+})
+
 describe('the texts of the gallery', () => {
   it('should name the server and its Immich version', () => {
     expect(serverText({ address: 'photos.home', version: '3.3.6' })).toBe(
@@ -55,6 +66,10 @@ describe('the texts of the gallery', () => {
     [0, '0 fotos'],
     [1, '1 foto'],
     [87, '87 fotos'],
+    [999, '999 fotos'],
+    [1000, '1.000 fotos'],
+    [12_340, '12.340 fotos'],
+    [1_002_005, '1.002.005 fotos'],
   ])('should count %i photos as %s', (count, text) => {
     expect(photoCountText(count)).toBe(text)
   })

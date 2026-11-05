@@ -1,3 +1,4 @@
+import type { LibrarySummary } from '../core/library-summary.ts'
 import { Intent, PresentChoice, ScreenKind } from '../core/navigation.ts'
 import type { PhotoDate, ServerInfo, TimelineMonth } from '../core/photo-library.ts'
 import {
@@ -78,11 +79,13 @@ const FAILURES: Readonly<Record<StartupFailure, PanelText>> = {
 
 export const MESSAGES = {
   appName: 'Mirante',
-  tagline: 'Suas memórias, vistas do alto',
   connecting: 'Conectando ao Immich…',
   loading: 'Buscando suas fotos…',
   retry: 'Tentar novamente',
   back: 'Voltar',
+  allPhotosTitle: 'Todas as fotos',
+  allPhotosKeys: 'OK abre a foto · Info: Apresentar a partir daqui',
+  morePhotosFailed: 'Não foi possível buscar mais fotos · mova o foco para tentar de novo',
   albums: 'Álbuns',
   timeline: 'Linha do tempo',
   present: 'Apresentar',
@@ -120,6 +123,7 @@ export const MESSAGES = {
 } as const satisfies Readonly<Record<string, PanelText | string>>
 
 const ELLIPSIS = '…'
+const THOUSAND = 1000
 
 // The cards of the choices of a presentation: what they present, and how.
 const CHOICES: ReadonlyMap<PresentChoice, PanelText> = new Map([
@@ -130,6 +134,7 @@ const CHOICES: ReadonlyMap<PresentChoice, PanelText> = new Map([
 ])
 
 const HOME_TITLES: ReadonlyMap<ScreenKind, string> = new Map([
+  [ScreenKind.AllPhotos, 'Todas'],
   [ScreenKind.Albums, MESSAGES.albums],
   [ScreenKind.Years, MESSAGES.timeline],
   [ScreenKind.Present, MESSAGES.present],
@@ -198,20 +203,9 @@ const PREVIEW_NOTES: ReadonlyMap<SettingName, string> = new Map([
   [SettingName.Zoom, 'Vale para a transição Zoom lento.'],
 ])
 
-const MONTH_NAMES: readonly string[] = [
-  'janeiro',
-  'fevereiro',
-  'março',
-  'abril',
-  'maio',
-  'junho',
-  'julho',
-  'agosto',
-  'setembro',
-  'outubro',
-  'novembro',
-  'dezembro',
-]
+const MONTHS =
+  'janeiro fevereiro março abril maio junho julho agosto setembro outubro novembro dezembro'
+const MONTH_NAMES: readonly string[] = MONTHS.split(' ')
 
 const FAILURE_TEXTS: ReadonlyMap<string, PanelText> = new Map(Object.entries(FAILURES))
 
@@ -282,8 +276,15 @@ export function serverText(server: ServerInfo): string {
   return `Immich ${server.version} em ${server.address}`
 }
 
+// "1 foto", "12.340 fotos".
 export function photoCountText(count: number): string {
-  return count === 1 ? '1 foto' : `${String(count)} fotos`
+  return count === 1 ? '1 foto' : `${digitsText(count)} fotos`
+}
+
+// The line under the logo: "12.340 fotos · de 2019 a 2026", or "de 2026" for a single year.
+export function summaryText({ photoCount, firstYear, lastYear }: LibrarySummary): string {
+  const to = firstYear === lastYear ? '' : ` a ${String(lastYear)}`
+  return `${photoCountText(photoCount)} · de ${String(firstYear)}${to}`
 }
 
 export function monthCountText(count: number): string {
@@ -318,6 +319,13 @@ export function shortText(text: string, maxLength: number): string {
     return text
   }
   return `${text.slice(0, maxLength - ELLIPSIS.length)}${ELLIPSIS}`
+}
+
+// The thousands apart with a dot, as in Brazil, without the Intl data a TV may lack.
+function digitsText(count: number): string {
+  const thousands = Math.floor(count / THOUSAND)
+  const rest = String(THOUSAND + (count % THOUSAND)).slice(1)
+  return thousands === 0 ? String(count) : `${digitsText(thousands)}.${rest}`
 }
 
 function secondsPreview(name: SettingName, seconds: number): string {
