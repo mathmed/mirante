@@ -11,7 +11,10 @@ const WEBOS_BACK = 461
 const ESCAPE = 27
 const BACKSPACE = 8
 
-// The TVs report their keys by code; Tizen and webOS give Back a code of their own.
+// The TVs report their keys by code; Tizen and webOS give Back a code of their own. On Tizen,
+// arrows, Enter and Back reach every app without `tizen.tvinputdevice.registerKey` (only the color,
+// media and number keys need it), and Back comes as this keydown: `tizenhwkey` is the hardware Back
+// of Tizen phones and watches, and listening to both would act twice on one press.
 const KEYS: ReadonlyMap<number, RemoteKey> = new Map([
   [ENTER, RemoteKey.Enter],
   [LEFT, RemoteKey.Left],

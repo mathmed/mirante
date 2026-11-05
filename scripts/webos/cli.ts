@@ -1,9 +1,9 @@
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 
+import { PackagingError } from '../packaging/packaging-error.ts'
 import type { Command } from './ares.ts'
 import { packageApp } from './package.ts'
-import { PackagingError } from './packaging-error.ts'
 
 const USAGE_ERROR = 2
 const DEFAULT_OUT = 'build/webos'

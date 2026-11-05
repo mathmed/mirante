@@ -1,13 +1,14 @@
 # Mirante
 
-A photo gallery viewer for TVs. Mirante runs in the TV's browser (and later as an app of the TV),
+A photo gallery viewer for TVs. Mirante runs in the TV's browser or as an app of the TV,
 reads the photos of your [Immich](https://immich.app/) server and is driven by the remote control
 alone: arrows, Enter and Back.
 
 > **Status: version 1 in progress.** The gallery works in the browser of the TV: albums, the
 > timeline by year and month, and the full-screen viewer with a slideshow. It also packages as an
-> LG webOS app (`.ipk`, see [docs/webos.md](docs/webos.md)), not yet tried on a real TV; the
-> Samsung Tizen app (`.wgt`) comes later.
+> LG webOS app (`.ipk`, see [docs/webos.md](docs/webos.md)) and as a Samsung Tizen app (an unsigned
+> `.wgt` you sign with your own certificates, see [docs/tizen.md](docs/tizen.md)), neither tried on
+> a real TV yet.
 
 ## Scope
 
@@ -33,7 +34,7 @@ es-check, TypeScript only knows the ES2018 built-ins, ESLint rejects web APIs Ch
 (`structuredClone`...) and Stylelint rejects CSS it lacks (`:has`, `aspect-ratio`, `gap` in flexbox,
 `:focus-visible`...). The one built-in a dependency needs beyond that, `Object.fromEntries`, is
 polyfilled. Assets load through relative paths and there is no service worker, so the same `dist/`
-works from a web server, packaged as a webOS `.ipk` and, later, as a Tizen `.wgt`.
+works from a web server, packaged as a webOS `.ipk` and as a Tizen `.wgt`.
 
 ### Remote control
 
@@ -50,7 +51,7 @@ mouse or a touch screen. A held arrow keeps moving; a held Enter or Back acts on
 
 | Screen   | What it shows                                             | Enter                          | Back                               |
 | -------- | --------------------------------------------------------- | ------------------------------ | ---------------------------------- |
-| Start    | **Álbuns** and **Linha do tempo**                         | opens the one in focus         | leaves the app (webOS app)         |
+| Start    | **Álbuns** and **Linha do tempo**                         | opens the one in focus         | leaves the app (TV apps)           |
 | Albums   | the covers, with each album's name and number of photos   | opens the album                | start, focus where it was          |
 | Album    | the album's photos, in the order chosen for it in Immich  | opens the photo in the viewer  | albums, on the album that was open |
 | Timeline | the years with photos, the most recent first              | opens the year's months        | start                              |
@@ -59,7 +60,8 @@ mouse or a touch screen. A held arrow keeps moving; a held Enter or Back acts on
 | Viewer   | one photo, full screen; ← and → for the previous and next | starts or pauses the slideshow | the grid, on the photo shown last  |
 
 Back on the start screen, and on the connecting and error screens before it, leaves the app when
-it runs as a webOS app (the TV returns to its launcher); in a browser it stays on the page.
+it runs as a webOS or a Tizen app (the TV returns to its launcher); in a browser it stays on the
+page.
 
 The slideshow moves on every `slideshowSeconds` (8 by default), starts over after the last photo,
 and loads the next photo ahead. The date of the photo (as Immich shows it, in the time zone where it
@@ -142,6 +144,22 @@ answer CORS. [docs/webos.md](docs/webos.md) explains the package, Developer Mode
 expires and must be extended from time to time), and installing, opening and debugging the app
 with LG's webOS CLI (`ares-setup-device`, `ares-install`, `ares-launch`, `ares-inspect`).
 
+### As a Samsung Tizen app
+
+```sh
+cp tizen/config.example.json tizen/config.json   # or: export MIRANTE_IMMICH_URL=http://...
+make package-tizen   # build/tizen/Mirante.wgt, unsigned, and the folder build/tizen/widget/
+make test-tizen      # runs the package from file:// in a headless Chromium
+```
+
+The same rules hold: the **full address** of the proxy, never a key, and CORS. The `.wgt` is **not
+signed**, and a Samsung TV only installs a package signed with an author certificate and a Samsung
+distributor certificate that lists the TV's DUID. Creating them needs Tizen Studio's Certificate
+Manager and a Samsung account, a manual step for each owner. [docs/tizen.md](docs/tizen.md) explains
+the package, Developer Mode on the TV, the certificates (and their expiry), and signing,
+installing and opening the app with the Tizen CLI (`tizen package`, `sdb connect`,
+`tizen install`, `tizen run`).
+
 ## Why Preact
 
 The TVs have little memory and old engines. Preact keeps React's component and hooks model at a
@@ -162,10 +180,11 @@ src/ui/        Preact components and every user-facing text (Brazilian Portugues
 src/main.tsx   composition root: wires the adapters into the UI
 test/          test support: the fake Immich server (MSW), a stub library, a fake remote control and
                throwaway git repositories
-scripts/       tooling: the webOS packaging, Quality Report, suppression ratchet, mutation runner,
-               risk label check
+scripts/       tooling: the webOS and Tizen packaging, Quality Report, suppression ratchet, mutation
+               runner, risk label check
 webos/         the appinfo.json of the webOS app and the example of its config.json
-e2e/           the end-to-end test of the webOS package (Playwright) and its fake Immich server
+tizen/         the config.xml of the Tizen app and the example of its config.json
+e2e/           the end-to-end tests of the TV packages (Playwright) and their fake Immich server
 ```
 
 The layers are enforced by dependency-cruiser; [`CLAUDE.md`](CLAUDE.md) has the full rules and

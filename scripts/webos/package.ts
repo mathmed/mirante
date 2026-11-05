@@ -1,17 +1,22 @@
 import { join } from 'node:path'
 
+import { configSourceFile, packagedConfig } from '../packaging/packaged-config.ts'
+import { PackagingError } from '../packaging/packaging-error.ts'
+import { stageApp } from '../packaging/stage.ts'
 import { listFilesDeep, readBytes, readOptionalText, readText } from '../shared/files.ts'
 import { compareText } from '../shared/text.ts'
 import { type AppInfo, appInfoOf, versionOf } from './appinfo.ts'
 import { aresPackageCommand, type Command } from './ares.ts'
 import { appFiles, ipkFiles } from './ipk.ts'
-import { CONFIG_SOURCE_FILE, packagedConfig } from './packaged-config.ts'
-import { PackagingError } from './packaging-error.ts'
-import { stageApp } from './stage.ts'
 
 const BUILD_DIRECTORY = 'dist'
 const STAGE_DIRECTORY = 'app'
-const APP_INFO_TEMPLATE = 'webos/appinfo.json'
+const PLATFORM_FOLDER = 'webos'
+const APP_INFO_TEMPLATE = `${PLATFORM_FOLDER}/appinfo.json`
+const APP_INFO_FILE = 'appinfo.json'
+// The sizes the launcher of the TV shows the icons at.
+const ICON_PIXELS = 80
+const LARGE_ICON_PIXELS = 130
 
 export interface PackageOptions {
   // The root of the repository.
@@ -32,11 +37,22 @@ export interface PackageResult {
 export async function packageApp(options: PackageOptions): Promise<PackageResult> {
   const appInfo = await readAppInfo(options.root)
   const config = packagedConfig({
+    folder: PLATFORM_FOLDER,
     immichUrl: options.environment['MIRANTE_IMMICH_URL'],
-    fileText: await readOptionalText(join(options.root, CONFIG_SOURCE_FILE)),
+    fileText: await readOptionalText(join(options.root, configSourceFile(PLATFORM_FOLDER))),
   })
   const stage = join(options.outDirectory, STAGE_DIRECTORY)
-  await stageApp({ build: join(options.root, BUILD_DIRECTORY), stage, appInfo, config })
+  await stageApp({
+    build: join(options.root, BUILD_DIRECTORY),
+    stage,
+    main: appInfo.main,
+    config,
+    manifest: { path: APP_INFO_FILE, text: appInfo.text },
+    icons: [
+      { path: appInfo.icon, pixels: ICON_PIXELS },
+      { path: appInfo.largeIcon, pixels: LARGE_ICON_PIXELS },
+    ],
+  })
   const exitCode = await options.runCommand(aresPackageCommand(stage, options.outDirectory))
   if (exitCode !== 0) {
     throw new PackagingError(`O ares-package falhou (código ${String(exitCode)}); veja acima.`)

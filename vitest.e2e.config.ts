@@ -1,11 +1,12 @@
 import { defineConfig } from 'vitest/config'
 
-// The end-to-end test of the webOS package (make test-webos): the real ares-package, the .ipk
-// unpacked and opened from file:// in a headless Chromium. Outside `make test` and CI: it needs
-// the build, the webOS CLI from npm and Playwright's Chromium.
+// The end-to-end tests of the TV packages, each opened from file:// in a headless Chromium: the
+// .ipk made by the real ares-package (make test-webos) and the .wgt (make test-tizen). Outside
+// `make test` and CI: they need the build and Playwright's Chromium, and webOS's needs its CLI from
+// npm.
 export default defineConfig({
   test: {
-    name: 'webos',
+    name: 'tv-packages',
     include: ['e2e/**/*.test.ts'],
     restoreMocks: true,
     unstubEnvs: true,

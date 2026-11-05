@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
 
-import { type Browser, chromium, type Page } from 'playwright'
+import type { Browser } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { listFilesDeep, readBytes, readText, writeBytes } from '../scripts/shared/files.ts'
@@ -17,7 +17,16 @@ import { compareText } from '../scripts/shared/text.ts'
 import { versionOf } from '../scripts/webos/appinfo.ts'
 import { appFiles, type ArchiveFile, ipkFiles } from '../scripts/webos/ipk.ts'
 import { readPng } from '../test/support/png.ts'
-import { ALBUM_NAME, type FakeImmich, PHOTO_IDS, startFakeImmich } from './fake-immich-server.ts'
+import { type FakeImmich, startFakeImmich } from './fake-immich-server.ts'
+import {
+  expectBackToLeave,
+  expectBrowsingAcrossOrigins,
+  expectReportedUnreachable,
+  launchBrowser,
+  openApp,
+  type OpenedApp,
+  TvSystem,
+} from './packaged-app.ts'
 
 const ROOT = join(import.meta.dirname, '..')
 const APP_ID = 'com.mathmed.mirante'
@@ -53,51 +62,8 @@ function fileText(path: string): string {
   return Buffer.from(files.find((file) => file.path === path)?.content ?? []).toString()
 }
 
-async function openApp(): Promise<{ readonly page: Page; readonly exits: () => Promise<number> }> {
-  const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } })
-  // What the system of the TV gives the app; platformBack counts the times it is asked to leave.
-  await page.addInitScript(() => {
-    let exits = 0
-    Reflect.set(window, 'exits', exits)
-    Reflect.set(window, 'PalmSystem', {
-      platformBack: () => {
-        exits += 1
-        Reflect.set(window, 'exits', exits)
-      },
-    })
-  })
-  await page.goto(indexUrl)
-  return {
-    page,
-    exits: async () => page.evaluate(() => (window as unknown as { exits: number }).exits),
-  }
-}
-
-// A key of the remote control, as the TV's input sends it (Back has no key of a desktop keyboard).
-async function pressKeyCode(page: Page, keyCode: number): Promise<void> {
-  const session = await page.context().newCDPSession(page)
-  for (const type of ['rawKeyDown', 'keyUp'] as const) {
-    await session.send('Input.dispatchKeyEvent', {
-      type,
-      windowsVirtualKeyCode: keyCode,
-      nativeVirtualKeyCode: keyCode,
-    })
-  }
-  await session.detach()
-}
-
-async function focusedText(page: Page): Promise<string> {
-  return page.evaluate(() => document.activeElement?.textContent ?? '')
-}
-
-async function loadedImages(page: Page, size: string): Promise<number> {
-  return page.evaluate(
-    (asked) =>
-      [...document.images].filter(
-        (image) => image.complete && image.naturalWidth > 0 && image.src.includes(`size=${asked}`),
-      ).length,
-    size,
-  )
+async function open(): Promise<OpenedApp> {
+  return openApp(browser, indexUrl, TvSystem.Webos)
 }
 
 beforeAll(async () => {
@@ -108,7 +74,7 @@ beforeAll(async () => {
   const appFolder = join(directory, 'tv', APP_ID)
   await unpack(appFolder)
   indexUrl = pathToFileURL(join(appFolder, 'index.html')).href
-  browser = await chromium.launch({ args: ['--allow-file-access-from-files'] })
+  browser = await launchBrowser()
 })
 
 afterAll(async () => {
@@ -155,56 +121,26 @@ describe('the webOS package', () => {
 
   it('should read the albums and load the images across origins from file://', async () => {
     immich.requests.length = 0
-    const { page } = await openApp()
-    await page.getByText(`Immich 3.3.6 em ${immich.url.replace('http://', '')}`).waitFor()
+    const app = await open()
 
-    await page.keyboard.press('Enter')
-    await page.getByText(ALBUM_NAME).waitFor()
-    await expect.poll(async () => loadedImages(page, 'thumbnail')).toBe(1)
-    await page.keyboard.press('Enter')
-    await expect.poll(async () => loadedImages(page, 'thumbnail')).toBe(PHOTO_IDS.length)
-    await page.keyboard.press('Enter')
-    await page.getByRole('dialog', { name: `1 de ${String(PHOTO_IDS.length)}` }).waitFor()
-    await expect.poll(async () => loadedImages(page, 'preview')).toBeGreaterThan(0)
-
-    // fetch sends the origin of the page with each call (cross-origin, so in CORS mode); <img>
-    // loads without one.
-    const calls = immich.requests.filter((request) => !request.url.includes('/thumbnail'))
-    expect(
-      calls.map((request) => `${request.method} ${request.url.split('?')[0] ?? ''}`),
-    ).toContain('GET /api/albums')
-    expect(calls.filter((request) => request.origin === undefined)).toStrictEqual([])
-    expect(calls.map((request) => request.origin)).not.toContain(immich.url)
-    expect(immich.requests.filter((request) => request.apiKey !== undefined)).toStrictEqual([])
-    expect(immich.requests.map((request) => request.url)).toContain(
-      `/api/assets/${PHOTO_IDS[0]}/thumbnail?size=preview`,
-    )
-    await page.close()
+    await expectBrowsingAcrossOrigins(app, immich)
+    await app.page.close()
   })
 
   it('should go back one screen, then ask the TV to leave on Back from the start screen', async () => {
-    const { page, exits } = await openApp()
-    await expect.poll(async () => focusedText(page)).toBe('Álbuns')
-    await page.keyboard.press('Enter')
-    await expect.poll(async () => focusedText(page)).toContain(ALBUM_NAME)
+    const app = await open()
 
-    await pressKeyCode(page, WEBOS_BACK)
-    await expect.poll(async () => focusedText(page)).toBe('Álbuns')
-    expect(await exits()).toBe(0)
-
-    await pressKeyCode(page, WEBOS_BACK)
-    await expect.poll(exits).toBe(1)
-    await page.close()
+    await expectBackToLeave(app, WEBOS_BACK)
+    await app.page.close()
   })
 
   it('should not reach an Immich that does not answer CORS', async () => {
     immich.isCorsAllowed = false
     try {
-      const { page } = await openApp()
-      const alert = page.getByRole('alert')
-      await alert.waitFor()
-      expect(await alert.textContent()).toContain('O Immich não respondeu')
-      await page.close()
+      const app = await open()
+
+      await expectReportedUnreachable(app)
+      await app.page.close()
     } finally {
       immich.isCorsAllowed = true
     }

@@ -1,6 +1,6 @@
 import { gunzipSync } from 'node:zlib'
 
-import { PackagingError } from './packaging-error.ts'
+import { PackagingError } from '../packaging/packaging-error.ts'
 
 // An .ipk is an ar archive of three members: debian-binary, control.tar.gz and data.tar.gz, the
 // files installed on the TV. Read here to check what ares-package put in it.

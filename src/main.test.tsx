@@ -161,6 +161,24 @@ describe('main', () => {
     expect(platformBack).toHaveBeenCalledOnce()
   })
 
+  it('should leave the app on Back from the start screen of a Tizen TV', async () => {
+    const exit = vi.fn<() => void>()
+    vi.stubGlobal('tizen', { application: { getCurrentApplication: () => ({ exit }) } })
+    serveConfig(VALID_CONFIG)
+    serveLibrary(SAMPLE_LIBRARY)
+    await start()
+    await focusedOn(MESSAGES.albums)
+    press(KEY.enter)
+    await focusedOn(TRIP.name)
+
+    press(KEY.tizenBack)
+    await focusedOn(MESSAGES.albums)
+    expect(exit).not.toHaveBeenCalled()
+    press(KEY.tizenBack)
+
+    expect(exit).toHaveBeenCalledOnce()
+  })
+
   it('should stay on the start screen on Back in a browser', async () => {
     serveConfig(VALID_CONFIG)
     serveImmich()

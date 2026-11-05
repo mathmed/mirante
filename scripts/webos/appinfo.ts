@@ -1,5 +1,5 @@
-import { jsonObjectOf } from './json-file.ts'
-import { PackagingError } from './packaging-error.ts'
+import { jsonObjectOf } from '../packaging/json-file.ts'
+import { PackagingError } from '../packaging/packaging-error.ts'
 
 // The fields ares-package and the TV require, and the ones Mirante relies on: the large icon of the
 // launcher, and Back left to the app (see src/platform/app-exit.ts).
