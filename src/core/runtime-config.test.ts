@@ -115,6 +115,7 @@ describe('parseRuntimeConfig', () => {
     42,
     'photos.example.com',
     'api',
+    'photos/',
     '//photos.example.com',
     '/immich photos',
     '/?key=1',

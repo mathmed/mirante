@@ -51,6 +51,17 @@ describe('moveInGrid', () => {
     expect(focusAfter(focus, RemoteKey.Down)).toBe(9)
   })
 
+  it.each([6, 7])('should not move sideways on Down from %i on a last row of two', (focus) => {
+    expect(focusAfter(focus, RemoteKey.Down, { count: 8, columns: 3, visibleRows: 2 })).toBe(focus)
+  })
+
+  it('should go down into a last row of two from right above it', () => {
+    const layout: GridLayout = { count: 8, columns: 3, visibleRows: 2 }
+
+    expect(focusAfter(4, RemoteKey.Down, layout)).toBe(7)
+    expect(focusAfter(5, RemoteKey.Down, layout)).toBe(7)
+  })
+
   it.each([RemoteKey.Enter, RemoteKey.Back])('should not move on %s', (key) => {
     expect(moveInGrid(at(4, 1), key, LAYOUT)).toStrictEqual(at(4, 1))
   })

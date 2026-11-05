@@ -91,9 +91,9 @@ function leftOf(focus: number, layout: GridLayout): number {
   return focus % layout.columns === 0 ? focus : focus - 1
 }
 
+// Past the last item of a shorter row, placeInGrid brings the focus back to that item.
 function rightOf(focus: number, layout: GridLayout): number {
-  const isLastColumn = focus % layout.columns === layout.columns - 1
-  return isLastColumn || focus >= layout.count - 1 ? focus : focus + 1
+  return focus % layout.columns === layout.columns - 1 ? focus : focus + 1
 }
 
 function above(focus: number, layout: GridLayout): number {

@@ -35,9 +35,9 @@ export function advanceSlideshow(state: ViewerState, count: number): ViewerState
 export function decodedPhotos<T>(photos: readonly T[], state: ViewerState): readonly T[] {
   const next = state.isPlaying ? following(state.index, photos.length) : state.index + 1
   const indexes = [state.index, next, state.index - 1].filter(
-    (index, position, all) => index >= 0 && all.indexOf(index) === position,
+    (index, position, all) => all.indexOf(index) === position,
   )
-  // slice gives nothing for an index past the end.
+  // slice gives nothing for an index before the first photo or after the last one.
   return ([] as T[]).concat(...indexes.map((index) => photos.slice(index, index + 1)))
 }
 

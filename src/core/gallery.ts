@@ -87,8 +87,8 @@ function thenBy(comparison: number, tieBreak: number): number {
 }
 
 function compare<T extends number | string>(first: T, second: T): number {
-  if (first === second) {
-    return 0
+  if (first < second) {
+    return -1
   }
-  return first < second ? -1 : 1
+  return first > second ? 1 : 0
 }
