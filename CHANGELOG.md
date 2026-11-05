@@ -8,6 +8,17 @@ All notable changes to Mirante are documented in this file. The format is based 
 
 ### Added
 
+- **The LG webOS app.** `make package-webos` turns the build into
+  `build/webos/com.mathmed.mirante_<version>_all.ipk` with LG's `ares-package`: the bundle as
+  `make build` checked it, `webos/appinfo.json` with the version of `package.json`, the 80x80 and
+  130x130 icons drawn by the packaging script, and a `config.json` from `webos/config.json` or
+  `MIRANTE_IMMICH_URL`, which must hold the full address of the proxy and no API key. The proxy in
+  front of Immich must answer CORS for it. `make test-webos` runs the package from `file://` in a
+  headless Chromium against a fake Immich. [docs/webos.md](docs/webos.md) covers Developer Mode
+  and installing, opening and debugging the app on the TV.
+- **Back leaves the app on its first screen** when it runs on a webOS TV (`platformBack`), from the
+  start screen and from the connecting and error screens; in a browser it stays.
+
 - **The gallery.** A start screen with **Álbuns** and **Linha do tempo**; the albums with their
   covers, names and photo counts; the photos of an album in the order chosen in Immich; the timeline
   by year, then by month, then the month's photos; and a full-screen viewer with the previous and

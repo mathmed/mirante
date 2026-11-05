@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/preact'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { memoryLibrary } from '../../test/library-stub.ts'
 import { fakeRemote, type FakeRemote } from '../../test/remote.ts'
@@ -50,9 +50,12 @@ function pendingStartup(): Pending {
   }
 }
 
-function renderApp(start: () => Promise<StartupOutcome>): FakeRemote {
+function renderApp(
+  start: () => Promise<StartupOutcome>,
+  leave: () => void = () => undefined,
+): FakeRemote {
   const remote = fakeRemote()
-  render(<App start={start} keys={remote.keys} reportError={() => undefined} />)
+  render(<App start={start} keys={remote.keys} reportError={() => undefined} leave={leave} />)
   return remote
 }
 
@@ -100,26 +103,57 @@ describe('App', () => {
     expect(await screen.findByText('Immich 3.3.6 em 192.168.0.10:2283')).toBeTruthy()
   })
 
-  it('should stay on the failure on Back', async () => {
+  it('should leave the app on Back from the failure, without trying again', async () => {
     const startup = pendingStartup()
-    const remote = renderApp(startup.start)
+    const leave = vi.fn<() => void>()
+    const remote = renderApp(startup.start, leave)
     startup.settle(failedWith(StartupFailure.KeyMissing))
     await screen.findByRole('alert')
 
     remote.press(RemoteKey.Back)
 
+    expect(leave).toHaveBeenCalledOnce()
     expect(screen.getByRole('alert')).toBeTruthy()
     expect(startup.calls()).toBe(0)
+  })
+
+  it('should leave the app on Back while it connects', () => {
+    const leave = vi.fn<() => void>()
+    const remote = renderApp(pendingStartup().start, leave)
+
+    remote.press(RemoteKey.Back)
+
+    expect(leave).toHaveBeenCalledOnce()
+  })
+
+  it('should leave the app on Back from the start screen of the gallery', async () => {
+    const leave = vi.fn<() => void>()
+    const remote = renderApp(startingWith(CONNECTED), leave)
+    expect(await screen.findByText(MESSAGES.albums)).toBeTruthy()
+
+    remote.press(RemoteKey.Back)
+
+    expect(leave).toHaveBeenCalledOnce()
   })
 
   it('should ignore the outcome of a startup that was replaced', async () => {
     const first = pendingStartup()
     const remote = fakeRemote()
     const { rerender } = render(
-      <App start={first.start} keys={remote.keys} reportError={() => undefined} />,
+      <App
+        start={first.start}
+        keys={remote.keys}
+        reportError={() => undefined}
+        leave={() => undefined}
+      />,
     )
     rerender(
-      <App start={startingWith(CONNECTED)} keys={remote.keys} reportError={() => undefined} />,
+      <App
+        start={startingWith(CONNECTED)}
+        keys={remote.keys}
+        reportError={() => undefined}
+        leave={() => undefined}
+      />,
     )
     expect(await screen.findByText(MESSAGES.albums)).toBeTruthy()
 

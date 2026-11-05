@@ -2,6 +2,7 @@ import { render } from 'preact'
 
 import { startUp } from './core/startup.ts'
 import { createImmichLibrary } from './immich/immich-library.ts'
+import { leaveApp } from './platform/app-exit.ts'
 import { CONFIG_FILE, readConfigFile } from './platform/config-file.ts'
 import { logError } from './platform/error-log.ts'
 import { installPolyfills } from './platform/polyfills.ts'
@@ -31,4 +32,8 @@ const start = async (): ReturnType<typeof startUp> =>
     reportError: logError,
   })
 
-render(<App start={start} keys={keys} reportError={logError} />, root)
+const leave = (): void => {
+  leaveApp(window)
+}
+
+render(<App start={start} keys={keys} reportError={logError} leave={leave} />, root)

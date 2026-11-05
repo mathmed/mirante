@@ -85,7 +85,7 @@ export default {
       comment: 'The app never ships CI scripts or test support code.',
       severity: 'error',
       from: { path: '^src/', pathNot: TEST_FILE },
-      to: { path: ['^(scripts|test)/', TEST_FILE] },
+      to: { path: ['^(scripts|test|e2e)/', TEST_FILE] },
     },
     {
       name: 'tooling-does-not-import-the-product',

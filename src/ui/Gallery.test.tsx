@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/preact'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, type Mock, vi } from 'vitest'
 
 import { memoryLibrary, type MemoryLibrary, photos, stubLibrary } from '../../test/library-stub.ts'
 import { fakeRemote, type FakeRemote } from '../../test/remote.ts'
@@ -56,19 +56,22 @@ const DATA: MemoryLibrary = {
 interface Shown {
   readonly remote: FakeRemote
   readonly reported: unknown[]
+  readonly leave: Mock<() => void>
 }
 
 function show(library: PhotoLibrary = memoryLibrary(DATA)): Shown {
   const remote = fakeRemote()
   const reported: unknown[] = []
+  const leave = vi.fn<() => void>()
   render(
     <Gallery
       session={{ server: SERVER, library, slideshowSeconds: 8 }}
       keys={remote.keys}
       reportError={(error) => reported.push(error)}
+      leave={leave}
     />,
   )
-  return { remote, reported }
+  return { remote, reported, leave }
 }
 
 async function title(text: string): Promise<void> {
@@ -96,6 +99,37 @@ describe('Gallery', () => {
     ])
     expect(screen.getByText('Immich 3.3.6 em 192.168.0.10:2283')).toBeTruthy()
     await focusedOn(MESSAGES.albums)
+  })
+
+  it('should leave the app on Back from the start screen', async () => {
+    const sut = show()
+    await focusedOn(MESSAGES.albums)
+
+    sut.remote.press(Back)
+
+    expect(sut.leave).toHaveBeenCalledOnce()
+  })
+
+  it('should go back one screen, not leave the app, on Back from a deeper screen', async () => {
+    const sut = show()
+    sut.remote.press(Enter)
+    await title(MESSAGES.albums)
+
+    sut.remote.press(Back)
+
+    await focusedOn(MESSAGES.albums)
+    expect(sut.leave).not.toHaveBeenCalled()
+  })
+
+  it('should not leave the app on a double Back that reaches the start screen', async () => {
+    const sut = show()
+    sut.remote.press(Enter)
+    await title(MESSAGES.albums)
+
+    sut.remote.pressAtOnce(Back, Back)
+
+    await focusedOn(MESSAGES.albums)
+    expect(sut.leave).not.toHaveBeenCalled()
   })
 
   it('should list the albums with their covers and counts, the most recent first', async () => {

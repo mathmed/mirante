@@ -5,8 +5,9 @@ reads the photos of your [Immich](https://immich.app/) server and is driven by t
 alone: arrows, Enter and Back.
 
 > **Status: version 1 in progress.** The gallery works in the browser of the TV: albums, the
-> timeline by year and month, and the full-screen viewer with a slideshow. The packaged TV apps
-> (`.wgt`, `.ipk`) come later.
+> timeline by year and month, and the full-screen viewer with a slideshow. It also packages as an
+> LG webOS app (`.ipk`, see [docs/webos.md](docs/webos.md)), not yet tried on a real TV; the
+> Samsung Tizen app (`.wgt`) comes later.
 
 ## Scope
 
@@ -32,7 +33,7 @@ es-check, TypeScript only knows the ES2018 built-ins, ESLint rejects web APIs Ch
 (`structuredClone`...) and Stylelint rejects CSS it lacks (`:has`, `aspect-ratio`, `gap` in flexbox,
 `:focus-visible`...). The one built-in a dependency needs beyond that, `Object.fromEntries`, is
 polyfilled. Assets load through relative paths and there is no service worker, so the same `dist/`
-works from a web server or, later, packaged as a Tizen `.wgt` and a webOS `.ipk`.
+works from a web server, packaged as a webOS `.ipk` and, later, as a Tizen `.wgt`.
 
 ### Remote control
 
@@ -49,13 +50,16 @@ mouse or a touch screen. A held arrow keeps moving; a held Enter or Back acts on
 
 | Screen   | What it shows                                             | Enter                          | Back                               |
 | -------- | --------------------------------------------------------- | ------------------------------ | ---------------------------------- |
-| Start    | **Álbuns** and **Linha do tempo**                         | opens the one in focus         | stays                              |
+| Start    | **Álbuns** and **Linha do tempo**                         | opens the one in focus         | leaves the app (webOS app)         |
 | Albums   | the covers, with each album's name and number of photos   | opens the album                | start, focus where it was          |
 | Album    | the album's photos, in the order chosen for it in Immich  | opens the photo in the viewer  | albums, on the album that was open |
 | Timeline | the years with photos, the most recent first              | opens the year's months        | start                              |
 | Year     | the months with photos, in calendar order                 | opens the month's photos       | years, on the year that was open   |
 | Month    | the month's photos, from the first to the last            | opens the photo in the viewer  | months, on the month that was open |
 | Viewer   | one photo, full screen; ← and → for the previous and next | starts or pauses the slideshow | the grid, on the photo shown last  |
+
+Back on the start screen, and on the connecting and error screens before it, leaves the app when
+it runs as a webOS app (the TV returns to its launcher); in a browser it stays on the page.
 
 The slideshow moves on every `slideshowSeconds` (8 by default), starts over after the last photo,
 and loads the next photo ahead. The date of the photo (as Immich shows it, in the time zone where it
@@ -124,6 +128,20 @@ make build    # dist/: the app the TVs load, checked against ES2018
 Serve `dist/` (plus its `config.json`) behind the proxy in front of Immich (see
 [Reaching Immich](#reaching-immich)) and open that address in the TV's browser.
 
+### As an LG webOS app
+
+```sh
+cp webos/config.example.json webos/config.json   # or: export MIRANTE_IMMICH_URL=http://...
+make package-webos   # build/webos/com.mathmed.mirante_<version>_all.ipk
+make test-webos      # runs the package from file:// in a headless Chromium
+```
+
+The packaged app loads from the TV's file system, so its `config.json` names the **full address**
+of the proxy (`immichUrl` such as `http://192.168.0.10:8085`), never a key, and the proxy must
+answer CORS. [docs/webos.md](docs/webos.md) explains the package, Developer Mode on the TV (which
+expires and must be extended from time to time), and installing, opening and debugging the app
+with LG's webOS CLI (`ares-setup-device`, `ares-install`, `ares-launch`, `ares-inspect`).
+
 ## Why Preact
 
 The TVs have little memory and old engines. Preact keeps React's component and hooks model at a
@@ -144,7 +162,10 @@ src/ui/        Preact components and every user-facing text (Brazilian Portugues
 src/main.tsx   composition root: wires the adapters into the UI
 test/          test support: the fake Immich server (MSW), a stub library, a fake remote control and
                throwaway git repositories
-scripts/       CI tooling: Quality Report, suppression ratchet, mutation runner, risk label check
+scripts/       tooling: the webOS packaging, Quality Report, suppression ratchet, mutation runner,
+               risk label check
+webos/         the appinfo.json of the webOS app and the example of its config.json
+e2e/           the end-to-end test of the webOS package (Playwright) and its fake Immich server
 ```
 
 The layers are enforced by dependency-cruiser; [`CLAUDE.md`](CLAUDE.md) has the full rules and

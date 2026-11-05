@@ -129,6 +129,50 @@ describe('main', () => {
     await focusedOn(MESSAGES.albums)
   })
 
+  it('should read every photo from an absolute immichUrl without a key, as the packaged app does', async () => {
+    serveConfig({ immichUrl: `${IMMICH_URL}/` })
+    serveLibrary(SAMPLE_LIBRARY, { isKeyAdded: true })
+    await start()
+    expect(await screen.findByText('Immich 3.3.6 em immich.test')).toBeTruthy()
+
+    press(KEY.enter)
+    await focusedOn(TRIP.name)
+    press(KEY.enter)
+    await waitFor(() => {
+      expect(sources()).toHaveLength(TRIP_PHOTOS)
+    })
+    expect(sources()[0]).toBe(`${IMMICH_URL}/api/assets/trip-00/thumbnail?size=thumbnail`)
+    press(KEY.enter)
+
+    expect(await screen.findByRole('dialog', { name: `1 de ${String(TRIP_PHOTOS)}` })).toBeTruthy()
+    expect(sources()).toContain(`${IMMICH_URL}/api/assets/trip-00/thumbnail?size=preview`)
+  })
+
+  it('should go back to the launcher on Back from the start screen of a webOS TV', async () => {
+    const platformBack = vi.fn<() => void>()
+    vi.stubGlobal('PalmSystem', { platformBack })
+    serveConfig(VALID_CONFIG)
+    serveImmich()
+    await start()
+    await focusedOn(MESSAGES.albums)
+
+    press(KEY.webOsBack)
+
+    expect(platformBack).toHaveBeenCalledOnce()
+  })
+
+  it('should stay on the start screen on Back in a browser', async () => {
+    serveConfig(VALID_CONFIG)
+    serveImmich()
+    await start()
+    await focusedOn(MESSAGES.albums)
+
+    press(ESCAPE)
+
+    await focusedOn(MESSAGES.albums)
+    expect(screen.getByRole('heading', { level: 1, name: MESSAGES.appName })).toBeTruthy()
+  })
+
   it('should walk the timeline by year and month with the remote control', async () => {
     serveConfig(VALID_CONFIG)
     serveLibrary(SAMPLE_LIBRARY)

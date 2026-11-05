@@ -37,7 +37,14 @@ const SECURITY_RULES: Linter.RulesRecord = Object.fromEntries(
 )
 
 export default defineConfig([
-  globalIgnores(['dist/', 'coverage/', 'reports/', '.stryker-tmp/', 'quality-fragments/']),
+  globalIgnores([
+    'dist/',
+    'build/',
+    'coverage/',
+    'reports/',
+    '.stryker-tmp/',
+    'quality-fragments/',
+  ]),
   {
     linterOptions: {
       reportUnusedDisableDirectives: 'error',

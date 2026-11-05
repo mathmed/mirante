@@ -29,6 +29,8 @@ load where the key reaches them without the app.
 | `make setup`               | Install the locked dependencies and the git hooks.                         |
 | `make dev`                 | Serve the app with hot reload (Vite).                                      |
 | `make build`               | Bundle the app into `dist/` (Vite) and check it against ES2018 (es-check). |
+| `make package-webos`       | Package the build as the LG webOS app (`.ipk`), see `docs/webos.md`.       |
+| `make test-webos`          | Run the `.ipk` from `file://` in a headless Chromium (Playwright).         |
 | `make format`              | Format (Prettier) and apply the fixes ESLint can make.                     |
 | `make lint`                | ESLint, Stylelint and the Prettier check.                                  |
 | `make typecheck`           | tsc 7 strict: the app, the core alone, the tests and the tooling.          |
@@ -111,8 +113,14 @@ Dependabot proposes grouped weekly updates after a cooldown (major 15 days, mino
 
 - **Build**: `npm run build` runs `vite build` (target ES2018 and Chromium 68, `base: './'`) and then
   es-check with `.escheckrc.json`, which also detects newer built-ins in the bundle (the dependencies'
-  code included). CI keeps `dist/` as the `mirante-dist` artifact. Packaging the TV apps (`.wgt`,
-  `.ipk`) is a later step.
+  code included). CI keeps `dist/` as the `mirante-dist` artifact.
+- **webOS package**: `make package-webos` packages that build, unchanged, with `ares-package`
+  (`scripts/webos/`, tested like the other scripts with a fake `ares-package`); `make test-webos`
+  runs the real one and opens the `.ipk` from `file://` in Playwright's headless Chromium against the
+  fake Immich of `e2e/`. Both stay out of `make quality` and CI: they need the webOS CLI from npm
+  (through `npx`, see `docs/webos.md` for why it is not a devDependency) and a browser download. Run
+  `make test-webos` when a change touches the packaging, `webos/`, the startup or the remote control.
+  The Tizen app (`.wgt`) is a later step.
 - **Mutation testing**: [Stryker](https://stryker-mutator.io/) mutates `src/core` (the pure logic,
   `stryker.config.json`) and runs the related tests against each mutant through its Vitest runner,
   with the TypeScript checker discarding mutants that do not compile. For each **survivor**, add the

@@ -1,8 +1,9 @@
 # Dependencies
 node_modules/
 
-# Build output
+# Build output; build/webos/ holds the webOS package and the folder it is made from
 dist/
+build/
 *.tsbuildinfo
 
 # Runtime configuration: the Immich address and API key of each installation, at any level (see
