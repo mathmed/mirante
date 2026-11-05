@@ -1,0 +1,45 @@
+name: Bug report
+description: Something in Mirante does not work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Never paste an Immich API key, the contents of your config.json or
+        private photos. A security problem goes through [SECURITY.md](https://github.com/mathmed/mirante/blob/main/SECURITY.md), not here.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what Mirante did instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The smallest steps that show it, with the remote control keys you pressed.
+      placeholder: |
+        1. Open Mirante on the TV
+        2. Press Down, then Enter
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: tv
+    attributes:
+      label: TV and how Mirante runs on it
+      placeholder: "Samsung QN65Q60B (Tizen 6.5), in the TV browser"
+    validations:
+      required: true
+  - type: input
+    id: immich-version
+    attributes:
+      label: Immich server version
+      placeholder: "3.3.6"
+  - type: textarea
+    id: log
+    attributes:
+      label: Console output
+      description: Anything relevant from the browser console (lines start with [mirante]). Check that it holds no API key before you paste.
+      render: text

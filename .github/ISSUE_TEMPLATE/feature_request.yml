@@ -1,0 +1,27 @@
+name: Feature request
+description: Something Mirante could do.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Some things are out of scope on purpose (video, people, search, upload, editing, anything
+        that writes to Immich): see the README before asking for them.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do on the TV, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+      description: How Mirante could help, and how it works with the remote control (arrows, Enter, Back).
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
