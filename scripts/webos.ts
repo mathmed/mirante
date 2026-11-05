@@ -1,6 +1,6 @@
 // The app packaged for LG's webOS TVs (see docs/webos.md).
-//   package [--out <dir>]   dist/ plus appinfo.json, config.json and the icons, as an .ipk made by
-//                           ares-package; build/webos/ by default
+//   package [--out <dir>]   the webOS build (build/webos-dist/) plus appinfo.json, config.json and
+//                           the icons, as an .ipk made by ares-package; build/webos/ by default
 import { resolve } from 'node:path'
 
 import { runCommand } from './webos/ares.ts'

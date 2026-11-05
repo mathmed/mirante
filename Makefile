@@ -12,11 +12,12 @@ setup:
 dev:
 	npm run dev
 
-# Bundle the app into dist/ (Vite, relative paths) and check it against ES2018 (es-check)
+# Bundle the app (Vite, relative paths) into dist/ and, as one classic script for webOS, into
+# build/webos-dist/; check both against ES2018 (es-check) and their browser APIs against Chrome 68
 build:
 	npm run build
 
-# Package dist/ as the app of LG's webOS TVs: build/webos/com.mathmed.mirante_<version>_all.ipk, with
+# Package build/webos-dist/ as the app of LG's webOS TVs: build/webos/com.mathmed.mirante_<version>_all.ipk, with
 # the config.json of webos/config.json or MIRANTE_IMMICH_URL (see docs/webos.md)
 package-webos: build
 	npm run package:webos

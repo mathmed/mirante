@@ -8,6 +8,7 @@ import { fakeAresPackage } from '../../test/support/ipk.ts'
 import { readText, writeText } from '../shared/files.ts'
 import type { Command } from './ares.ts'
 import { main, type WebosContext } from './cli.ts'
+import { WEBOS_BUILD } from './package.ts'
 
 const REPOSITORY = join(import.meta.dirname, '../..')
 const IPK = 'com.mathmed.mirante_1.0.0_all.ipk'
@@ -30,7 +31,7 @@ beforeEach(async () => {
     join(root, 'webos', 'appinfo.json'),
     await readText(join(REPOSITORY, 'webos', 'appinfo.json')),
   )
-  await writeText(join(root, 'dist', 'index.html'), '')
+  await writeText(join(root, WEBOS_BUILD, 'index.html'), '')
 })
 
 describe('webos command line', () => {

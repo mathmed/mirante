@@ -1,7 +1,7 @@
 // The .ipk of `make package-webos`, run the way a webOS TV runs it: unpacked, opened from file://
 // in Chromium (headless, here) with access to its own files, as LG's web app runtime allows. The
 // fake Immich answers CORS like the proxy in front of the owner's server. Needs `make build`
-// first; `make test-webos` runs both.
+// first (its webOS build, build/webos-dist/); `make test-webos` runs both.
 import { execFile } from 'node:child_process'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -16,6 +16,7 @@ import { listFilesDeep, readBytes, readText, writeBytes } from '../scripts/share
 import { compareText } from '../scripts/shared/text.ts'
 import { versionOf } from '../scripts/webos/appinfo.ts'
 import { appFiles, type ArchiveFile, ipkFiles } from '../scripts/webos/ipk.ts'
+import { WEBOS_BUILD } from '../scripts/webos/package.ts'
 import { readPng } from '../test/support/png.ts'
 import { type FakeImmich, startFakeImmich } from './fake-immich-server.ts'
 import {
@@ -85,7 +86,7 @@ afterAll(async () => {
 
 describe('the webOS package', () => {
   it('should hold the build, appinfo.json, config.json and the icons, and nothing else', async () => {
-    const build = await listFilesDeep(join(ROOT, 'dist'))
+    const build = await listFilesDeep(join(ROOT, WEBOS_BUILD))
 
     expect(files.map((file) => file.path).toSorted(compareText)).toStrictEqual(
       [...build, 'appinfo.json', 'config.json', 'icon.png', 'largeIcon.png'].toSorted(compareText),

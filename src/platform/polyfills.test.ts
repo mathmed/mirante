@@ -76,10 +76,8 @@ describe('installPolyfills', () => {
     expect(Reflect.get(window, 'queueMicrotask')).toBe(queueMicrotask)
   })
 
-  it('should be what es-check lets the build use', () => {
-    expect(esCheck.ignore.split(',').filter((feature) => feature !== '')).toStrictEqual(
-      POLYFILLED_FEATURES,
-    )
+  it.each(esCheck)('should be what es-check lets $files use', ({ ignore }) => {
+    expect(ignore.split(',').filter((feature) => feature !== '')).toStrictEqual(POLYFILLED_FEATURES)
   })
 
   it('should be what the API check of the bundle lets the build use', () => {

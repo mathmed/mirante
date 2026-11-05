@@ -9,7 +9,7 @@ const USAGE_ERROR = 2
 const DEFAULT_OUT = 'build/webos'
 const USAGE = `uso:
   webos package [--out <pasta>]
-      empacota o dist/ (rode make build antes) como o .ipk do webOS, em ${DEFAULT_OUT}/ por padrão`
+      empacota o build do webOS, build/webos-dist/ (rode make build antes), como o .ipk do webOS, em ${DEFAULT_OUT}/ por padrão`
 
 export interface WebosContext {
   readonly root: string

@@ -9,7 +9,9 @@ import { type AppInfo, appInfoOf, versionOf } from './appinfo.ts'
 import { aresPackageCommand, type Command } from './ares.ts'
 import { appFiles, ipkFiles } from './ipk.ts'
 
-const BUILD_DIRECTORY = 'dist'
+// The webOS build of `make build` (vite.webos.config.ts): one classic script, which webOS runs
+// from file://.
+export const WEBOS_BUILD = 'build/webos-dist'
 const STAGE_DIRECTORY = 'app'
 const PLATFORM_FOLDER = 'webos'
 const APP_INFO_TEMPLATE = `${PLATFORM_FOLDER}/appinfo.json`
@@ -33,7 +35,7 @@ export interface PackageResult {
   readonly files: readonly string[]
 }
 
-// dist/ plus the webOS files, packaged by ares-package and checked file by file.
+// The webOS build plus the webOS files, packaged by ares-package and checked file by file.
 export async function packageApp(options: PackageOptions): Promise<PackageResult> {
   const appInfo = await readAppInfo(options.root)
   const config = packagedConfig({
@@ -43,7 +45,7 @@ export async function packageApp(options: PackageOptions): Promise<PackageResult
   })
   const stage = join(options.outDirectory, STAGE_DIRECTORY)
   await stageApp({
-    build: join(options.root, BUILD_DIRECTORY),
+    build: join(options.root, WEBOS_BUILD),
     stage,
     main: appInfo.main,
     config,

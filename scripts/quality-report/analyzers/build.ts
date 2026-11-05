@@ -4,9 +4,10 @@ import { type Fragment, hasPassed } from '../fragment.ts'
 import { Status } from '../status.ts'
 
 // Vite prints one "<file>  <size> kB │ gzip: <size> kB" line per output file, then "✓ built in
-// <time>"; es-check then checks the bundles against ES2018, and scripts/browser-apis.ts the browser
-// APIs they read against the oldest Chrome.
-const BUNDLE_LINE = /^(dist\/\S+\.(?:js|css))\s+([\d.,]+ [kMG]?B) │ gzip:\s+([\d.,]+ [kMG]?B)/u
+// <time>", once for the web build (dist/) and once for the webOS build (build/webos-dist/); es-check
+// then checks the bundles against ES2018, and scripts/browser-apis.ts the browser APIs they read
+// against the oldest Chrome.
+const BUNDLE_LINE = /^(\S+\.(?:js|css))\s+([\d.,]+ [kMG]?B) │ gzip:\s+([\d.,]+ [kMG]?B)/u
 const BUILT_LINE = /✓ built in (\S+)$/m
 const VITE_ERRORS = /Build failed with (\d+) errors?/
 const ES_CHECK_ERRORS = /there were (\d+) ES version matching errors?/
