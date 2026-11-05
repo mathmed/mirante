@@ -17,7 +17,10 @@ make dev          # the app with hot reload; copy public/config.example.json to 
 ```
 
 To try it on a TV, run `make build`, copy a `config.json` next to `dist/index.html` and serve `dist/`
-on your network (see "Reaching Immich" in the README for the same-origin requirement).
+at the address of Immich, behind a proxy that sends `/api` to Immich and adds the API key (see
+"Reaching Immich" in the README). `make dev` serves the app from Vite, another origin than Immich:
+it only reaches an Immich server that sends CORS headers (its development mode), and the images only
+load where the key reaches them without the app.
 
 ### Make targets
 
@@ -46,7 +49,11 @@ on your network (see "Reaching Immich" in the README for the same-origin require
 1. Branch from `main`; one pull request, one subject.
 2. Write the tests next to the code (`startup.test.ts` beside `startup.ts`). Mock only the external
    boundary: the Immich server and `config.json` through the fake server of `test/fake-immich.ts`
-   (MSW; a request it does not answer fails the test), the console, the clock.
+   (MSW; a request it does not answer fails the test; `test/sample-library.ts` is a small library
+   for it), the console, the clock. The tests of the core and of the components, which cannot import
+   the adapters, read the photo library through `test/library-stub.ts` and press keys with the fake
+   remote control of `test/remote.ts`; `src/main.test.tsx` runs the whole app against the fake
+   server with the key codes of the TVs.
 3. Run `make quality`, plus `make build` when the change touches the app or its configuration, and
    `make mutation-changed` for `src/core`.
 4. Commit with [Conventional Commits](https://www.conventionalcommits.org/) (`feat`, `fix`,
