@@ -17,8 +17,10 @@ in front of Immich, so it is never on the same origin as Immich:
 - `immichUrl` must be the **full address of the proxy**, such as `http://192.168.0.10:8085`. A
   relative address (empty or a path) cannot work there, and packaging refuses it.
 - The proxy must answer **CORS** for the app: `Access-Control-Allow-Origin: *`, a `204` to the
-  preflight `OPTIONS`, and the methods `GET`, `HEAD`, `POST` and `OPTIONS`. Mirante sends no custom
-  header and no cookie.
+  preflight `OPTIONS`, the methods `GET`, `HEAD`, `POST` and `OPTIONS`, and the header
+  `Content-Type` (`Access-Control-Allow-Headers: Content-Type`), which the random draw of the
+  library sends with its JSON body. [docs/proxy.md](proxy.md) lists the routes the proxy lets
+  through, with a Caddyfile. Mirante sends no other header and no cookie.
 - The proxy adds the **API key** to the requests it sends to Immich, as for the browser install. The
   package never carries a key: packaging refuses a configuration with `apiKey`, because anyone with
   the `.ipk` could read it.

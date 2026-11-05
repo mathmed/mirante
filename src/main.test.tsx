@@ -1,7 +1,7 @@
-import { fireEvent, screen, waitFor } from '@testing-library/preact'
-import { render } from 'preact'
+import { screen, waitFor } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { focusedOn, KEY, press, sources, startApp, stopApp, title } from '../test/app-page.ts'
 import {
   fakeServer,
   IMMICH_URL,
@@ -15,49 +15,14 @@ import { SAMPLE_LIBRARY, TRIP, TRIP_PHOTOS } from '../test/sample-library.ts'
 import { StartupFailure } from './core/startup.ts'
 import { failureText, MESSAGES } from './ui/messages.ts'
 
-// The key codes the TVs send.
-const KEY = { enter: 13, left: 37, up: 38, right: 39, down: 40, tizenBack: 10009, webOsBack: 461 }
-const ESCAPE = 27
-const BACKSPACE = 8
-
-function press(...codes: readonly number[]): void {
-  for (const keyCode of codes) {
-    fireEvent.keyDown(document.activeElement ?? document.body, { keyCode })
-  }
-}
-
-async function focusedOn(text: string): Promise<void> {
-  await waitFor(() => {
-    expect(document.activeElement?.textContent).toContain(text)
-  })
-}
-
-async function title(text: string): Promise<void> {
-  await screen.findByRole('heading', { level: 1, name: text })
-}
-
-// The photos on the screen: the grid's thumbnails or the viewer's previews, not the mark of the app.
-function sources(): (string | null)[] {
-  return [...document.querySelectorAll('img.picture')].map((image) => image.getAttribute('src'))
-}
+const { escape: ESCAPE, backspace: BACKSPACE } = KEY
+const start = startApp
 
 beforeEach(() => {
   vi.resetModules()
 })
 
-afterEach(() => {
-  fakeServer.events.removeAllListeners()
-  const root = document.getElementById('app')
-  if (root !== null) {
-    render(null, root)
-  }
-  document.body.innerHTML = ''
-})
-
-async function start(): Promise<void> {
-  document.body.innerHTML = '<div id="app"></div>'
-  await import('./main.tsx')
-}
+afterEach(stopApp)
 
 describe('main', () => {
   it('should connect to the Immich server of config.json', async () => {

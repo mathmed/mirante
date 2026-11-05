@@ -1,16 +1,16 @@
 import type { JSX } from 'preact'
 import { useState } from 'preact/hooks'
 
-import { HOME_ENTRIES, type HomeEntry, ScreenKind } from '../core/navigation.ts'
+import { HOME_ENTRIES } from '../core/navigation.ts'
 import type { ServerInfo } from '../core/photo-library.ts'
 import { Backdrop } from './Backdrop.tsx'
 import { Grid } from './Grid.tsx'
 import { HomeIcon } from './HomeIcon.tsx'
 import { Logo, LogoLayout } from './Logo.tsx'
-import { MESSAGES, serverText } from './messages.ts'
+import { homeTitle, MESSAGES, serverText } from './messages.ts'
 import type { ScreenProps } from './screen-props.ts'
 
-const SHAPE = { columns: 2, visibleRows: 1 }
+const SHAPE = { columns: 4, visibleRows: 1 }
 
 export interface HomeScreenProps extends ScreenProps {
   readonly server: ServerInfo
@@ -18,7 +18,8 @@ export interface HomeScreenProps extends ScreenProps {
   readonly backdropUrl: string | undefined
 }
 
-// The two ways into the library, its albums and its timeline, under the logo.
+// The ways into the library, its albums and its timeline, its presentations and their settings,
+// under the logo.
 export function HomeScreen(props: HomeScreenProps): JSX.Element {
   const { server, backdropUrl } = props
   return (
@@ -49,8 +50,8 @@ function HomeGrid({ keys, position, open, back }: HomeScreenProps): JSX.Element 
       keyOf={(entry) => entry.kind}
       renderTile={(entry) => (
         <>
-          <HomeIcon entry={entry} />
-          <span class="tile-title">{entryText(entry)}</span>
+          <HomeIcon kind={entry.kind} />
+          <span class="tile-title">{homeTitle(entry.kind)}</span>
         </>
       )}
       onMove={setCurrent}
@@ -60,8 +61,4 @@ function HomeGrid({ keys, position, open, back }: HomeScreenProps): JSX.Element 
       onBack={back}
     />
   )
-}
-
-function entryText(entry: HomeEntry): string {
-  return entry.kind === ScreenKind.Albums ? MESSAGES.albums : MESSAGES.timeline
 }

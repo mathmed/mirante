@@ -6,19 +6,23 @@
 
 A photo gallery viewer for TVs. Mirante runs in the TV's browser or as an app of the TV,
 reads the photos of your [Immich](https://immich.app/) server and is driven by the remote control
-alone: arrows, Enter and Back.
+alone: arrows, Enter and Back (and Info, optional).
 
 > **Status: version 1 in progress.** The gallery works in the browser of the TV: albums, the
-> timeline by year and month, and the full-screen viewer with a slideshow. It also packages as an
-> LG webOS app (`.ipk`, see [docs/webos.md](docs/webos.md)) and as a Samsung Tizen app (an unsigned
-> `.wgt` you sign with your own certificates, see [docs/tizen.md](docs/tizen.md)), neither tried on
-> a real TV yet.
+> timeline by year and month, the full-screen viewer, and presentations of an album, a month, a
+> year or the whole library, with their settings and the captions written in Immich. It also
+> packages as an LG webOS app (`.ipk`, see [docs/webos.md](docs/webos.md)) and as a Samsung Tizen
+> app (an unsigned `.wgt` you sign with your own certificates, see [docs/tizen.md](docs/tizen.md)),
+> neither tried on a real TV yet.
 
 ## Scope
 
 Version 1 shows photos, read only:
 
 - albums and the timeline of the library, and a full-screen photo viewer with a slideshow;
+- presentations of an album, a month, a year or the whole library (at random), with the captions
+  written in Immich and settings each TV keeps: the interval, the order, the transition (cut, fade,
+  slide or a slow "Ken Burns" zoom), what shows over the photo, and a lighter mode for slow TVs;
 - navigation with the remote control only, with the focus always visible;
 - a runtime configuration file, so that the same build serves any Immich server.
 
@@ -50,35 +54,70 @@ system (see [docs/webos.md](docs/webos.md#what-the-lg-taught-us)).
 | Arrows     | 37–40 | 37–40 | arrow keys            |
 | Enter / OK | 13    | 13    | Enter                 |
 | Back       | 10009 | 461   | Escape or Backspace   |
+| Info       | 457   | 457   | I                     |
 
 The focus is always visible, and every screen is reachable with these keys only; nothing needs a
-mouse or a touch screen. A held arrow keeps moving; a held Enter or Back acts once.
+mouse or a touch screen. A held arrow keeps moving; a held Enter, Back or Info acts once. Info is
+optional: it opens the settings over the viewer, which Down opens too, for remote controls without
+it. Tizen only sends Info to an app that registers it, which Mirante does at startup (the
+`tv.inputdevice` privilege of `tizen/config.xml`).
 
 ## Screens
 
 | Screen   | What it shows                                             | Enter                          | Back                               |
 | -------- | --------------------------------------------------------- | ------------------------------ | ---------------------------------- |
-| Start    | the logo, **Álbuns** and **Linha do tempo**, over a photo | opens the one in focus         | leaves the app (TV apps)           |
+| Start    | the logo and four cards, over a photo (see below)         | opens the one in focus         | leaves the app (TV apps)           |
 | Albums   | the covers, with each album's name and number of photos   | opens the album                | start, focus where it was          |
 | Album    | the album's photos, in the order chosen for it in Immich  | opens the photo in the viewer  | albums, on the album that was open |
 | Timeline | the years with photos, the most recent first              | opens the year's months        | start                              |
 | Year     | the months with photos, in calendar order                 | opens the month's photos       | years, on the year that was open   |
 | Month    | the month's photos, from the first to the last            | opens the photo in the viewer  | months, on the month that was open |
 | Viewer   | one photo, full screen; ← and → for the previous and next | starts or pauses the slideshow | the grid, on the photo shown last  |
+| Present  | the whole library, an album, a year or a month            | presents it, or opens the list | start                              |
+| Settings | the settings of the presentations, with their values      | flips a switch                 | keeps them, start                  |
 
 The app opens on its logo while it connects to Immich, and moves on to the start screen as soon as
 the server answers. Behind the start screen lies the cover of the most recent album, darkened (a
-plain background when no album has a cover).
+plain background when no album has a cover), under four cards: **Álbuns**, **Linha do tempo**,
+**Apresentar** and **Ajustes**.
 
 Back on the start screen, and on the connecting and error screens before it, leaves the app when
 it runs as a webOS or a Tizen app (the TV returns to its launcher); in a browser it stays on the
 page.
 
-The slideshow moves on every `slideshowSeconds` (8 by default), starts over after the last photo,
-and loads the next photo ahead. The date of the photo (as Immich shows it, in the time zone where it
-was taken) and its position, like **12 de 87**, show discreetly at each change and fade away by
-themselves. Loading, empty and error states are explained in Portuguese; on an error the
-**Tentar novamente** button already has the focus.
+### Presentations
+
+**Apresentar** offers the whole library, which starts at once, or an album, a year or a month,
+chosen on the screens of the gallery (**Apresentar um álbum**...). A presentation plays as soon as
+its photos arrive; Back returns to where it was chosen. The whole library comes from Immich as
+random draws of 200 photos, a new draw for each round while it loops, so a TV never holds the list
+of every photo. The viewer opened from a grid plays the same way on Enter, in the order of the grid.
+
+How a presentation runs comes from the settings: each photo stays on the screen for the interval;
+the order is by date (oldest or newest first) or random (each photo once before any comes again,
+never the same photo twice in a row across rounds), and the library is always random; the
+transition is a cut, a fade, a slide, or a slow zoom ("Ken Burns") that drifts each photo the way
+its id decides; the date, the counter and the keys show at each change and hide after a few
+seconds; the presentation loops or stops on the last photo; and **Reduzir efeitos** leaves a plain
+fade without zoom, for slow TVs. Only `opacity` and `transform` animate, and at most three photos
+are decoded at once (the photo after the next one is only downloaded ahead).
+
+The **caption** of a photo is its description in Immich (written in the info panel of the photo),
+shown under the photo in the golden italic serif. It is read for the photo on the screen and the next one only,
+with a small cache; a photo without one shows nothing, and nothing on the screen moves.
+
+### Settings
+
+**Ajustes**, from the start screen, or Info (or Down) over the viewer, lists the settings with their
+values: ↑ and ↓ choose a row, ← and → change its value, OK flips a switch, and a sentence beside the
+list says what the value does. **Restaurar padrões** goes back to the defaults (those of
+`config.json`, else the app's). Back keeps the settings on the TV (its `localStorage`, under
+`mirante.presentation`, with the version of their shape: settings an older or newer version wrote,
+or anything unreadable, are dropped for the defaults) and they apply at once; the order applies to
+the next presentation.
+
+Loading, empty and error states are explained in Portuguese; on an error the **Tentar novamente**
+button already has the focus.
 
 For the TVs' small memory, the grids only render the rows on the screen (and one more, to load its
 thumbnails ahead) and use Immich's thumbnails, the viewer uses its previews, never the original
@@ -96,16 +135,18 @@ crossfades between photos. Captured by `make screenshots` at 1920x1080, against 
 | ------------------------------------------------ | ------------------------------------------ |
 | ![Start screen](docs/screenshots/02-inicio.webp) | ![Albums](docs/screenshots/03-albuns.webp) |
 
-| Viewer, in a slideshow                           | Timeline                                             |
-| ------------------------------------------------ | ---------------------------------------------------- |
-| ![Viewer](docs/screenshots/06-apresentacao.webp) | ![Timeline](docs/screenshots/07-linha-do-tempo.webp) |
+| Viewer, with a caption                   | Settings                                      |
+| ---------------------------------------- | --------------------------------------------- |
+| ![Viewer](docs/screenshots/05-foto.webp) | ![Settings](docs/screenshots/13-ajustes.webp) |
 
 Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screenshots/02-inicio.webp),
 [albums](docs/screenshots/03-albuns.webp), [album](docs/screenshots/04-album.webp),
 [photo](docs/screenshots/05-foto.webp), [slideshow](docs/screenshots/06-apresentacao.webp),
 [years](docs/screenshots/07-linha-do-tempo.webp), [months](docs/screenshots/08-meses.webp),
-[empty album](docs/screenshots/09-album-vazio.webp), [loading](docs/screenshots/10-carregando.webp)
-and [error](docs/screenshots/11-erro.webp).
+[empty album](docs/screenshots/09-album-vazio.webp), [loading](docs/screenshots/10-carregando.webp),
+[error](docs/screenshots/11-erro.webp), [presentations](docs/screenshots/12-apresentar.webp),
+[settings](docs/screenshots/13-ajustes.webp) and
+[settings over a photo](docs/screenshots/14-ajustes-na-foto.webp).
 
 ## Configuration
 
@@ -114,7 +155,11 @@ Mirante reads `config.json` from the folder of its `index.html` when it starts:
 ```json
 {
   "immichUrl": "",
-  "slideshowSeconds": 8
+  "presentation": {
+    "intervalSeconds": 8,
+    "order": "oldest-first",
+    "transition": "fade"
+  }
 }
 ```
 
@@ -125,8 +170,28 @@ Mirante reads `config.json` from the folder of its `index.html` when it starts:
 - `apiKey` (optional): an Immich API key (**Account Settings → API Keys** in Immich). Leave it out
   when the proxy adds the key, which is what makes the images load. If you set one, create it only
   for Mirante, with read permissions only (`album.read`, `asset.read`, `asset.view`).
-- `slideshowSeconds` (optional): how long each photo stays on the screen during the slideshow, from
-  3 to 3600 seconds; 8 by default.
+- `presentation` (optional): the defaults of the settings of the presentations, for every TV that
+  has not changed them (each TV keeps its own changes). Any field may be left out:
+
+  | Field                  | Values                                         | Default          |
+  | ---------------------- | ---------------------------------------------- | ---------------- |
+  | `intervalSeconds`      | 3 to 60 (rounded to whole seconds)             | 8                |
+  | `order`                | `"oldest-first"`, `"newest-first"`, `"random"` | `"oldest-first"` |
+  | `transition`           | `"cut"`, `"fade"`, `"slide"`, `"ken-burns"`    | `"fade"`         |
+  | `zoom`                 | `"gentle"`, `"normal"` (the slow zoom)         | `"gentle"`       |
+  | `showDate`             | `true`, `false`                                | `true`           |
+  | `showCaption`          | `true`, `false`                                | `true`           |
+  | `showCounter`          | `true`, `false`                                | `true`           |
+  | `loop`                 | `true`, `false`                                | `true`           |
+  | `hideInterfaceSeconds` | 3 to 20                                        | 4                |
+  | `reduceEffects`        | `true`, `false`                                | `false`          |
+
+  A value of the wrong type, an unknown option or a number out of its limits is reported on the
+  screen (**Ajustes da apresentação inválidos**), like any other mistake in the file.
+
+- `slideshowSeconds` (optional, older): the interval before the `presentation` block existed, still
+  read, from 3 to 3600 seconds; it sets the default interval, brought within 3 to 60, when
+  `presentation.intervalSeconds` is absent.
 
 Copy [`public/config.example.json`](public/config.example.json) to `public/config.json` for
 development, or to `config.json` next to `index.html` in `dist/` for an installation. `config.json`
@@ -148,7 +213,10 @@ blobs downloaded by the app and never with the key in the address. An image requ
 stays out of `config.json`. With a key in `config.json` and no proxy adding it, the albums and the
 timeline load but the images do not. Mirante reports a request the browser blocked as "O Immich não
 respondeu", and an Immich that asked for a key nobody sent as "O Immich pediu uma chave de API". The
-proxy itself is not part of this repository.
+proxy itself is not part of this repository: [docs/proxy.md](docs/proxy.md) lists exactly the
+routes and methods Mirante calls (the reads of the gallery, the random draw of the library and the
+detail of a photo for its caption), what must stay forbidden (originals, videos, anything that
+writes) and a Caddyfile that allows only those.
 
 ## Running it
 
@@ -198,7 +266,7 @@ installing and opening the app with the Tizen CLI (`tizen package`, `sdb connect
 The TVs have little memory and old engines. Preact keeps React's component and hooks model at a
 fraction of its weight (about 5 kB gzipped against about 60 kB for React 19 with `react-dom`), has no
 dependency, and its output runs on engines much older than Chromium 68. The whole app, Immich SDK
-and every screen included, is about 23 kB of JavaScript gzipped today, plus the two files of its
+and every screen included, is about 30 kB of JavaScript gzipped today, plus the two files of its
 serif (about 44 kB).
 
 ## Architecture
@@ -206,10 +274,12 @@ serif (about 44 kB).
 ```
 src/core/      pure logic, no DOM and no package: the startup flow, the runtime configuration, the
                photo library interface and its domain types, the focus navigation of the grids, the
-               stack of screens, the viewer and its slideshow
+               stack of screens, and the presentations: their settings and how they are kept, the
+               engine (playlists, rounds, seeded shuffles, what loads ahead), their sources, the
+               transitions and the captions
 src/immich/    the photo library implemented with @immich/sdk, read only
 src/platform/  what differs between TVs and browsers: config.json, polyfills, the console, the keys
-               of the remote controls
+               of the remote controls (and the Info key Tizen registers), localStorage, the seeds
 src/ui/        Preact components and every user-facing text (Brazilian Portuguese)
 src/main.tsx   composition root: wires the adapters into the UI
 test/          test support: the fake Immich server (MSW), a stub library, a fake remote control and

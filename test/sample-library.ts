@@ -1,7 +1,7 @@
 import type { FakeAsset, FakeLibrary } from './immich-answers.ts'
 
 // A small library for the tests: a trip over two months with a video among its photos, a family
-// album with an archived photo, and an empty album.
+// album with an archived photo, and an empty album. Two photos have a caption.
 export const TRIP = { id: 'album-trip', name: 'Viagem a Lisboa', isOldestFirst: true }
 export const FAMILY = { id: 'album-family', name: 'Família' }
 export const EMPTY = { id: 'album-empty', name: 'Sem fotos' }
@@ -21,6 +21,7 @@ function tripPhoto(number: number): FakeAsset {
     offsetHours: 0,
     isImage: true,
     albumIds: [TRIP.id],
+    ...(number === 0 ? { description: 'Pôr do sol na Torre de Belém' } : {}),
   }
 }
 
@@ -42,6 +43,7 @@ export const SAMPLE_LIBRARY: FakeLibrary = {
       offsetHours: -3,
       isImage: true,
       albumIds: [FAMILY.id],
+      description: '  Ceia de Natal na casa da vó \n',
     },
     {
       id: 'family-archived',

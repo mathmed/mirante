@@ -58,14 +58,14 @@ describe('the config.xml of the repository', () => {
     expect(sut.text).not.toContain('<!--')
   })
 
-  it('should let the app reach any origin and ask the TV for the network alone', async () => {
+  it('should let the app reach any origin and ask the TV for the network and the Info key alone', async () => {
     const sut = await readText(join(ROOT, 'tizen/config.xml'))
 
     expect(occurrences(sut, '<access ')).toBe(1)
     expect(sut).toContain(ACCESS)
-    expect(occurrences(sut, '<tizen:privilege ')).toBe(1)
+    expect(occurrences(sut, '<tizen:privilege ')).toBe(2)
     expect(sut).toContain(PRIVILEGE)
-    expect(sut).not.toContain('privilege/tv.inputdevice')
+    expect(sut).toContain('<tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>')
   })
 })
 

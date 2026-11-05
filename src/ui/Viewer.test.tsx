@@ -1,45 +1,16 @@
-import { act, fireEvent, render, screen } from '@testing-library/preact'
+import { act, fireEvent, screen } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { photos, stubLibrary } from '../../test/library-stub.ts'
-import { fakeRemote, type FakeRemote } from '../../test/remote.ts'
+import { photos } from '../../test/library-stub.ts'
+import { current, decoded, preview, showViewer as show, SLIDES } from '../../test/viewer.ts'
+import { slideOf } from '../core/presentation.ts'
 import { RemoteKey } from '../core/remote-key.ts'
 import { MESSAGES } from './messages.ts'
-import { INFO_VISIBLE_MS, Viewer } from './Viewer.tsx'
+import type { Rounds } from './use-presentation.ts'
 
-const PHOTOS = photos('p', 5)
-const SLIDESHOW_SECONDS = 8
-const SLIDESHOW_MS = SLIDESHOW_SECONDS * 1000
-const LIBRARY = stubLibrary({})
-
-interface Shown {
-  readonly remote: FakeRemote
-  readonly closed: number[]
-}
-
-function show(start = 2, list = PHOTOS): Shown {
-  const remote = fakeRemote()
-  const closed: number[] = []
-  render(
-    <Viewer
-      photos={list}
-      start={start}
-      library={LIBRARY}
-      keys={remote.keys}
-      slideshowSeconds={SLIDESHOW_SECONDS}
-      onClose={(index) => closed.push(index)}
-    />,
-  )
-  return { remote, closed }
-}
-
-function current(): string | null | undefined {
-  return document.querySelector('.slide.is-current img')?.getAttribute('src')
-}
-
-function preview(id: string): string {
-  return `https://images.test/preview/${id}`
-}
+const { Left, Right, Enter, Back, Up } = RemoteKey
+const SLIDESHOW_MS = 8000
+const INTERFACE_MS = 4000
 
 function wait(ms: number): void {
   void act(() => {
@@ -50,7 +21,7 @@ function wait(ms: number): void {
 function info(): Element {
   const element = document.querySelector('.viewer-info')
   if (element === null) {
-    throw new Error('no date and counter')
+    throw new Error('no interface')
   }
   return element
 }
@@ -74,29 +45,46 @@ describe('Viewer', () => {
     expect(screen.getByRole('dialog', { name: '3 de 5' })).toBe(document.activeElement)
   })
 
-  it('should keep at most three images: the photo, the next and the previous one', () => {
+  it('should keep at most three images decoded: the photo, the next and the previous one', () => {
     show()
 
-    const sources = [...document.querySelectorAll('img')].map((image) => image.getAttribute('src'))
-
-    expect(new Set(sources)).toStrictEqual(
+    expect(new Set(decoded())).toStrictEqual(
       new Set([preview('p-2'), preview('p-3'), preview('p-4')]),
     )
   })
 
-  it('should show the next and the previous photo, stopping at the ends', () => {
-    const sut = show(3)
+  it('should download the photo after the next one without decoding it', () => {
+    const detached: string[] = []
+    const source = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src')
+    vi.spyOn(HTMLImageElement.prototype, 'src', 'set').mockImplementation(function (
+      this: HTMLImageElement,
+      value: string,
+    ) {
+      if (!this.isConnected) {
+        detached.push(value)
+      }
+      source?.set?.call(this, value)
+    })
 
-    sut.remote.press(RemoteKey.Right, RemoteKey.Right)
+    show({ start: 1 })
+
+    expect(detached).toContain(preview('p-4'))
+    expect(decoded()).not.toContain(preview('p-4'))
+  })
+
+  it('should show the next and the previous photo, stopping at the ends', () => {
+    const sut = show({ start: 3 })
+
+    sut.remote.press(Right, Right)
     expect(current()).toBe(preview('p-5'))
-    sut.remote.press(RemoteKey.Left)
+    sut.remote.press(Left)
     expect(current()).toBe(preview('p-4'))
   })
 
   it('should play the slideshow on Enter, in a loop', () => {
-    const sut = show(3)
+    const sut = show({ start: 3 })
 
-    sut.remote.press(RemoteKey.Enter)
+    sut.remote.press(Enter)
     expect(info().textContent).toContain(MESSAGES.slideshowPlaying)
     wait(SLIDESHOW_MS - 1)
     expect(current()).toBe(preview('p-4'))
@@ -106,54 +94,97 @@ describe('Viewer', () => {
     expect(current()).toBe(preview('p-1'))
   })
 
+  it('should play from the start when asked to, every interval of the settings', () => {
+    show({ start: 0, shouldPlay: true, settings: { intervalSeconds: 3 } })
+
+    wait(3000)
+
+    expect(current()).toBe(preview('p-2'))
+  })
+
+  it('should stop on the last photo without a loop', () => {
+    show({ start: 3, shouldPlay: true, settings: { shouldLoop: false } })
+
+    wait(SLIDESHOW_MS)
+    wait(SLIDESHOW_MS)
+    wait(SLIDESHOW_MS)
+
+    expect(current()).toBe(preview('p-5'))
+    expect(info().textContent).toContain(MESSAGES.slideshowPaused)
+  })
+
   it('should load the first photo ahead while the slideshow is on the last one', () => {
-    const sut = show(4)
+    show({ start: 4, shouldPlay: true })
 
-    sut.remote.press(RemoteKey.Enter)
-
-    const sources = [...document.querySelectorAll('img')].map((image) => image.getAttribute('src'))
-    expect(new Set(sources)).toStrictEqual(
+    expect(new Set(decoded())).toStrictEqual(
       new Set([preview('p-1'), preview('p-4'), preview('p-5')]),
     )
+  })
+
+  it('should play the next round the rounds give, and tell them when each starts', () => {
+    const started: number[] = []
+    const next = photos('n', 2).map(slideOf)
+    const rounds: Rounds = {
+      after: ({ round }) => (round === 0 ? next : undefined),
+      onStart: (round) => started.push(round),
+    }
+    show({ start: 4, shouldPlay: true, rounds })
+
+    wait(SLIDESHOW_MS)
+    expect(current()).toBe(preview('n-1'))
+    wait(SLIDESHOW_MS * 2)
+
+    expect(current()).toBe(preview('n-2'))
+    expect(started).toStrictEqual([0, 1])
   })
 
   it('should pause the slideshow on Enter', () => {
     const sut = show()
 
-    sut.remote.press(RemoteKey.Enter, RemoteKey.Enter)
+    sut.remote.press(Enter, Enter)
     wait(SLIDESHOW_MS * 3)
 
     expect(current()).toBe(preview('p-3'))
   })
 
   it('should start the interval over when an arrow moves during the slideshow', () => {
-    const sut = show(0)
+    const sut = show({ start: 0 })
 
-    sut.remote.press(RemoteKey.Enter)
+    sut.remote.press(Enter)
     wait(SLIDESHOW_MS / 2)
-    sut.remote.press(RemoteKey.Right)
+    sut.remote.press(Right)
     wait(SLIDESHOW_MS - 1)
     expect(current()).toBe(preview('p-2'))
     wait(1)
     expect(current()).toBe(preview('p-3'))
   })
 
-  it('should hide the date and the counter after a while, and show them on each change', () => {
-    const sut = show()
+  it('should hide the interface after the time of the settings, and show it on each change', () => {
+    const sut = show({ settings: { hideInterfaceSeconds: 6 } })
 
     expect(info().className).toBe('viewer-info is-visible')
-    wait(INFO_VISIBLE_MS)
+    wait(INTERFACE_MS)
+    expect(info().className).toBe('viewer-info is-visible')
+    wait(2000)
     expect(info().className).toBe('viewer-info')
     expect(info().getAttribute('aria-hidden')).toBe('true')
-    sut.remote.press(RemoteKey.Right)
+    sut.remote.press(Right)
     expect(info().className).toBe('viewer-info is-visible')
     expect(info().textContent).toContain('4 de 5')
   })
 
-  it('should close on Back with the photo on the screen', () => {
-    const sut = show(1)
+  it('should leave out the date and the counter when the settings say so', () => {
+    show({ settings: { shouldShowDate: false, shouldShowCounter: false } })
 
-    sut.remote.press(RemoteKey.Right, RemoteKey.Right, RemoteKey.Back)
+    expect(document.querySelector('.viewer-date')).toBeNull()
+    expect(document.querySelector('.viewer-counter')).toBeNull()
+    expect(info().textContent).toBe(MESSAGES.slideshowPaused)
+  })
+
+  it('should close on Back with the photo on the screen', () => {
+    const sut = show({ start: 1 })
+
+    sut.remote.press(Right, Right, Back)
 
     expect(sut.closed).toStrictEqual([3])
   })
@@ -167,52 +198,52 @@ describe('Viewer', () => {
     }
     fireEvent.error(failing)
     expect(screen.getByText(MESSAGES.previewUnavailable)).toBeTruthy()
-    sut.remote.press(RemoteKey.Right)
+    sut.remote.press(Right)
     expect(current()).toBe(preview('p-4'))
   })
 
   it('should stay on a single photo', () => {
-    const sut = show(0, PHOTOS.slice(0, 1))
+    const sut = show({ start: 0, slides: SLIDES.slice(0, 1) })
 
-    sut.remote.press(RemoteKey.Enter, RemoteKey.Right)
+    sut.remote.press(Enter, Right)
     wait(SLIDESHOW_MS)
 
     expect(current()).toBe(preview('p-1'))
-    expect(document.querySelectorAll('img')).toHaveLength(1)
+    expect(decoded()).toHaveLength(1)
   })
 
-  it('should ignore Up and Down', () => {
+  it('should ignore Up', () => {
     const sut = show()
 
-    sut.remote.press(RemoteKey.Up, RemoteKey.Down)
+    sut.remote.press(Up)
 
     expect(current()).toBe(preview('p-3'))
     expect(sut.closed).toStrictEqual([])
   })
 
   it('should show nothing for a list without photos, and still close', () => {
-    const sut = show(0, [])
+    const sut = show({ start: 0, slides: [] })
 
-    sut.remote.press(RemoteKey.Right, RemoteKey.Back)
+    sut.remote.press(Right, Back)
 
-    expect(document.querySelectorAll('img')).toHaveLength(0)
+    expect(decoded()).toHaveLength(0)
     expect(document.querySelector('.viewer-date')?.textContent).toBe('')
     expect(sut.closed).toStrictEqual([0])
   })
 
   it('should draw a line that fills up in the interval of the slideshow, a new one for each photo', () => {
-    const sut = show(0)
+    const sut = show({ start: 0 })
     expect(document.querySelector('.viewer-progress')).toBeNull()
 
-    sut.remote.press(RemoteKey.Enter)
+    sut.remote.press(Enter)
     const first = document.querySelector<HTMLElement>('.viewer-progress-bar')
-    expect(first?.style.animationDuration).toBe(`${String(SLIDESHOW_SECONDS)}s`)
+    expect(first?.style.animationDuration).toBe('8s')
     wait(SLIDESHOW_MS)
     const second = document.querySelector('.viewer-progress-bar')
 
     expect(second).not.toBeNull()
     expect(second).not.toBe(first)
-    sut.remote.press(RemoteKey.Enter)
+    sut.remote.press(Enter)
     expect(document.querySelector('.viewer-progress')).toBeNull()
   })
 

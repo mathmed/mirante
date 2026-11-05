@@ -7,6 +7,8 @@ export const RemoteKey = {
   Right: 'right',
   Enter: 'enter',
   Back: 'back',
+  // The Info key of the remote control: the settings of the presentation, over the viewer.
+  Info: 'info',
 } as const
 
 export type RemoteKey = (typeof RemoteKey)[keyof typeof RemoteKey]

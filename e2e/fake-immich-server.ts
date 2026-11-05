@@ -1,23 +1,30 @@
 // A fake Immich behind the owner's proxy, on a real port, for the app that a browser runs from
 // file://: it answers CORS the way that proxy does (any origin, a 204 to the preflight, GET, HEAD,
-// POST and OPTIONS), adds the key itself (it never asks for one) and records every request. It
-// serves a library (by default, one album of two photos, in one month) and the images an option
-// draws (by default, a small gray square).
+// POST and OPTIONS, and the Content-Type header of the random draw), adds the key itself (it never
+// asks for one) and records every request. It serves a library (by default, one album of two
+// photos, in one month), its random draws and captions, and the images an option draws (by
+// default, a small gray square).
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
 import { encodePng } from '../scripts/packaging/png.ts'
 import {
   albumsOf,
+  assetOf,
   assetsAsked,
   bucketOf,
   bucketsOf,
   type FakeLibrary,
+  randomOf,
 } from '../test/immich-answers.ts'
 
 export const ALBUM_NAME = 'Viagem a Lisboa'
+export const CAPTION = 'Bom dia, Lisboa'
 export const PHOTO_IDS = ['photo-1', 'photo-2'] as const
 const ALLOWED_METHODS = 'GET, HEAD, POST, OPTIONS'
+const ALLOWED_HEADERS = 'Content-Type'
+// What the app draws for each round of the whole library.
+const DRAW_SIZE = 200
 const VERSION = { major: 3, minor: 3, patch: 6, prerelease: null }
 // A small opaque image the browser decodes, so that a loaded <img> has a width.
 const IMAGE = encodePng({ width: 4, height: 4, pixels: new Uint8Array(64).fill(200) })
@@ -31,6 +38,7 @@ const TRIP_LIBRARY: FakeLibrary = {
       offsetHours: 0,
       isImage: true,
       albumIds: ['album-trip'],
+      description: CAPTION,
     },
     {
       id: PHOTO_IDS[1],
@@ -50,7 +58,10 @@ const JSON_ANSWERS: ReadonlyMap<string, JsonAnswer> = new Map<string, JsonAnswer
   ['GET /api/albums', (library) => albumsOf(library)],
   ['GET /api/timeline/buckets', (library, location) => bucketsOf(assetsAsked(library, location))],
   ['GET /api/timeline/bucket', (library, location) => bucketOf(library, location)],
+  ['POST /api/search/random', (library) => randomOf(library, DRAW_SIZE)],
 ])
+
+const ASSET = /^\/api\/assets\/([^/]+)$/
 
 const THUMBNAIL = /^\/api\/assets\/([^/]+)\/thumbnail$/
 const IMAGE_SIZES: ReadonlySet<string> = new Set(['thumbnail', 'preview'])
@@ -141,17 +152,32 @@ function answer({ request, response, options, isCorsAllowed }: Exchange): void {
     response.setHeader('Access-Control-Allow-Origin', '*')
   }
   if (request.method === 'OPTIONS') {
-    response.writeHead(204, { 'Access-Control-Allow-Methods': ALLOWED_METHODS }).end()
+    response
+      .writeHead(204, {
+        'Access-Control-Allow-Methods': ALLOWED_METHODS,
+        'Access-Control-Allow-Headers': ALLOWED_HEADERS,
+      })
+      .end()
     return
   }
   const call = recorded(request)
   const location = new URL(call.url, 'http://immich.test')
-  const body = JSON_ANSWERS.get(callOf(call))?.(options.library, location)
+  const body = jsonAnswer(call, location, options.library)
   if (body !== undefined) {
     response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(body))
     return
   }
   answerImage(location, response, options)
+}
+
+function jsonAnswer(call: RecordedRequest, location: URL, library: FakeLibrary): unknown {
+  return JSON_ANSWERS.get(callOf(call))?.(library, location) ?? assetAnswer(library, location)
+}
+
+// The detail of a photo, with its caption.
+function assetAnswer(library: FakeLibrary, location: URL): unknown {
+  const id = ASSET.exec(location.pathname)?.[1]
+  return id === undefined ? undefined : assetOf(library, decodeURIComponent(id))
 }
 
 // Only the sizes a TV asks for: never the original.

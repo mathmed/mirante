@@ -1,5 +1,6 @@
 import { LoadFailure, loadFailureOf } from './loading.ts'
 import type { PhotoLibrary, ServerInfo } from './photo-library.ts'
+import type { PresentationSettings } from './presentation-settings.ts'
 import {
   ConfigProblem,
   type ConfigResult,
@@ -24,7 +25,8 @@ export const StartupStatus = {
 export interface Session {
   readonly server: ServerInfo
   readonly library: PhotoLibrary
-  readonly slideshowSeconds: number
+  // The defaults of the presentations, from config.json; each TV keeps its own choices over them.
+  readonly presentationDefaults: PresentationSettings
 }
 
 export type StartupState =
@@ -63,7 +65,7 @@ async function connect(dependencies: StartupDependencies): Promise<StartupOutcom
   const config = resolveImmichUrl(result.config, dependencies.pageOrigin)
   const library = dependencies.openLibrary(config)
   const server = await library.describeServer()
-  const session = { server, library, slideshowSeconds: config.slideshowSeconds }
+  const session = { server, library, presentationDefaults: config.presentation }
   return { status: StartupStatus.Connected, session }
 }
 

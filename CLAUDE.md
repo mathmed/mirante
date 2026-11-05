@@ -46,10 +46,14 @@ Always use `npm ci` / `npm install` (never another package manager) and commit `
 ```
 src/core/      pure logic: the startup flow, the runtime configuration, the photo library interface and
                its domain types, the order of albums, photos and months, the spatial focus navigation
-               of the grids, the stack of screens, the viewer and its slideshow, the remote control keys
+               of the grids, the stack of screens, the remote control keys, and the presentations:
+               their settings (presentation-settings, settings-input, settings-storage,
+               settings-form), the engine (presentation: playlists, rounds, what loads ahead), the
+               seeded shuffle, their sources, the transitions (presentation-effects) and the captions
 src/immich/    the photo library implemented with @immich/sdk, read only
 src/platform/  what differs between TVs and browsers: config.json, polyfills, the console, the key
-               codes of the remote controls of Tizen and webOS
+               codes of the remote controls of Tizen and webOS (and the Info key Tizen registers),
+               the localStorage of the settings, the random seeds
 src/ui/        Preact components, src/ui/messages.ts (every text people read), styles.css, the
                fonts it ships (src/ui/fonts) and the mark of the logo (src/ui/assets, written by
                make logo)
@@ -95,7 +99,13 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   browser has an Immich session there). Grids use the `thumbnail` size, the viewer the `preview`;
   never the original.
 - **Read only**: the adapter only calls endpoints that read (the key check `POST /auth/validateToken`
-  changes nothing and needs no permission). Never upload, edit, delete, favorite or archive.
+  changes nothing and needs no permission; `POST /search/random`, the random draw of the library,
+  only carries its filters). Never upload, edit, delete, favorite or archive. `docs/proxy.md` lists
+  every route and method the app calls, for the owner's proxy to allow exactly those: a change in
+  what reaches Immich updates it, and `CHANGELOG.md` says so.
+- **Captions** come from `GET /assets/{id}` (`exifInfo.description`; the listings do not carry
+  it), for the photo on the screen and the next one only, through the small cache of
+  `src/core/captions.ts`: never for a whole list.
 - `src/platform` serves the core and imports neither the UI nor the adapter. `config.json` is read
   only through `src/platform/config-file.ts` (with `XMLHttpRequest`, which reads `file://` in the
   packaged apps), and the console is written only through `src/platform/error-log.ts`.
@@ -137,7 +147,9 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   `tizen.application.getCurrentApplication().exit()` on Tizen, feature-detected; a browser stays):
   never trap people in the app. Tizen delivers arrows, Enter and Back without
   `tizen.tvinputdevice.registerKey`, and Back as the 10009 keydown (never also `tizenhwkey`, or one
-  press acts twice).
+  press acts twice). Info (457 on Tizen and webOS, I on a keyboard) opens the settings over the
+  viewer; Tizen only sends it once `src/platform/tizen-keys.ts` registers it at startup. It is a
+  shortcut: Down opens the same settings, so that the arrows, Enter and Back still reach everything.
 - **Memory is scarce**: grids render only the rows on the screen and one around them (the rest is
   unmounted, its images unloaded), and the viewer keeps at most three images decoded. Only `transform`
   and `opacity` change, few elements animate, and nothing relies on `overflow`, which Chromium 68
@@ -172,11 +184,18 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   needs the owner's Samsung author and distributor certificates (the latter bound to the TV's DUID)
   and stays a manual step with the Tizen CLI. Never commit a certificate, a profile, a DUID or a TV's
   address. `tizen/config.xml` keeps `<access origin="*" subdomains="true"/>` and the `internet`
-  privilege, or the app never reaches the proxy; it asks for no other privilege (`tv.inputdevice`
-  only if a key beyond arrows, Enter and Back is ever registered).
-- **Runtime configuration**: `config.json` next to `index.html` (`immichUrl`, the optional `apiKey`
-  and `slideshowSeconds`) is read on every start and never committed (`.gitignore`);
-  `public/config.example.json` documents it. Its fields are the public contract of every installation.
+  privilege, or the app never reaches the proxy, and `tv.inputdevice`, for the Info key it
+  registers; it asks for no other privilege.
+- **Runtime configuration**: `config.json` next to `index.html` (`immichUrl`, the optional `apiKey`,
+  `slideshowSeconds` and the `presentation` block of the defaults of the settings) is read on every
+  start and never committed (`.gitignore`); `public/config.example.json` documents it. Its fields,
+  and the names of the settings in the `presentation` block, are the public contract of every
+  installation.
+- **The settings of the presentations** stay on each TV in `localStorage` (`mirante.presentation`),
+  with the version of their shape (`STORED_SETTINGS_VERSION` in `src/core/settings-storage.ts`):
+  raise it when a reader of the old shape would misread the new one; anything unreadable falls back
+  on the defaults. Their limits (3 to 60 seconds, 3 to 20 for the interface) hold whatever the
+  source.
 
 ## Critical surfaces
 

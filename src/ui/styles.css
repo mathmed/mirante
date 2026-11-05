@@ -363,8 +363,7 @@ body {
 
 .grid-home {
   flex: none;
-  width: 62vw;
-  height: 32vh;
+  height: 30vh;
   margin-top: auto;
 }
 
@@ -433,24 +432,50 @@ body {
   text-align: center;
 }
 
-.grid-home .tile {
+.grid-home .tile,
+.grid-choices .tile {
   align-items: flex-start;
   justify-content: space-between;
-  padding: 40px 44px;
+  padding: 36px 40px;
   border-color: #d4a93c40;
   background: #1b1710e0;
 }
 
 .home-icon {
-  width: 96px;
-  height: 96px;
+  width: 84px;
+  height: 84px;
   color: var(--gold);
 }
 
 .grid-home .tile-title {
   font-family: var(--serif);
-  font-size: 56px;
+  font-size: 46px;
   line-height: 1.1;
+  text-align: left;
+}
+
+/* The choices of a presentation: four cards, what each presents in the serif, how below it. */
+.grid-choices {
+  flex: none;
+  height: 34vh;
+  margin-top: 8vh;
+}
+
+.grid-choices .tile {
+  justify-content: flex-end;
+  background: linear-gradient(180deg, #231d14 0%, #16120c 100%);
+}
+
+.grid-choices .tile-title {
+  color: var(--gold-light);
+  font-family: var(--serif);
+  font-size: 46px;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.grid-choices .tile-detail {
+  margin-top: 12px;
   text-align: left;
 }
 
@@ -538,8 +563,100 @@ body {
   background: #15120d;
 }
 
+/* The settings: the list on the left, every value always on the screen, and what the focused one
+   does on the right. */
+.settings {
+  display: flex;
+  flex: 1 1 0;
+  align-items: flex-start;
+  min-height: 0;
+  animation: fade-in var(--enter);
+}
+
+.settings-list {
+  flex: none;
+  width: 58%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setting {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 62px;
+  margin-bottom: 6px;
+  padding: 0 28px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: var(--surface);
+  outline: none;
+  transition: transform 180ms ease-out;
+}
+
+.setting-label {
+  font-size: 27px;
+}
+
+.setting-value {
+  color: var(--gold-light);
+  font-family: var(--serif);
+  font-size: 29px;
+  white-space: nowrap;
+}
+
+.setting-restore {
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.setting-restore .setting-label {
+  color: var(--gold-light);
+}
+
+.settings-side {
+  flex: 1 1 0;
+  margin-left: 4vw;
+}
+
+.settings-preview {
+  margin: 0 0 32px;
+  padding: 8px 0 8px 32px;
+  border-left: 2px solid var(--gold-dark);
+  font-family: var(--serif);
+  font-size: 34px;
+  font-style: italic;
+  line-height: 1.45;
+}
+
+.settings-keys {
+  margin: 0;
+  padding-left: 34px;
+  color: var(--text-secondary);
+  font-size: 22px;
+}
+
 /* Every focusable element shows where the remote control is: a golden ring, a contained glow and
    a slight growth. */
+.setting:focus {
+  border-color: var(--gold);
+  background: var(--surface-raised);
+  box-shadow: var(--focus-glow);
+  transform: scale(1.02);
+}
+
+.setting:focus .setting-value::before {
+  content: '‹  ';
+  color: var(--text-secondary);
+}
+
+.setting:focus .setting-value::after {
+  content: '  ›';
+  color: var(--text-secondary);
+}
+
 .action:focus,
 .cell:focus .tile {
   border-color: var(--gold);
@@ -559,8 +676,9 @@ body {
   color: var(--gold-light);
 }
 
-/* The viewer: the photo inside the safe area, the next ones waiting, invisible, under it, and a
-   crossfade between them. */
+/* The viewer: the photo inside the safe area, the next ones waiting, invisible, beside it. The
+   transition moves opacity and transform alone, for as long as the inline style says (none for
+   the cut). */
 .viewer {
   position: fixed;
   top: 0;
@@ -579,10 +697,12 @@ body {
   width: 90vw;
   height: 90vh;
   opacity: 0;
-  transition: opacity 600ms ease-in-out;
+  transition-property: opacity, transform;
+  transition-timing-function: ease-in-out;
 }
 
 .slide.is-current {
+  z-index: 1;
   opacity: 1;
 }
 
@@ -591,28 +711,171 @@ body {
   object-fit: contain;
 }
 
+/* Sliding: the slides wait off the screen on the side they come from, and the one leaving it goes
+   out the other way, still visible. */
+.slide-slide.is-before {
+  transform: translateX(-112%);
+}
+
+.slide-slide.is-after {
+  transform: translateX(112%);
+}
+
+.slide-slide.is-leaving {
+  opacity: 1;
+}
+
+/* The slow zoom: the photo on the screen drifts through its time and the crossfades around it,
+   paused with the slideshow. Gentle or normal, in four directions. */
+.slide.is-zooming .picture {
+  animation-duration: inherit;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+
+.viewer:not(.is-playing) .picture {
+  animation-play-state: paused;
+}
+
+.slide.zoom-in-left-gentle .picture {
+  animation-name: zoom-in-left-gentle;
+}
+
+.slide.zoom-in-right-gentle .picture {
+  animation-name: zoom-in-right-gentle;
+}
+
+.slide.zoom-out-left-gentle .picture {
+  animation-name: zoom-out-left-gentle;
+}
+
+.slide.zoom-out-right-gentle .picture {
+  animation-name: zoom-out-right-gentle;
+}
+
+.slide.zoom-in-left-normal .picture {
+  animation-name: zoom-in-left-normal;
+}
+
+.slide.zoom-in-right-normal .picture {
+  animation-name: zoom-in-right-normal;
+}
+
+.slide.zoom-out-left-normal .picture {
+  animation-name: zoom-out-left-normal;
+}
+
+.slide.zoom-out-right-normal .picture {
+  animation-name: zoom-out-right-normal;
+}
+
+@keyframes zoom-in-left-gentle {
+  from {
+    transform: none;
+  }
+
+  to {
+    transform: scale(1.06) translate(-1.5%, -1%);
+  }
+}
+
+@keyframes zoom-in-right-gentle {
+  from {
+    transform: none;
+  }
+
+  to {
+    transform: scale(1.06) translate(1.5%, -1%);
+  }
+}
+
+@keyframes zoom-out-left-gentle {
+  from {
+    transform: scale(1.06) translate(1.5%, 1%);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+@keyframes zoom-out-right-gentle {
+  from {
+    transform: scale(1.06) translate(-1.5%, 1%);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+@keyframes zoom-in-left-normal {
+  from {
+    transform: none;
+  }
+
+  to {
+    transform: scale(1.12) translate(-3%, -2%);
+  }
+}
+
+@keyframes zoom-in-right-normal {
+  from {
+    transform: none;
+  }
+
+  to {
+    transform: scale(1.12) translate(3%, -2%);
+  }
+}
+
+@keyframes zoom-out-left-normal {
+  from {
+    transform: scale(1.12) translate(3%, 2%);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+@keyframes zoom-out-right-normal {
+  from {
+    transform: scale(1.12) translate(-3%, 2%);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
 /* A light vignette, drawn once: a gradient, never a filter. */
 .viewer-vignette {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: 2;
   width: 100%;
   height: 100%;
   background: radial-gradient(ellipse at center, #0000 58%, #0000008c 100%);
   pointer-events: none;
 }
 
+/* The date, the keys and the counter at the top, over a gradient; the line of the slideshow at
+   the bottom of the safe area. */
 .viewer-info {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
+  z-index: 3;
   box-sizing: border-box;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   width: 100%;
-  padding: 160px 5vw calc(5vh + 32px);
-  background: linear-gradient(0deg, #000000b3 0%, #0000 100%);
+  height: 100%;
+  padding: calc(5vh + 12px) 5vw 0;
+  background: linear-gradient(180deg, #000000b3 0%, #0000 24%);
   opacity: 0;
   transition: opacity 600ms;
 }
@@ -621,12 +884,13 @@ body {
   opacity: 1;
 }
 
-.viewer-caption {
+.viewer-heading {
   display: flex;
   flex-direction: column;
 }
 
 .viewer-date {
+  margin-bottom: 10px;
   color: var(--gold-light);
   font-family: var(--serif);
   font-size: 42px;
@@ -636,7 +900,6 @@ body {
 }
 
 .viewer-hint {
-  margin-top: 10px;
   color: var(--text-secondary);
   font-size: 22px;
 }
@@ -663,4 +926,63 @@ body {
   background: var(--gold);
   transform-origin: left center;
   animation: fill linear both;
+}
+
+/* The caption of the photo, under it: a sentence in the golden italic serif on a dark band, which
+   fades in; the space it takes never moves anything else. */
+.viewer-caption {
+  position: absolute;
+  bottom: calc(5vh + 28px);
+  left: 0;
+  z-index: 3;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 12vw;
+  text-align: center;
+}
+
+.viewer-caption-text {
+  display: inline-block;
+  margin: 0;
+  padding: 12px 36px 14px;
+  border-radius: 14px;
+  background: #0e0c09cc;
+  color: var(--gold-light);
+  font-family: var(--serif);
+  font-size: 38px;
+  font-style: italic;
+  line-height: 1.3;
+  animation: fade-in 900ms ease-out both;
+}
+
+/* The settings over the viewer: the photo darkened behind them, never blurred, and the date, the
+   counter and the caption out of the way. */
+.viewer.is-covered .viewer-info,
+.viewer.is-covered .viewer-caption {
+  visibility: hidden;
+}
+
+.viewer-settings {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 5vh 5vw;
+  background: linear-gradient(90deg, #0e0c09f5 0%, #0e0c09eb 60%, #0e0c09c7 100%);
+  animation: fade-in 250ms ease-out both;
+}
+
+.viewer-settings-title {
+  flex: none;
+  margin: 0 0 3vh;
+  color: var(--gold-light);
+  font-family: var(--serif);
+  font-size: 56px;
+  font-weight: 400;
+  line-height: 1.2;
 }

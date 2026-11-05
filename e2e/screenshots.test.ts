@@ -154,6 +154,7 @@ describe('the screenshots of the docs', () => {
 
     await press(page, 'Enter')
     await page.getByRole('heading', { level: 1, name: 'Viagem a Lisboa' }).waitFor()
+    await page.locator('.grid-photos').waitFor()
     await press(page, 'ArrowRight', 'ArrowRight', 'ArrowDown')
     await settled(page)
     await shoot(page, '04-album')
@@ -161,14 +162,52 @@ describe('the screenshots of the docs', () => {
     await press(page, 'Enter')
     await page.getByRole('dialog').waitFor()
     await settled(page)
-    // The next photo is loaded ahead: it shows at once, with its date and counter.
+    // The next photo is loaded ahead: it shows at once, with its date, its counter and its caption.
     await press(page, 'ArrowRight')
+    await page.getByText('Fim de tarde no Miradouro de Santa Luzia').waitFor()
     await settled(page)
     await shoot(page, '05-foto')
 
     await press(page, 'Enter')
     await progressed(page, SLIDESHOW_SHARE)
     await shoot(page, '06-apresentacao')
+    await page.close()
+  })
+
+  it('should capture the choices of a presentation and its settings', async () => {
+    const page = await open()
+    await focusedOn(page, 'Álbuns')
+    await page.locator('.backdrop.is-shown').waitFor()
+
+    await press(page, 'ArrowRight', 'ArrowRight', 'Enter')
+    await focusedOn(page, 'Toda a biblioteca')
+    await settled(page)
+    await shoot(page, '12-apresentar')
+
+    await press(page, BACK, 'ArrowRight', 'Enter')
+    await focusedOn(page, 'Tempo de cada foto')
+    await press(page, 'ArrowDown', 'ArrowDown', 'ArrowRight', 'ArrowRight')
+    await focusedOn(page, 'Zoom lento')
+    await settled(page)
+    await shoot(page, '13-ajustes')
+    await page.close()
+  })
+
+  it('should capture the settings over a photo', async () => {
+    const page = await open()
+    await focusedOn(page, 'Álbuns')
+    await press(page, 'Enter')
+    await focusedOn(page, 'Viagem a Lisboa')
+    await press(page, 'Enter')
+    await page.getByRole('heading', { level: 1, name: 'Viagem a Lisboa' }).waitFor()
+    await page.locator('.grid-photos').waitFor()
+    await press(page, 'ArrowRight', 'ArrowRight', 'ArrowDown', 'ArrowRight', 'Enter')
+    await page.getByText('Fim de tarde no Miradouro de Santa Luzia').waitFor()
+
+    await press(page, 'i')
+    await focusedOn(page, 'Tempo de cada foto')
+    await settled(page)
+    await shoot(page, '14-ajustes-na-foto')
     await page.close()
   })
 

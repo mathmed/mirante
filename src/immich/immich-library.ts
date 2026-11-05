@@ -1,11 +1,14 @@
 import {
   AssetMediaSize,
+  AssetTypeEnum,
   AssetVisibility,
   getAllAlbums,
+  getAssetInfo,
   getAssetThumbnailPath,
   getServerVersion,
   getTimeBucket,
   getTimeBuckets,
+  searchRandom,
   type ServerVersionResponseDto,
   validateAccessToken,
 } from '@immich/sdk'
@@ -21,7 +24,7 @@ import {
   type TimelineMonth,
 } from '../core/photo-library.ts'
 import { serverAddress } from '../core/runtime-config.ts'
-import { albumsOf, monthsOf, photosOf } from './immich-assets.ts'
+import { albumsOf, captionOf, drawnPhotosOf, monthsOf, photosOf } from './immich-assets.ts'
 import {
   apiUrl,
   type ImmichLibraryOptions,
@@ -46,6 +49,9 @@ export function createImmichLibrary(options: ImmichLibraryOptions): PhotoLibrary
     listAlbumPhotos: async (album) => listAlbumPhotos(options, album),
     listTimelineMonths: async () => monthsOf(await request(options, timelineBuckets)),
     listMonthPhotos: async (month) => listMonthPhotos(options, month),
+    listRandomPhotos: async (count) => drawnPhotosOf(await request(options, randomDraw(count))),
+    readCaption: async (photoId) =>
+      captionOf(await request(options, async (call) => getAssetInfo({ id: photoId }, call))),
     imageUrl: (photoId, size) => imageUrl(options, photoId, size),
   }
 }
@@ -87,6 +93,18 @@ async function listMonthPhotos(
 // The timeline of the library, without the archived and hidden photos, as Immich shows it.
 async function timelineBuckets(call: RequestOptions): ReturnType<typeof getTimeBuckets> {
   return getTimeBuckets({ visibility: AssetVisibility.Timeline }, call)
+}
+
+// A search that reads (POST only carries its filters): photos of the timeline, as Immich shows it,
+// drawn at random, without their EXIF data, which the TV does not need.
+function randomDraw(count: number): (call: RequestOptions) => ReturnType<typeof searchRandom> {
+  const randomSearchDto = {
+    size: count,
+    type: AssetTypeEnum.Image,
+    visibility: AssetVisibility.Timeline,
+    withExif: false,
+  }
+  return async (call) => searchRandom({ randomSearchDto }, call)
 }
 
 // <img> loads it from the same address as the API, without the key in the address: the proxy in

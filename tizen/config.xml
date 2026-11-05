@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- The Samsung Tizen TV app (docs/tizen.md). No version here: make package-tizen adds the one of
-     package.json. The only privilege is internet, for Immich; arrows, Enter and Back need no
-     tv.inputdevice, and leaving the app needs no privilege. -->
+     package.json. Two privileges: internet, for Immich, and tv.inputdevice, for the Info key of
+     the remote control (registered by src/platform/tizen-keys.ts; it opens the settings over the
+     viewer). Arrows, Enter and Back need neither, and leaving the app needs no privilege. -->
 <widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://github.com/mathmed/mirante" viewmodes="maximized">
   <tizen:application id="MirantTV01.Mirante" package="MirantTV01" required_version="6.5"/>
   <tizen:profile name="tv-samsung"/>
@@ -12,5 +13,6 @@
   <icon src="icon.png"/>
   <access origin="*" subdomains="true"/>
   <tizen:privilege name="http://tizen.org/privilege/internet"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
   <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable" encryption="disable" install-location="auto"/>
 </widget>

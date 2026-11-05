@@ -1,5 +1,5 @@
 import type { JSX } from 'preact'
-import { useCallback, useState } from 'preact/hooks'
+import { useCallback, useMemo, useState } from 'preact/hooks'
 
 import { loadAlbumPhotos, loadMonthPhotos } from '../core/gallery.ts'
 import { type GridPosition, START_POSITION } from '../core/grid.ts'
@@ -10,6 +10,7 @@ import {
   type PhotoLibrary,
   type TimelineMonth,
 } from '../core/photo-library.ts'
+import { slideOf } from '../core/presentation.ts'
 import { Frame } from './Frame.tsx'
 import { Grid } from './Grid.tsx'
 import { Loaded } from './Loaded.tsx'
@@ -17,15 +18,12 @@ import { MESSAGES, monthTitle, type PanelText, photoDateText } from './messages.
 import { Picture } from './Picture.tsx'
 import type { ScreenProps } from './screen-props.ts'
 import { useLibraryLoad } from './use-load.ts'
+import { SAME_SLIDES } from './use-presentation.ts'
 import { Viewer } from './Viewer.tsx'
 
 const SHAPE = { columns: 6, visibleRows: 3 }
 
-interface PhotoScreenProps extends ScreenProps {
-  readonly slideshowSeconds: number
-}
-
-export interface AlbumScreenProps extends PhotoScreenProps {
+export interface AlbumScreenProps extends ScreenProps {
   readonly album: Album
 }
 
@@ -35,7 +33,7 @@ export function AlbumScreen(props: AlbumScreenProps): JSX.Element {
   return <PhotosScreen {...props} title={album.name} task={task} emptyText={MESSAGES.emptyAlbum} />
 }
 
-export interface MonthScreenProps extends PhotoScreenProps {
+export interface MonthScreenProps extends ScreenProps {
   readonly month: TimelineMonth
 }
 
@@ -52,7 +50,7 @@ export function MonthScreen(props: MonthScreenProps): JSX.Element {
   )
 }
 
-interface PhotosScreenProps extends PhotoScreenProps {
+interface PhotosScreenProps extends ScreenProps {
   readonly title: string
   readonly task: () => Promise<readonly Photo[]>
   readonly emptyText: PanelText
@@ -80,28 +78,47 @@ interface PhotoBrowserProps extends PhotosScreenProps {
 }
 
 // The grid leaves the screen while the viewer is open, its thumbnails unloaded; Back brings it back
-// with the focus on the photo the viewer showed last.
+// with the focus on the photo the viewer showed last. The viewer shows the photos in the order of
+// the grid, paused, and its slideshow goes around them again.
 function PhotoBrowser(props: PhotoBrowserProps): JSX.Element {
+  const slides = useMemo(() => props.photos.map(slideOf), [props.photos])
+  const { position, setPosition, viewing, view, close } = useViewing()
+  if (viewing !== undefined) {
+    return (
+      <Viewer
+        {...props}
+        slides={slides}
+        start={viewing}
+        shouldPlay={false}
+        rounds={SAME_SLIDES}
+        onClose={close}
+      />
+    )
+  }
+  return <PhotoGrid {...props} position={position} onMove={setPosition} onOpen={view} />
+}
+
+interface Viewing {
+  readonly position: GridPosition
+  readonly setPosition: (position: GridPosition) => void
+  // The photo open in the viewer, if any.
+  readonly viewing: number | undefined
+  readonly view: (index: number, from: GridPosition) => void
+  readonly close: (index: number) => void
+}
+
+function useViewing(): Viewing {
   const [position, setPosition] = useState<GridPosition>(START_POSITION)
   const [viewing, setViewing] = useState<number | undefined>(undefined)
+  const view = useCallback((index: number, from: GridPosition) => {
+    setPosition(from)
+    setViewing(index)
+  }, [])
   const close = useCallback((index: number) => {
     setPosition((previous) => ({ focus: index, topRow: previous.topRow }))
     setViewing(undefined)
   }, [])
-  if (viewing !== undefined) {
-    return <Viewer {...props} start={viewing} onClose={close} />
-  }
-  return (
-    <PhotoGrid
-      {...props}
-      position={position}
-      onMove={setPosition}
-      onOpen={(index, from) => {
-        setPosition(from)
-        setViewing(index)
-      }}
-    />
-  )
+  return { position, setPosition, viewing, view, close }
 }
 
 interface PhotoGridProps extends PhotoBrowserProps {

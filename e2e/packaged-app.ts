@@ -5,7 +5,7 @@
 import { type Browser, chromium, type Page } from 'playwright'
 import { expect } from 'vitest'
 
-import { ALBUM_NAME, type FakeImmich, PHOTO_IDS } from './fake-immich-server.ts'
+import { ALBUM_NAME, CAPTION, type FakeImmich, PHOTO_IDS } from './fake-immich-server.ts'
 import { emulateChromium68 } from './legacy-chromium.ts'
 
 // The TV whose system the page gets: webOS's PalmSystem or Tizen's tizen global.
@@ -114,6 +114,24 @@ function expectCrossOriginCalls(immich: FakeImmich): void {
   expect(immich.requests.map((request) => request.url)).toContain(
     `/api/assets/${PHOTO_IDS[0]}/thumbnail?size=preview`,
   )
+}
+
+// The whole library, drawn at random by Immich (a POST with a JSON body, so after a preflight that
+// lets Content-Type through), playing at once with the caption of its first photo.
+export async function expectLibraryPresentation(app: OpenedApp, immich: FakeImmich): Promise<void> {
+  const { page } = app
+  await expect.poll(async () => focusedText(page)).toBe('Álbuns')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => focusedText(page)).toContain('Toda a biblioteca')
+  await page.keyboard.press('Enter')
+  await page.getByRole('dialog', { name: `1 de ${String(PHOTO_IDS.length)}` }).waitFor()
+  await page.getByText(CAPTION).waitFor()
+  const calls = immich.requests.map((request) => `${request.method} ${request.url}`)
+  expect(calls).toContain('OPTIONS /api/search/random')
+  expect(calls).toContain('POST /api/search/random')
+  expect(calls).toContain(`GET /api/assets/${PHOTO_IDS[0]}`)
 }
 
 // Back returns one screen, then asks the TV to leave from the start screen, once.

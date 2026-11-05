@@ -62,6 +62,10 @@ export interface PhotoLibrary {
   readonly listAlbumPhotos: (album: Album) => Promise<readonly Photo[]>
   readonly listTimelineMonths: () => Promise<readonly TimelineMonth[]>
   readonly listMonthPhotos: (month: TimelineMonth) => Promise<readonly Photo[]>
+  // Up to this many photos of the timeline, drawn at random by the server.
+  readonly listRandomPhotos: (count: number) => Promise<readonly Photo[]>
+  // The caption written for the photo in the library (its description); none when it has none.
+  readonly readCaption: (photoId: string) => Promise<string | undefined>
   // The address an <img> loads the photo from.
   readonly imageUrl: (photoId: string, size: ImageSize) => string
 }

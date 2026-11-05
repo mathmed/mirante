@@ -17,14 +17,18 @@ in front of Immich, so it is never on the same origin as Immich. The rules are t
 - `immichUrl` must be the **full address of the proxy**, such as `http://192.168.0.10:8085`.
   Packaging refuses a relative address (empty or a path).
 - The proxy must answer **CORS** for the app: `Access-Control-Allow-Origin: *`, a `204` to the
-  preflight `OPTIONS`, and the methods `GET`, `HEAD`, `POST` and `OPTIONS`.
+  preflight `OPTIONS`, the methods `GET`, `HEAD`, `POST` and `OPTIONS`, and the header
+  `Content-Type` (`Access-Control-Allow-Headers: Content-Type`), which the random draw of the
+  library sends with its JSON body. [docs/proxy.md](proxy.md) lists the routes the proxy lets
+  through, with a Caddyfile.
 - The proxy adds the **API key** to the requests it sends to Immich. The package never carries a
   key: packaging refuses a configuration with `apiKey`, because anyone with the `.wgt` could read it.
 - The photos load as plain images (`<img src>`) from the same address.
 
 On top of that, a Tizen widget only reaches the origins its `config.xml` allows, and only with the
 `internet` privilege: `tizen/config.xml` declares `<access origin="*" subdomains="true"/>` and
-`http://tizen.org/privilege/internet`, and packaging refuses a `config.xml` without them.
+`http://tizen.org/privilege/internet`, and packaging refuses a `config.xml` without them. It also
+declares `http://tizen.org/privilege/tv.inputdevice`, for the Info key (see below).
 
 ## Building the package
 
@@ -77,7 +81,9 @@ What goes into the package:
   digits (`MirantTV01`), a dot and the name. Packaging checks it;
 - `required_version="6.5"` and the `tv-samsung` profile;
 - `index.html` as its content and `icon.png` as its icon;
-- `<access origin="*" subdomains="true"/>` and the `internet` privilege, the only one it asks for.
+- `<access origin="*" subdomains="true"/>` and two privileges: `internet`, to reach the proxy, and
+  `tv.inputdevice`, for the Info key of the remote control. A package signed before needs signing
+  again with them.
 
 It has no `version`: the version is always the one of `package.json`, which Tizen wants as three
 numbers up to `255.255.65535`.
@@ -89,8 +95,10 @@ a relative `immichUrl` or has an `apiKey`, or when `config.xml` misses a require
 ### The remote control
 
 Arrows (37–40), Enter/OK (13) and Back (10009) reach every Tizen app without
-`tizen.tvinputdevice.registerKey`, which only the color, media and number keys need, so the app
-registers none and asks for no `tv.inputdevice` privilege. Back arrives as a `keydown` with code
+`tizen.tvinputdevice.registerKey`, which Info and the color, media and number keys need. The app
+registers Info (457) at startup, with the `tv.inputdevice` privilege, to open the settings over the
+viewer; if the TV refuses it, the error goes to the console and Down opens the same settings. Back
+arrives as a `keydown` with code
 10009; the app does not also listen to `tizenhwkey`, the hardware Back of Tizen phones and
 watches, which would act twice on one press. Back returns one screen at a time, and on the start
 screen (or the connecting and error screens before it) it leaves the app with

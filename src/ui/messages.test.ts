@@ -26,7 +26,7 @@ describe('failureText', () => {
   it('should refuse a failure it does not know', () => {
     const unknown = 'gone' as StartupFailure
 
-    expect(() => failureText(unknown)).toThrow('No text for the startup failure "gone"')
+    expect(() => failureText(unknown)).toThrow('No text for "gone"')
   })
 
   it('should give every failure its own title', () => {
