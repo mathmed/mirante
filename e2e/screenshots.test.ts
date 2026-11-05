@@ -1,7 +1,8 @@
 // The screenshots of the docs (make screenshots): the build, opened from file:// in a headless
 // Chromium at 1920x1080 like the TV packages, against a fake Immich with a library of landscapes,
 // walked with the remote control. Each screen is written to docs/screenshots/ as a WebP the page
-// itself encodes, under 300 KB, for the owner to review the look of the app.
+// itself encodes, under 300 KB, for the owner to review the look of the app; and the icon of the
+// app beside the two alternatives it was chosen against.
 import { cp, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -12,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { writeBytes, writeText } from '../scripts/shared/files.ts'
 import { type FakeImmich, startFakeImmich } from './fake-immich-server.ts'
+import { iconAlternativesPage } from './icon-alternatives.ts'
 import { launchBrowser } from './packaged-app.ts'
 import { EMPTY_ALBUM, SCREENSHOT_LIBRARY, screenshotImage } from './screenshot-library.ts'
 
@@ -270,5 +272,14 @@ describe('the screenshots of the docs', () => {
     } finally {
       immich.isCorsAllowed = true
     }
+  })
+
+  it('should capture the icon of the app beside its two alternatives', async () => {
+    const page = await browser.newPage({ viewport: VIEWPORT })
+    await page.setContent(await iconAlternativesPage())
+    await page.evaluate(async () => document.fonts.ready)
+    await settled(page)
+    await shoot(page, 'icone-alternativas')
+    await page.close()
   })
 })
