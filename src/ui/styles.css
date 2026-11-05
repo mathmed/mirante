@@ -1,5 +1,9 @@
 /* Sized for a TV seen from the couch: 1920x1080, large type, and a focus ring nobody can miss.
-   Only features Chromium 68 has (stylelint checks them against browserslist). */
+   Only features Chromium 68 has (stylelint checks them against browserslist). Every screen keeps
+   its content inside the safe area: TVs may hide up to 5% of each edge (overscan). The only
+   animations change opacity, on the viewer alone. Nothing relies on overflow (Chromium 68 supports
+   it only in part): a screen is fixed to the viewport, so what lies past its edges never scrolls
+   the page, and the cells off the screen are hidden. */
 html,
 body {
   height: 100%;
@@ -20,14 +24,28 @@ body {
 }
 
 .screen {
+  position: fixed;
+  top: 0;
+  left: 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 5vh 5vw;
+}
+
+.screen-centered {
   align-items: center;
   justify-content: center;
-  min-height: 100%;
-  padding: 64px 96px;
   text-align: center;
+}
+
+.screen-title {
+  flex: none;
+  margin: 0 0 3vh;
+  font-size: 48px;
+  white-space: nowrap;
 }
 
 .brand {
@@ -37,12 +55,14 @@ body {
 }
 
 .status {
-  margin: 0;
+  margin: auto;
   color: #b8c0cc;
 }
 
 .panel {
   max-width: 1200px;
+  margin: auto;
+  text-align: center;
 }
 
 .panel h2 {
@@ -59,19 +79,11 @@ body {
   color: #ffb4a8;
 }
 
-.facts {
-  display: inline-block;
-  margin: 0;
-  text-align: left;
-}
-
-.facts dt {
-  color: #b8c0cc;
-}
-
-.facts dd {
-  margin: 0 0 16px;
-  font-size: 36px;
+.footnote {
+  flex: none;
+  margin: 3vh 0 0;
+  color: #8a94a3;
+  font-size: 22px;
 }
 
 .action {
@@ -81,12 +93,154 @@ body {
   background: #2b3440;
   color: inherit;
   font: inherit;
-  cursor: pointer;
+}
+
+/* The grids: only the rows on the screen are in the page, each cell placed with a transform. */
+.grid {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid-home {
+  flex: 0 0 40vh;
+}
+
+.cell {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  padding: 12px;
+  outline: none;
+}
+
+/* The rows around the screen load their images without showing. */
+.cell-offscreen {
+  visibility: hidden;
+}
+
+.tile {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  border: 6px solid transparent;
+  border-radius: 12px;
+  background: #1c232b;
+}
+
+.grid-photos .tile {
+  border-width: 4px;
 }
 
 /* Every focusable element shows where the remote control is. */
-.action:focus {
+.action:focus,
+.cell:focus .tile {
   border-color: #ffd166;
   outline: none;
   background: #3a4656;
+}
+
+.tile-title {
+  max-width: 90%;
+  font-size: 36px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.grid-home .tile-title {
+  font-size: 56px;
+}
+
+.tile-detail {
+  color: #b8c0cc;
+  font-size: 24px;
+}
+
+.album-cover {
+  flex: 1 1 0;
+  align-self: stretch;
+  min-height: 0;
+  margin-bottom: 8px;
+  border-radius: 6px 6px 0 0;
+  background: #151b21;
+}
+
+.picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.picture-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 8px;
+  color: #8a94a3;
+  font-size: 22px;
+  text-align: center;
+}
+
+/* The viewer: the photo inside the safe area, and the next ones waiting, invisible, under it. */
+.viewer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  outline: none;
+}
+
+.slide {
+  position: absolute;
+  top: 5vh;
+  left: 5vw;
+  width: 90vw;
+  height: 90vh;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.slide.is-current {
+  opacity: 1;
+}
+
+.slide .picture {
+  border-radius: 0;
+  object-fit: contain;
+}
+
+.viewer-info {
+  position: absolute;
+  bottom: 5vh;
+  left: 5vw;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 90vw;
+  color: #f2f4f7;
+  font-size: 26px;
+  text-shadow: 0 2px 6px #000;
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+
+.viewer-info.is-visible {
+  opacity: 1;
+}
+
+.viewer-hint {
+  color: #b8c0cc;
+  font-size: 22px;
 }

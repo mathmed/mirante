@@ -39,26 +39,37 @@ Always use `npm ci` / `npm install` (never another package manager) and commit `
 
 ```
 src/core/      pure logic: the startup flow, the runtime configuration, the photo library interface and
-               its domain types; later the spatial focus navigation, the screen state machine, the
-               slideshow clock and date formatting
+               its domain types, the order of albums, photos and months, the spatial focus navigation
+               of the grids, the stack of screens, the viewer and its slideshow, the remote control keys
 src/immich/    the photo library implemented with @immich/sdk, read only
-src/platform/  what differs between TVs and browsers: config.json, polyfills, the console; later the
-               remote control keys of Tizen and webOS
+src/platform/  what differs between TVs and browsers: config.json, polyfills, the console, the key
+               codes of the remote controls of Tizen and webOS
 src/ui/        Preact components and src/ui/messages.ts, every text people read
 src/main.tsx   composition root: wires the adapters into the UI
 scripts/       CI tooling: Quality Report, suppression ratchet, mutation runner, risk label check
-test/          test support: the fake Immich server (MSW), the test setup, throwaway git repositories
+test/          test support: the fake Immich server (MSW) and its sample library, the stub photo
+               library and the fake remote control of the component tests, the test setup, throwaway
+               git repositories
 ```
 
 - `src/core` imports nothing from the other layers and no package at all (not even Preact or the
   Immich SDK), and runs without the DOM or Node.js: `make typecheck` checks it with the ES2018
   library alone. Platform services reach it through interfaces it declares (`PhotoLibrary`,
-  `StartupDependencies`).
+  `StartupDependencies`, `KeySource`).
 - Only `src/immich` imports `@immich/sdk`. It implements the core `PhotoLibrary` and translates the
-  SDK's DTOs into the core's domain types (`ServerInfo` today; `Album`, `Asset` and `TimelineBucket`
-  with the gallery) and its errors into `PhotoLibraryError` with a `LibraryFailure`. Nothing else ever
-  sees an SDK type. Every call passes the configured address, key and an abort signal; never the SDK's
-  global defaults (`init`, `setApiKey`).
+  SDK's DTOs into the core's domain types (`ServerInfo`, `Album`, `Photo`, `TimelineMonth`; videos
+  are left out) and its errors into `PhotoLibraryError` with a `LibraryFailure`. Nothing else ever
+  sees an SDK type, and every answer is checked where it enters. Every call passes the configured
+  address, the key when there is one and an abort signal; never the SDK's global defaults (`init`,
+  `setApiKey`).
+- **Same origin, key in the proxy**: Immich only sends CORS headers in development, so Mirante is
+  served at the address of Immich, behind a reverse proxy that sends `/api` to it and may add the
+  `x-api-key` header itself. `immichUrl` may be relative (empty or a path: the server of the page),
+  and `apiKey` is optional: without it no key is sent. Images load through `<img src>` from the API
+  address on the same origin (`/api/assets/{id}/thumbnail?size=thumbnail|preview`), never as blob
+  URLs and never with the key in the URL, so they only load when the proxy adds the key (or the
+  browser has an Immich session there). Grids use the `thumbnail` size, the viewer the `preview`;
+  never the original.
 - **Read only**: the adapter only calls endpoints that read (the key check `POST /auth/validateToken`
   changes nothing and needs no permission). Never upload, edit, delete, favorite or archive.
 - `src/platform` serves the core and imports neither the UI nor the adapter. `config.json` is read
@@ -89,11 +100,17 @@ test/          test support: the fake Immich server (MSW), the test setup, throw
 - **The remote control is the only input**: arrows, Enter and Back (`keyCode` 10009 on Tizen, 461 on
   webOS, Escape and Backspace on the desktop). Every action is reachable with them; the focus is
   always visible (`:focus` styles) and never lost when a screen changes. Navigation logic (where the
-  focus goes) is pure and lives in the core; key codes live in `src/platform`.
+  focus goes) is pure and lives in the core; key codes live in `src/platform`. One component listens
+  to the keys at a time (the screen on top, or the viewer over it), through `useRemoteKeys`.
+- **Memory is scarce**: grids render only the rows on the screen and one around them (the rest is
+  unmounted, its images unloaded), and the viewer keeps at most three images decoded. Only `transform`
+  and `opacity` change, few elements animate, and nothing relies on `overflow`, which Chromium 68
+  supports only in part: screens are `position: fixed` and off-screen cells are hidden.
+- **Overscan**: every screen keeps its content inside the safe area, 5% of each edge.
 - **Relative paths** (`base: './'`) and **no service worker**: the packaged apps load from `file://`.
-- **Runtime configuration**: `config.json` next to `index.html` (`immichUrl`, `apiKey`) is read on every
-  start and never committed (`.gitignore`); `public/config.example.json` documents it. Its fields are
-  the public contract of every installation.
+- **Runtime configuration**: `config.json` next to `index.html` (`immichUrl`, the optional `apiKey`
+  and `slideshowSeconds`) is read on every start and never committed (`.gitignore`);
+  `public/config.example.json` documents it. Its fields are the public contract of every installation.
 
 ## Critical surfaces
 
@@ -102,8 +119,8 @@ and a revert does not undo it. The `pr-writer` reads this list before assigning 
 `risk:critical`. Touching these files does not make a PR critical by itself; what the change can break
 does.
 
-- **What reaches Immich** (`src/immich/`): only reads, with the key of `config.json` in the `x-api-key`
-  header and never in a URL. A call that writes changes the library for good.
+- **What reaches Immich** (`src/immich/`): only reads, with the key of `config.json` (when it has one)
+  in the `x-api-key` header and never in a URL. A call that writes changes the library for good.
 - **The API key**: read from `config.json` (`src/core/runtime-config.ts`,
   `src/platform/config-file.ts`), kept out of logs, messages, URLs and the repository; `config.json` is
   gitignored.

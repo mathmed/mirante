@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { stubLibrary } from '../../test/library-stub.ts'
 import {
   LibraryFailure,
   type PhotoLibrary,
@@ -14,8 +15,13 @@ import {
 } from './runtime-config.ts'
 import { startUp, type StartupDependencies, StartupFailure, StartupStatus } from './startup.ts'
 
-const CONFIG: RuntimeConfig = { immichUrl: 'http://immich.test', apiKey: 'key' }
+const CONFIG: RuntimeConfig = {
+  immichUrl: 'http://immich.test',
+  apiKey: 'key',
+  slideshowSeconds: 5,
+}
 const SERVER: ServerInfo = { address: 'immich.test', version: '3.3.6' }
+const PAGE_ORIGIN = 'http://tv.test'
 
 interface Recorded {
   readonly dependencies: StartupDependencies
@@ -31,6 +37,7 @@ function dependencies(config: ConfigResult, library: PhotoLibrary): Recorded {
     reported,
     dependencies: {
       loadConfig: async () => Promise.resolve(config),
+      pageOrigin: PAGE_ORIGIN,
       openLibrary: (received) => {
         opened.push(received)
         return library
@@ -41,21 +48,34 @@ function dependencies(config: ConfigResult, library: PhotoLibrary): Recorded {
 }
 
 function libraryAnswering(server: Promise<ServerInfo>): PhotoLibrary {
-  return { describeServer: async () => server }
+  return stubLibrary({ describeServer: async () => server })
 }
 
 const VALID: ConfigResult = { isValid: true, config: CONFIG }
 
 describe('startUp', () => {
   it('should connect to the server of the configuration', async () => {
-    const sut = dependencies(VALID, libraryAnswering(Promise.resolve(SERVER)))
+    const library = libraryAnswering(Promise.resolve(SERVER))
+    const sut = dependencies(VALID, library)
 
     expect(await startUp(sut.dependencies)).toStrictEqual({
       status: StartupStatus.Connected,
-      server: SERVER,
+      session: { server: SERVER, library, slideshowSeconds: 5 },
     })
     expect(sut.opened).toStrictEqual([CONFIG])
     expect(sut.reported).toStrictEqual([])
+  })
+
+  it('should open the server of the page when the address is relative', async () => {
+    const relative: RuntimeConfig = { immichUrl: '/immich', slideshowSeconds: 8 }
+    const sut = dependencies(
+      { isValid: true, config: relative },
+      libraryAnswering(Promise.resolve(SERVER)),
+    )
+
+    await startUp(sut.dependencies)
+
+    expect(sut.opened).toStrictEqual([{ immichUrl: `${PAGE_ORIGIN}/immich`, slideshowSeconds: 8 }])
   })
 
   it.each(Object.values(ConfigProblem))(

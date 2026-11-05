@@ -5,6 +5,7 @@ import { createImmichLibrary } from './immich/immich-library.ts'
 import { CONFIG_FILE, readConfigFile } from './platform/config-file.ts'
 import { logError } from './platform/error-log.ts'
 import { installPolyfills } from './platform/polyfills.ts'
+import { listenToRemote } from './platform/remote-control.ts'
 import { App } from './ui/App.tsx'
 import './ui/styles.css'
 
@@ -20,12 +21,14 @@ if (root === null) {
 }
 
 const configUrl = new URL(CONFIG_FILE, document.baseURI).href
+const keys = listenToRemote(document)
 
 const start = async (): ReturnType<typeof startUp> =>
   startUp({
     loadConfig: async () => readConfigFile(configUrl),
+    pageOrigin: window.location.origin,
     openLibrary: (config) => createImmichLibrary({ config, timeoutMs: REQUEST_TIMEOUT_MS }),
     reportError: logError,
   })
 
-render(<App start={start} />, root)
+render(<App start={start} keys={keys} reportError={logError} />, root)

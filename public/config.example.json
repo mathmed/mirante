@@ -1,4 +1,4 @@
 {
-  "immichUrl": "http://192.168.0.10:2283",
-  "apiKey": "paste-a-read-only-immich-api-key-here"
+  "immichUrl": "",
+  "slideshowSeconds": 8
 }
