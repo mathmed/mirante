@@ -88,6 +88,8 @@ test/          test support: the fake Immich server (MSW) and its sample library
   analyzer, a `Check` in `SECTIONS`, the wrapper and the artifact in its job, the job in the `needs` of
   `quality-report`, and tests (see CONTRIBUTING.md, "Quality Report"). The wrapper keeps the tool's exit
   code: the job stays the gate.
+- Temporary directories are always removed: tests create them in `os.tmpdir()`, which the Vitest
+  global setup (`test/support/temp-root.ts`) points at a root under `.tmp/` removed when the run ends.
 - Every change comes with tests.
 
 ### TVs and the remote control
