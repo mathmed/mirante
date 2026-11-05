@@ -24,29 +24,31 @@ load where the key reaches them without the app.
 
 ### Make targets
 
-| Command                    | Description                                                                        |
-| -------------------------- | ---------------------------------------------------------------------------------- |
-| `make setup`               | Install the locked dependencies and the git hooks.                                 |
-| `make dev`                 | Serve the app with hot reload (Vite).                                              |
-| `make build`               | Bundle `dist/` and the webOS build, and check them against Chromium 68.            |
-| `make package-webos`       | Package the build as the LG webOS app (`.ipk`), see `docs/webos.md`.               |
-| `make test-webos`          | Run the `.ipk` from `file://` in a headless Chromium (Playwright).                 |
-| `make package-tizen`       | Package the build as the Samsung Tizen app (unsigned `.wgt`), see `docs/tizen.md`. |
-| `make test-tizen`          | Run the `.wgt` from `file://` in a headless Chromium (Playwright).                 |
-| `make format`              | Format (Prettier) and apply the fixes ESLint can make.                             |
-| `make lint`                | ESLint, Stylelint and the Prettier check.                                          |
-| `make typecheck`           | tsc 7 strict: the app, the core alone, the tests and the tooling.                  |
-| `make test`                | Unit tests with coverage (100%, a ratchet).                                        |
-| `make lint-arch`           | Architecture contracts (dependency-cruiser).                                       |
-| `make dead-code`           | Unused files, exports and dependencies (knip).                                     |
-| `make audit`               | Known vulnerabilities in the dependencies.                                         |
-| `make suppressions`        | Suppression ratchet against `suppressions-baseline.json`.                          |
-| `make quality`             | All of the above but the build: what the pre-commit hook runs.                     |
-| `make mutation`            | Mutation testing of the whole core (weekly in CI).                                 |
-| `make mutation-changed`    | Mutation testing of the core files changed against `BASE` (`origin/main`).         |
-| `make suppressions-update` | Lower the suppression baseline after removing suppressions.                        |
-| `make risk-labels`         | Create or update the `risk:<level>` labels on GitHub (needs `gh`).                 |
-| `make all`                 | Everything CI runs on a pull request.                                              |
+| Command                    | Description                                                                         |
+| -------------------------- | ----------------------------------------------------------------------------------- |
+| `make setup`               | Install the locked dependencies and the git hooks.                                  |
+| `make dev`                 | Serve the app with hot reload (Vite).                                               |
+| `make build`               | Bundle `dist/` and the webOS build, and check them against Chromium 68.             |
+| `make logo`                | Write the logo files from `scripts/logo/mark.ts` (the app's mark and `docs/logo/`). |
+| `make screenshots`         | Capture the main screens at 1920x1080 into `docs/screenshots/` (Playwright).        |
+| `make package-webos`       | Package the build as the LG webOS app (`.ipk`), see `docs/webos.md`.                |
+| `make test-webos`          | Run the `.ipk` from `file://` in a headless Chromium (Playwright).                  |
+| `make package-tizen`       | Package the build as the Samsung Tizen app (unsigned `.wgt`), see `docs/tizen.md`.  |
+| `make test-tizen`          | Run the `.wgt` from `file://` in a headless Chromium (Playwright).                  |
+| `make format`              | Format (Prettier) and apply the fixes ESLint can make.                              |
+| `make lint`                | ESLint, Stylelint and the Prettier check.                                           |
+| `make typecheck`           | tsc 7 strict: the app, the core alone, the tests and the tooling.                   |
+| `make test`                | Unit tests with coverage (100%, a ratchet).                                         |
+| `make lint-arch`           | Architecture contracts (dependency-cruiser).                                        |
+| `make dead-code`           | Unused files, exports and dependencies (knip).                                      |
+| `make audit`               | Known vulnerabilities in the dependencies.                                          |
+| `make suppressions`        | Suppression ratchet against `suppressions-baseline.json`.                           |
+| `make quality`             | All of the above but the build: what the pre-commit hook runs.                      |
+| `make mutation`            | Mutation testing of the whole core (weekly in CI).                                  |
+| `make mutation-changed`    | Mutation testing of the core files changed against `BASE` (`origin/main`).          |
+| `make suppressions-update` | Lower the suppression baseline after removing suppressions.                         |
+| `make risk-labels`         | Create or update the `risk:<level>` labels on GitHub (needs `gh`).                  |
+| `make all`                 | Everything CI runs on a pull request.                                               |
 
 ## Making a change
 
@@ -59,7 +61,7 @@ load where the key reaches them without the app.
    remote control of `test/remote.ts`; `src/main.test.tsx` runs the whole app against the fake
    server with the key codes of the TVs.
 3. Run `make quality`, plus `make build` when the change touches the app or its configuration, and
-   `make mutation-changed` for `src/core`.
+   `make mutation-changed` for `src/core`; after a visual change, `make screenshots` too.
 4. Commit with [Conventional Commits](https://www.conventionalcommits.org/) (`feat`, `fix`,
    `refactor`, `chore`, `test`, `docs`, `ci`, `build`); the commit-msg hook checks it.
 5. Open the pull request with the template and one `risk:<level>` label (see
@@ -86,6 +88,30 @@ writes is out of scope.
 - **Relative paths, no service worker**: the packaged apps load from the file system.
 - **Text people read** lives in `src/ui/messages.ts`, in Brazilian Portuguese; everything else is in
   English.
+
+## The look of the app
+
+- **Palette**: a warm near-black background (`#0E0C09`), surfaces (`#1B1710`), golds (`#D4A93C`,
+  light `#F0CF7A`, dark `#8A6A1F`, for lines only) and warm text (`#F4EEDF`, secondary `#A89B7C`):
+  the custom properties at the top of `src/ui/styles.css`, the same colors as the logo. Every text
+  keeps a contrast of 4.5:1 or more with what is behind it.
+- **Type**: Playfair Display (SIL Open Font License, `src/ui/fonts/OFL.txt`) for titles, names and
+  dates, as two Latin-subset WOFF2 files (normal and italic, about 44 KB) with `font-display: swap`;
+  the font of the system for the rest. No font is loaded from the network.
+- **The logo** is drawn from its shapes in `scripts/logo/mark.ts`: an M on the horizon under the
+  arch of a rising sun, over two lines of water. `make logo` writes it as SVG
+  (`src/ui/assets/mirante-mark.svg`, which the app shows, and `docs/logo/`, with the horizontal logo
+  and its name in Playfair Display), and the TV packages rasterize the same shapes into their icons
+  (`scripts/packaging/icon.ts`). Never edit the SVG files by hand: a test fails while one differs
+  from the shapes.
+- **Motion and effects for the TVs' GPUs**: only `opacity` and `transform` animate (screens fade in
+  in 320 ms, the viewer crossfades in 600 ms, the focused tile grows to 1.04), shadows and glows stay
+  on the focused element, and darkening is done with gradients. Stylelint rejects `blur()` and the
+  individual `translate`, `scale` and `rotate` properties (Chromium 104) besides what `browserslist`
+  lacks.
+- **Screenshots**: `make screenshots` writes the main screens to `docs/screenshots/` (WebP, each under
+  300 KB) from the build, against a fake Immich whose photos are landscapes drawn from their ids
+  (`e2e/screenshots.test.ts`). Run it after a visual change and commit the images with it.
 
 ## The pipeline
 

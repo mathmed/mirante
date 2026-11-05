@@ -1,5 +1,9 @@
 # Mirante
 
+<p align="center">
+  <img src="docs/logo/mirante-logo.svg" alt="Mirante" width="560">
+</p>
+
 A photo gallery viewer for TVs. Mirante runs in the TV's browser or as an app of the TV,
 reads the photos of your [Immich](https://immich.app/) server and is driven by the remote control
 alone: arrows, Enter and Back.
@@ -54,13 +58,17 @@ mouse or a touch screen. A held arrow keeps moving; a held Enter or Back acts on
 
 | Screen   | What it shows                                             | Enter                          | Back                               |
 | -------- | --------------------------------------------------------- | ------------------------------ | ---------------------------------- |
-| Start    | **Álbuns** and **Linha do tempo**                         | opens the one in focus         | leaves the app (TV apps)           |
+| Start    | the logo, **Álbuns** and **Linha do tempo**, over a photo | opens the one in focus         | leaves the app (TV apps)           |
 | Albums   | the covers, with each album's name and number of photos   | opens the album                | start, focus where it was          |
 | Album    | the album's photos, in the order chosen for it in Immich  | opens the photo in the viewer  | albums, on the album that was open |
 | Timeline | the years with photos, the most recent first              | opens the year's months        | start                              |
 | Year     | the months with photos, in calendar order                 | opens the month's photos       | years, on the year that was open   |
 | Month    | the month's photos, from the first to the last            | opens the photo in the viewer  | months, on the month that was open |
 | Viewer   | one photo, full screen; ← and → for the previous and next | starts or pauses the slideshow | the grid, on the photo shown last  |
+
+The app opens on its logo while it connects to Immich, and moves on to the start screen as soon as
+the server answers. Behind the start screen lies the cover of the most recent album, darkened (a
+plain background when no album has a cover).
 
 Back on the start screen, and on the connecting and error screens before it, leaves the app when
 it runs as a webOS or a Tizen app (the TV returns to its launcher); in a browser it stays on the
@@ -76,6 +84,28 @@ For the TVs' small memory, the grids only render the rows on the screen (and one
 thumbnails ahead) and use Immich's thumbnails, the viewer uses its previews, never the original
 files, and keeps at most three photos decoded. Every screen stays inside the TVs' safe area
 (overscan).
+
+## Look
+
+A warm near-black with golds, the titles in a serif (Playfair Display, shipped with the app) and
+the logo throughout: an M standing on the horizon under the arch of a rising sun, the view from a
+_mirante_. The focus is a golden ring that grows a little; screens fade in, and the viewer
+crossfades between photos. Captured by `make screenshots` at 1920x1080, against a fake library:
+
+| Start screen                                     | Albums                                     |
+| ------------------------------------------------ | ------------------------------------------ |
+| ![Start screen](docs/screenshots/02-inicio.webp) | ![Albums](docs/screenshots/03-albuns.webp) |
+
+| Viewer, in a slideshow                           | Timeline                                             |
+| ------------------------------------------------ | ---------------------------------------------------- |
+| ![Viewer](docs/screenshots/06-apresentacao.webp) | ![Timeline](docs/screenshots/07-linha-do-tempo.webp) |
+
+Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screenshots/02-inicio.webp),
+[albums](docs/screenshots/03-albuns.webp), [album](docs/screenshots/04-album.webp),
+[photo](docs/screenshots/05-foto.webp), [slideshow](docs/screenshots/06-apresentacao.webp),
+[years](docs/screenshots/07-linha-do-tempo.webp), [months](docs/screenshots/08-meses.webp),
+[empty album](docs/screenshots/09-album-vazio.webp), [loading](docs/screenshots/10-carregando.webp)
+and [error](docs/screenshots/11-erro.webp).
 
 ## Configuration
 
@@ -168,7 +198,8 @@ installing and opening the app with the Tizen CLI (`tizen package`, `sdb connect
 The TVs have little memory and old engines. Preact keeps React's component and hooks model at a
 fraction of its weight (about 5 kB gzipped against about 60 kB for React 19 with `react-dom`), has no
 dependency, and its output runs on engines much older than Chromium 68. The whole app, Immich SDK
-and every screen included, is about 22 kB gzipped today.
+and every screen included, is about 23 kB of JavaScript gzipped today, plus the two files of its
+serif (about 44 kB).
 
 ## Architecture
 
@@ -183,11 +214,12 @@ src/ui/        Preact components and every user-facing text (Brazilian Portugues
 src/main.tsx   composition root: wires the adapters into the UI
 test/          test support: the fake Immich server (MSW), a stub library, a fake remote control and
                throwaway git repositories
-scripts/       tooling: the webOS and Tizen packaging, Quality Report, suppression ratchet, mutation
-               runner, risk label check
+scripts/       tooling: the logo, the webOS and Tizen packaging, Quality Report, suppression ratchet,
+               mutation runner, risk label check
 webos/         the appinfo.json of the webOS app and the example of its config.json
 tizen/         the config.xml of the Tizen app and the example of its config.json
-e2e/           the end-to-end tests of the TV packages (Playwright) and their fake Immich server
+e2e/           the end-to-end tests of the TV packages and the screenshots (Playwright), and their
+               fake Immich server
 ```
 
 The layers are enforced by dependency-cruiser; [`CLAUDE.md`](CLAUDE.md) has the full rules and
