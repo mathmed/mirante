@@ -12,6 +12,10 @@ import sonarjs from 'eslint-plugin-sonarjs'
 import { defineConfig, globalIgnores } from 'eslint/config'
 import tseslint from 'typescript-eslint'
 
+import browserApisConfig from './.browser-apis.json' with { type: 'json' }
+import { browserApisPlugin, browserApisRules, PLUGIN_NAME } from './scripts/browser-apis/check.ts'
+import { browserApisOptions } from './scripts/browser-apis/options.ts'
+
 const TYPESCRIPT_FILES = ['**/*.ts', '**/*.tsx']
 const PRODUCTION_FILES = ['src/**/*.ts', 'src/**/*.tsx', 'scripts/**/*.ts']
 const APP_FILES = ['src/**/*.ts', 'src/**/*.tsx']
@@ -204,11 +208,15 @@ export default defineConfig([
   {
     // The app runs in the browsers of the TVs (browserslist in package.json: Chromium 68): a web API
     // they lack is an error. Newer JavaScript built-ins are already type errors (ES2018 library).
+    // The browser-apis rule (scripts/browser-apis/) also sees a global that is only passed around,
+    // and `make build` runs it over the bundle, the dependencies included.
     files: APP_FILES,
     ignores: TEST_FILES,
     extends: [compat.configs['flat/recommended']],
+    plugins: { [PLUGIN_NAME]: browserApisPlugin },
     rules: {
       'no-console': 'error',
+      ...browserApisRules(browserApisOptions(import.meta.dirname, browserApisConfig)),
     },
   },
   {

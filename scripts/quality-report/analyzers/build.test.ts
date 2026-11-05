@@ -79,6 +79,20 @@ describe('analyzeBuild', () => {
     ).toBe('1 bundle breaks the ES2018 target')
   })
 
+  it('should count the browser APIs the oldest Chrome lacks', () => {
+    const output = `${BUILT}
+dist/assets/index.js:1:1488 queueMicrotask is missing in Chrome 68 (added in 71): polyfill it.
+Browser APIs: 1 missing in Chrome 68.`
+
+    const sut = analyzeBuild(build(output, 1))
+
+    expect(sut.summary).toBe('1 browser API missing in Chrome 68')
+    expect(sut.details?.body).toContain('queueMicrotask is missing in Chrome 68')
+    expect(analyzeBuild(build(output.replace(': 1 missing', ': 3 missing'), 1)).summary).toBe(
+      '3 browser APIs missing in Chrome 68',
+    )
+  })
+
   it('should fail without details when the command itself fails', () => {
     expect(analyzeBuild(build('sh: 1: vite: not found', 127)).summary).toBe('Build failed')
   })
