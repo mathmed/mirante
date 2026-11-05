@@ -1,4 +1,4 @@
-.PHONY: setup dev build format lint typecheck test lint-arch dead-code audit suppressions suppressions-update quality mutation mutation-changed risk-labels all
+.PHONY: setup dev build package-webos format lint typecheck test lint-arch dead-code audit suppressions suppressions-update quality mutation mutation-changed risk-labels all
 
 # Base branch of mutation-changed
 BASE ?= origin/main
@@ -15,6 +15,11 @@ dev:
 # Bundle the app into dist/ (Vite, relative paths) and check it against ES2018 (es-check)
 build:
 	npm run build
+
+# Package dist/ as the app of LG's webOS TVs: build/webos/com.mathmed.mirante_<version>_all.ipk, with
+# the config.json of webos/config.json or MIRANTE_IMMICH_URL (see docs/webos.md)
+package-webos: build
+	npm run package:webos
 
 # Format every file and apply the fixes ESLint can make on its own
 format:

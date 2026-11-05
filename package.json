@@ -31,6 +31,7 @@
     "hooks": "lefthook install",
     "dev": "vite",
     "build": "vite build && es-check",
+    "package:webos": "node scripts/webos.ts package",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings 0",
     "lint:css": "stylelint \"src/**/*.css\" --max-warnings 0",

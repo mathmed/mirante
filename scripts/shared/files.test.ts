@@ -4,7 +4,18 @@ import { join } from 'node:path'
 
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { appendText, listFiles, readOptionalText, readText, writeText } from './files.ts'
+import {
+  appendText,
+  copyDirectory,
+  listFiles,
+  listFilesDeep,
+  readBytes,
+  readOptionalText,
+  readText,
+  removeDirectory,
+  writeBytes,
+  writeText,
+} from './files.ts'
 import { compareText } from './text.ts'
 
 describe('files', () => {
@@ -51,5 +62,48 @@ describe('files', () => {
     await writeText(file, 'not a folder')
 
     await expect(listFiles(file)).rejects.toThrow('ENOTDIR')
+  })
+
+  it('should write and read bytes, creating missing folders', async () => {
+    const path = join(directory, 'nested', 'icon.png')
+
+    await writeBytes(path, new Uint8Array([0x89, 0x50]))
+
+    expect([...(await readBytes(path))]).toStrictEqual([0x89, 0x50])
+  })
+
+  it('should list every file of a folder at any depth, with forward slashes', async () => {
+    await writeText(join(directory, 'index.html'), '')
+    await writeText(join(directory, 'assets', 'deep', 'app.js'), '')
+
+    expect((await listFilesDeep(directory)).toSorted(compareText)).toStrictEqual([
+      'assets/deep/app.js',
+      'index.html',
+    ])
+  })
+
+  it('should copy a folder with everything in it', async () => {
+    await writeText(join(directory, 'from', 'assets', 'app.js'), 'app')
+
+    await copyDirectory(join(directory, 'from'), join(directory, 'to'))
+
+    expect(await readText(join(directory, 'to', 'assets', 'app.js'))).toBe('app')
+  })
+
+  it('should not copy over a file that is already there', async () => {
+    await writeText(join(directory, 'from', 'app.js'), 'new')
+    await writeText(join(directory, 'to', 'app.js'), 'old')
+
+    await expect(copyDirectory(join(directory, 'from'), join(directory, 'to'))).rejects.toThrow()
+    expect(await readText(join(directory, 'to', 'app.js'))).toBe('old')
+  })
+
+  it('should remove a folder with everything in it, or one that is not there', async () => {
+    await writeText(join(directory, 'stage', 'assets', 'app.js'), 'app')
+
+    await removeDirectory(join(directory, 'stage'))
+    await removeDirectory(join(directory, 'stage'))
+
+    expect(await listFiles(directory)).toStrictEqual([])
   })
 })
