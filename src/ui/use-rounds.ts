@@ -72,6 +72,8 @@ function roundsOf(
         : nextRoundOf(photos, plan.order, { seed: plan.seed, number: round + 1, last })
     },
     onStart,
+    isGrowing: false,
+    onShow: () => undefined,
   }
 }
 

@@ -44,6 +44,9 @@ export interface Upcoming {
   readonly shouldLoop: boolean
   // The slides of the next round; undefined while they load.
   readonly nextRound: readonly Slide[] | undefined
+  // More slides of this round are on their way (a source read a little at a time): the last slide
+  // waits for them, in a loop or not.
+  readonly isRoundGrowing: boolean
 }
 
 // The slides loaded ahead: the next one, decoded, and the one after it, only downloaded.
@@ -86,6 +89,18 @@ export function startPresentation(
   return { slides, index, round: 0, isPlaying, direction: Direction.Forward, leaving: undefined }
 }
 
+// More slides of the round came: the same slides, then more. Anything else changes nothing.
+export function extendPresentation(
+  state: PresentationState,
+  slides: readonly Slide[],
+): PresentationState {
+  const isLonger = slides.length > state.slides.length
+  if (!isLonger || slides[state.index]?.key !== currentSlide(state)?.key) {
+    return state
+  }
+  return { ...state, slides }
+}
+
 export function currentSlide(state: PresentationState): Slide | undefined {
   return state.slides[state.index]
 }
@@ -114,6 +129,9 @@ export function advancePresentation(
   if (state.index + 1 < state.slides.length) {
     return moveTo(state, state.index + 1, Direction.Forward)
   }
+  if (upcoming.isRoundGrowing) {
+    return state
+  }
   if (!upcoming.shouldLoop) {
     return { ...state, isPlaying: false }
   }
@@ -124,7 +142,7 @@ export function advancePresentation(
 // arrows stop at the last slide: nothing comes after it.
 export function slidesAhead(state: PresentationState, upcoming: Upcoming): readonly Slide[] {
   const ahead = state.slides.slice(state.index + 1, state.index + 1 + AHEAD)
-  const isLooping = state.isPlaying && upcoming.shouldLoop
+  const isLooping = state.isPlaying && upcoming.shouldLoop && !upcoming.isRoundGrowing
   const nextRound = isLooping ? (upcoming.nextRound ?? []) : []
   return ahead.concat(nextRound.slice(0, AHEAD - ahead.length))
 }

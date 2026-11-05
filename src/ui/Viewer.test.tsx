@@ -127,6 +127,8 @@ describe('Viewer', () => {
     const rounds: Rounds = {
       after: ({ round }) => (round === 0 ? next : undefined),
       onStart: (round) => started.push(round),
+      isGrowing: false,
+      onShow: () => undefined,
     }
     show({ start: 4, shouldPlay: true, rounds })
 
