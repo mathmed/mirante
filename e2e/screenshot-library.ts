@@ -1,6 +1,6 @@
 // The library of the screenshots of the docs: albums of trips and family moments over three years,
 // one of them empty, and a few loose photos in the timeline, each photo a landscape drawn from its
-// id (scenes.ts) in the size asked for.
+// id (scenes.ts) in the size asked for; a few photos of the trip to Lisbon have a caption.
 import type { FakeAsset, FakeLibrary } from '../test/immich-answers.ts'
 import { scenePng } from './scenes.ts'
 
@@ -42,6 +42,13 @@ const LOOSE_DAYS: readonly string[] = [
 
 export const EMPTY_ALBUM = 'Mudança de casa'
 
+// The captions written in Immich for a few photos of the trip to Lisbon.
+const CAPTIONS: ReadonlyMap<string, string> = new Map([
+  ['lisboa-9', 'O bonde 28 subindo para a Alfama'],
+  ['lisboa-10', 'Fim de tarde no Miradouro de Santa Luzia'],
+  ['lisboa-11', 'Pastéis de nata ainda quentes em Belém'],
+])
+
 export const SCREENSHOT_LIBRARY: FakeLibrary = {
   albums: ALBUMS.map(({ id, name }) => ({ id, name, isOldestFirst: true })),
   assets: [
@@ -72,12 +79,14 @@ export function screenshotImage(photoId: string, size: string): Uint8Array {
 }
 
 function photo(id: string, takenAtMs: number, albumIds: readonly string[]): FakeAsset {
+  const description = CAPTIONS.get(id)
   return {
     id,
     takenAt: new Date(takenAtMs).toISOString(),
     offsetHours: -3,
     isImage: true,
     albumIds,
+    ...(description === undefined ? {} : { description }),
   }
 }
 

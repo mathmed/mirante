@@ -22,6 +22,7 @@ import { type FakeImmich, startFakeImmich } from './fake-immich-server.ts'
 import {
   expectBackToLeave,
   expectBrowsingAcrossOrigins,
+  expectLibraryPresentation,
   expectReportedUnreachable,
   launchBrowser,
   openApp,
@@ -115,6 +116,14 @@ describe('the Tizen package', () => {
     const app = await open()
 
     await expectBrowsingAcrossOrigins(app, immich)
+    await app.page.close()
+  })
+
+  it('should present the whole library, drawn at random across origins, with its captions', async () => {
+    immich.requests.length = 0
+    const app = await open()
+
+    await expectLibraryPresentation(app, immich)
     await app.page.close()
   })
 
