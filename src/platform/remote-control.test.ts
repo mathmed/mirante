@@ -37,6 +37,8 @@ describe('listenToRemote', () => {
     [461, RemoteKey.Back],
     [27, RemoteKey.Back],
     [8, RemoteKey.Back],
+    [457, RemoteKey.Info],
+    [73, RemoteKey.Info],
   ])('should read the key code %i as %s and keep the browser from acting on it', (code, key) => {
     const sut = listening()
 
@@ -64,7 +66,7 @@ describe('listenToRemote', () => {
     expect(sut.keys).toStrictEqual([RemoteKey.Down, RemoteKey.Down])
   })
 
-  it.each([13, 10009])('should act once on the key %i held down', (code) => {
+  it.each([13, 10009, 457])('should act once on the key %i held down', (code) => {
     const sut = listening()
 
     press(code)

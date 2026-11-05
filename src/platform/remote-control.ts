@@ -7,12 +7,16 @@ const RIGHT = 39
 const DOWN = 40
 const TIZEN_BACK = 10_009
 const WEBOS_BACK = 461
-// The keys that stand in for Back on a desktop browser.
+// Info on the remote controls of Tizen and webOS; Tizen only sends it to an app that registered it
+// (tizen-keys.ts).
+const INFO = 457
+// The keys that stand in for Back and Info on a desktop browser.
 const ESCAPE = 27
 const BACKSPACE = 8
+const LETTER_I = 73
 
 // The TVs report their keys by code; Tizen and webOS give Back a code of their own. On Tizen,
-// arrows, Enter and Back reach every app without `tizen.tvinputdevice.registerKey` (only the color,
+// arrows, Enter and Back reach every app without `tizen.tvinputdevice.registerKey` (Info, the color,
 // media and number keys need it), and Back comes as this keydown: `tizenhwkey` is the hardware Back
 // of Tizen phones and watches, and listening to both would act twice on one press.
 const KEYS: ReadonlyMap<number, RemoteKey> = new Map([
@@ -25,9 +29,11 @@ const KEYS: ReadonlyMap<number, RemoteKey> = new Map([
   [WEBOS_BACK, RemoteKey.Back],
   [ESCAPE, RemoteKey.Back],
   [BACKSPACE, RemoteKey.Back],
+  [INFO, RemoteKey.Info],
+  [LETTER_I, RemoteKey.Info],
 ])
 
-// A held arrow walks the grid; a held Enter or Back acts once.
+// A held arrow walks the grid; a held Enter, Back or Info acts once.
 const REPEATING: ReadonlySet<RemoteKey> = new Set([
   RemoteKey.Left,
   RemoteKey.Up,
