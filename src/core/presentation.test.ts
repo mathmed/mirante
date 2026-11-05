@@ -169,6 +169,13 @@ describe('pressInPresentation', () => {
     expect(backward).toMatchObject({ index: 1, direction: Direction.Backward, leaving: SLIDES[2] })
   })
 
+  it('should move back to the first slide', () => {
+    expect(pressInPresentation(at(1), RemoteKey.Left)).toMatchObject({
+      index: 0,
+      leaving: slideAt(SLIDES, 1),
+    })
+  })
+
   it('should stop at the first and the last slide, changing nothing', () => {
     const first = at(0)
     const last = at(4)
@@ -289,6 +296,16 @@ describe('decodedSlides', () => {
     const decoded = decodedSlides(sut, slidesAhead(sut, LOOPING))
 
     expect(keysOf(decoded)).toStrictEqual(['p-2', 'p-3', 'p-1'])
+  })
+
+  it('should never keep more than three, whatever slide leaves the screen', () => {
+    const sut = { ...at(2), leaving: slideAt(SLIDES, 0) }
+
+    expect(keysOf(decodedSlides(sut, slidesAhead(sut, LOOPING)))).toStrictEqual([
+      'p-3',
+      'p-1',
+      'p-4',
+    ])
   })
 
   it('should keep nothing without slides', () => {
