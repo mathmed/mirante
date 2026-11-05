@@ -1,0 +1,97 @@
+{
+  "name": "mirante",
+  "version": "0.0.0",
+  "description": "A photo gallery viewer for TVs, reading the photos of an Immich server",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mathmed/mirante.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mathmed/mirante/issues"
+  },
+  "homepage": "https://github.com/mathmed/mirante#readme",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^24.2.0",
+      "onFail": "error"
+    },
+    "packageManager": {
+      "name": "npm",
+      "onFail": "error"
+    }
+  },
+  "browserslist": [
+    "chrome >= 68"
+  ],
+  "scripts": {
+    "hooks": "lefthook install",
+    "dev": "vite",
+    "build": "vite build && es-check",
+    "preview": "vite preview",
+    "lint": "eslint . --max-warnings 0",
+    "lint:css": "stylelint \"src/**/*.css\" --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -p tsconfig.app.json && tsc -p tsconfig.core.json && tsc -p tsconfig.test.json && tsc -p tsconfig.node.json",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint:arch": "depcruise src scripts test",
+    "dead-code": "knip --treat-config-hints-as-errors",
+    "suppressions": "node scripts/suppressions.ts check",
+    "suppressions:update": "node scripts/suppressions.ts update",
+    "risk": "node scripts/risk.ts",
+    "mutation": "node scripts/mutation.ts full",
+    "mutation:changed": "node scripts/mutation.ts changed"
+  },
+  "dependencies": {
+    "@immich/sdk": "^3.3.6",
+    "preact": "^11.1.1"
+  },
+  "devDependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
+    "@eslint-react/eslint-plugin": "^5.28.8",
+    "@eslint/js": "^10.0.1",
+    "@stryker-mutator/api": "^10.1.1",
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/typescript-checker": "^10.1.1",
+    "@stryker-mutator/vitest-runner": "^10.1.1",
+    "@testing-library/preact": "^3.2.6",
+    "@types/eslint-plugin-no-unsanitized": "^4.1.0",
+    "@types/node": "^24.19.2",
+    "@typescript-eslint/typescript-estree": "^8.72.1",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "@vitest/coverage-v8": "^5.1.0",
+    "dependency-cruiser": "^18.7.2",
+    "es-check": "^9.8.1",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-compat": "^7.0.2",
+    "eslint-plugin-no-unsanitized": "^4.1.5",
+    "eslint-plugin-perfectionist": "^5.13.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-security": "^4.2.1",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "jiti": "^2.7.0",
+    "jsdom": "^30.1.3",
+    "knip": "^6.44.1",
+    "lefthook": "^2.2.2",
+    "msw": "^3.0.3",
+    "prettier": "^3.9.10",
+    "stylelint": "^18.0.0",
+    "stylelint-config-standard": "^41.0.0",
+    "stylelint-no-unsupported-browser-features": "^8.1.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.1.0"
+  },
+  "overrides": {
+    "minimatch@>=7.0.0": "^11.0.4",
+    "qs": "^6.17.1"
+  }
+}

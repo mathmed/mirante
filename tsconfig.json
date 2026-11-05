@@ -1,0 +1,10 @@
+// Solution file: editors and typescript-eslint find each file's project through these references.
+// `npm run typecheck` checks every project, plus tsconfig.core.json.
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.test.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
