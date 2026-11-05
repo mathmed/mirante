@@ -1,0 +1,10 @@
+// The tests of the app and their support (test/): the app's browser target, plus Node.js, where
+// Vitest and the fake Immich server (MSW) run. test/support serves the CI scripts (tsconfig.node.json).
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["node", "vite/client"]
+  },
+  "include": ["src", "test"],
+  "exclude": ["test/support"]
+}

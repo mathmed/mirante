@@ -1,0 +1,11 @@
+// The core is pure logic: it is checked without DOM or Node.js globals, so a platform API can only
+// reach it through an interface it declares.
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "lib": ["es2018"],
+    "types": []
+  },
+  "include": ["src/core"],
+  "exclude": ["src/core/**/*.test.ts"]
+}

@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Runtime configuration: the Immich address and API key of each installation, at any level (see
+# public/config.example.json)
+config.json
+
+# Coverage and mutation testing (Stryker)
+coverage/
+reports/
+.stryker-tmp/
+
+# Quality Report fragments (scripts/quality-report.ts)
+quality-fragments/
+quality-report.md
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# Operating systems and editors
+.DS_Store
+.idea/
+
+# Claude Code
+.claude/settings.local.json
+.local_dev
+# Handoff notes from the coder agent to the pr-writer agent (see CLAUDE.md)
+.handoff/

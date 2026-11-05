@@ -1,0 +1,15 @@
+// The app runs in the browsers of the TVs: Chromium 68 on webOS is the oldest engine. The ES2018
+// library makes newer built-ins (Array.prototype.flat, Object.fromEntries...) a type error, the DOM
+// library stands in for the browser and eslint-plugin-compat checks its APIs against browserslist.
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "target": "es2018",
+    "lib": ["es2018", "dom", "dom.iterable"],
+    "types": ["vite/client"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+}
