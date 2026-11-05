@@ -1,0 +1,9 @@
+// The end-to-end test of the webOS package (e2e/): Node.js 24, plus the DOM for the functions it
+// runs in the page through Playwright.
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "lib": ["es2025", "dom", "dom.iterable"]
+  },
+  "include": ["e2e"]
+}

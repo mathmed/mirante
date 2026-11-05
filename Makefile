@@ -1,4 +1,4 @@
-.PHONY: setup dev build package-webos format lint typecheck test lint-arch dead-code audit suppressions suppressions-update quality mutation mutation-changed risk-labels all
+.PHONY: setup dev build package-webos test-webos format lint typecheck test lint-arch dead-code audit suppressions suppressions-update quality mutation mutation-changed risk-labels all
 
 # Base branch of mutation-changed
 BASE ?= origin/main
@@ -20,6 +20,11 @@ build:
 # the config.json of webos/config.json or MIRANTE_IMMICH_URL (see docs/webos.md)
 package-webos: build
 	npm run package:webos
+
+# End-to-end test of the webOS package: packages against a fake Immich that answers CORS, unpacks
+# the .ipk and runs it from file:// in a headless Chromium (Playwright). Not part of make quality
+test-webos: build
+	npm run test:webos
 
 # Format every file and apply the fixes ESLint can make on its own
 format:
