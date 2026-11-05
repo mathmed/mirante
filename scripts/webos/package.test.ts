@@ -8,7 +8,7 @@ import { fakeAresPackage } from '../../test/support/ipk.ts'
 import { readPng } from '../../test/support/png.ts'
 import { readBytes, readOptionalText, readText, writeText } from '../shared/files.ts'
 import { aresPackageCommand } from './ares.ts'
-import { packageApp, type PackageOptions } from './package.ts'
+import { packageApp, type PackageOptions, WEBOS_BUILD } from './package.ts'
 
 const REPOSITORY = join(import.meta.dirname, '../..')
 const APP_ID = 'com.mathmed.mirante'
@@ -46,8 +46,8 @@ beforeEach(async () => {
     join(root, 'webos', 'appinfo.json'),
     await readText(join(REPOSITORY, 'webos', 'appinfo.json')),
   )
-  await writeText(join(root, 'dist', 'index.html'), '<!doctype html>')
-  await writeText(join(root, 'dist', 'assets', 'index.js'), 'console.log(1)')
+  await writeText(join(root, WEBOS_BUILD, 'index.html'), '<!doctype html>')
+  await writeText(join(root, WEBOS_BUILD, 'assets', 'index.js'), 'console.log(1)')
 })
 
 describe('packageApp', () => {
@@ -67,6 +67,17 @@ describe('packageApp', () => {
     expect(readPng(await readBytes(join(stage, 'largeIcon.png'))).width).toBe(130)
   })
 
+  it('should package the webOS build, never the web build of dist/', async () => {
+    await writeText(join(root, 'dist', 'index.html'), '<script type="module"></script>')
+    await writeText(join(root, 'dist', 'assets', 'module.js'), 'export {}')
+
+    const sut = await packageApp(options())
+
+    expect(sut.files).toStrictEqual(APP_FILES)
+    expect(await readText(join(out, 'app', 'index.html'))).toBe('<!doctype html>')
+    expect(WEBOS_BUILD).toBe('build/webos-dist')
+  })
+
   it('should read webos/config.json when MIRANTE_IMMICH_URL is not set', async () => {
     await writeText(
       join(root, 'webos', 'config.json'),
@@ -83,7 +94,7 @@ describe('packageApp', () => {
 
   it('should replace a config.json left in the build and start the folder from scratch', async () => {
     await writeText(
-      join(root, 'dist', 'config.json'),
+      join(root, WEBOS_BUILD, 'config.json'),
       JSON.stringify({ immichUrl: '', apiKey: 'k' }),
     )
     await writeText(join(out, 'app', 'stale.js'), 'old')
@@ -98,7 +109,7 @@ describe('packageApp', () => {
     await expect(
       packageApp(options({ root: join(root, 'webos', '..', 'empty') })),
     ).rejects.toThrow()
-    await writeText(join(root, 'dist', 'index.html'), '')
+    await writeText(join(root, WEBOS_BUILD, 'index.html'), '')
     const withoutBuild = await mkdtemp(join(tmpdir(), 'mirante-webos-'))
     await writeText(join(withoutBuild, 'package.json'), JSON.stringify({ version: '1.0.0' }))
     await writeText(

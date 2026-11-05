@@ -60,7 +60,7 @@ function fileText(path: string): string {
 }
 
 async function open(): Promise<OpenedApp> {
-  return openApp(browser, indexUrl, TvSystem.Tizen)
+  return openApp(browser, indexUrl, { system: TvSystem.Tizen, isChromium68: false })
 }
 
 beforeAll(async () => {

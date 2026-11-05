@@ -6,6 +6,22 @@ All notable changes to Mirante are documented in this file. The format is based 
 
 ## [Unreleased]
 
+### Fixed
+
+- **The webOS app opened to a grey screen on the owner's LG (Chromium 68).** webOS refused the
+  bundle, a module script, from the TV's file system ("non-JavaScript MIME type of ''"), and once
+  loaded the bundle stopped on `queueMicrotask`, which Preact calls and Chromium only has since 71.
+  `make build` now also bundles the app as one classic script into `build/webos-dist/`, loaded with
+  `<script defer>` and without `crossorigin`, which `make package-webos` packages; the web build in
+  `dist/` and the Tizen app are unchanged. `queueMicrotask` is polyfilled next to
+  `Object.fromEntries`, before any other module runs.
+- **The checks now see the runtime APIs, not only the syntax.** `make lint` and `make build` check
+  every global API the code reaches, the bundled dependencies included, against MDN's browser data
+  for Chromium 68 (`scripts/browser-apis/`, `.browser-apis.json` for the polyfilled ones), and
+  `make test-webos` runs the package in a headless Chromium that refuses module scripts and lacks the
+  polyfilled APIs, as the LG does. [docs/webos.md](docs/webos.md) records the two errors and how to
+  debug the TV with `ares-inspect` and the Chrome DevTools Protocol.
+
 ### Added
 
 - **The Samsung Tizen app.** `make package-tizen` turns the build into an **unsigned**

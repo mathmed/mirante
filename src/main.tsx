@@ -1,3 +1,6 @@
+// Before anything else: see install-polyfills.ts.
+import './platform/install-polyfills.ts'
+
 import { render } from 'preact'
 
 import { startUp } from './core/startup.ts'
@@ -5,7 +8,6 @@ import { createImmichLibrary } from './immich/immich-library.ts'
 import { leaveApp } from './platform/app-exit.ts'
 import { CONFIG_FILE, readConfigFile } from './platform/config-file.ts'
 import { logError } from './platform/error-log.ts'
-import { installPolyfills } from './platform/polyfills.ts'
 import { listenToRemote } from './platform/remote-control.ts'
 import { App } from './ui/App.tsx'
 import './ui/styles.css'
@@ -13,8 +15,6 @@ import './ui/styles.css'
 // After this long without an answer, the Immich server counts as unreachable.
 const REQUEST_TIMEOUT_MS = 10_000
 const ROOT_ID = 'app'
-
-installPolyfills()
 
 const root = document.getElementById(ROOT_ID)
 if (root === null) {

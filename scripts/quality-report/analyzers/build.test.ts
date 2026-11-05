@@ -19,8 +19,14 @@ dist/assets/index-B1h7ZHMt.css   1.01 kB │ gzip:  0.52 kB
 dist/assets/index-B4XHftxq.js   44.51 kB │ gzip: 15.53 kB │ map: 219.19 kB
 
 ✓ built in 95ms
+vite v8.3.5 building client environment for production...
+build/webos-dist/index.html                  0.36 kB │ gzip:  0.24 kB
+build/webos-dist/assets/index-BUtpiu81.js   62.52 kB │ gzip: 21.49 kB │ map: 317.19 kB
+
+✓ built in 173ms
 info: ES-Check: checking 1 file...
-info: ✓ ES-Check passed! All files are ES9 compatible.`
+info: ✓ ES-Check passed! All files are ES9 compatible.
+Browser APIs: 2 script(s) use only what Chrome 68 has (polyfilled: queueMicrotask).`
 
 const VITE_BROKEN = `vite v8.3.5 building client environment for production...
 transforming...
@@ -46,7 +52,8 @@ describe('analyzeBuild', () => {
       status: Status.Ok,
       summary:
         'Bundled dist/assets/index-B1h7ZHMt.css 1.01 kB (gzip 0.52 kB), ' +
-        'dist/assets/index-B4XHftxq.js 44.51 kB (gzip 15.53 kB) in 95ms',
+        'dist/assets/index-B4XHftxq.js 44.51 kB (gzip 15.53 kB), ' +
+        'build/webos-dist/assets/index-BUtpiu81.js 62.52 kB (gzip 21.49 kB) in 95ms',
     })
   })
 
@@ -77,6 +84,20 @@ describe('analyzeBuild', () => {
         ),
       ).summary,
     ).toBe('1 bundle breaks the ES2018 target')
+  })
+
+  it('should count the browser APIs the oldest Chrome lacks', () => {
+    const output = `${BUILT}
+dist/assets/index.js:1:1488 queueMicrotask is missing in Chrome 68 (added in 71): polyfill it.
+Browser APIs: 1 missing in Chrome 68.`
+
+    const sut = analyzeBuild(build(output, 1))
+
+    expect(sut.summary).toBe('1 browser API missing in Chrome 68')
+    expect(sut.details?.body).toContain('queueMicrotask is missing in Chrome 68')
+    expect(analyzeBuild(build(output.replace(': 1 missing', ': 3 missing'), 1)).summary).toBe(
+      '3 browser APIs missing in Chrome 68',
+    )
   })
 
   it('should fail without details when the command itself fails', () => {
