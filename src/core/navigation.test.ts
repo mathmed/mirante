@@ -2,19 +2,29 @@ import { describe, expect, it } from 'vitest'
 
 import { START_POSITION } from './grid.ts'
 import {
+  albumScreen,
   depthOf,
   goBack,
   HOME,
   HOME_ENTRIES,
+  Intent,
+  monthScreen,
   type Navigation,
   openScreen,
+  PRESENT_OPTIONS,
+  PresentChoice,
   type Screen,
   ScreenKind,
   startNavigation,
+  yearScreen,
 } from './navigation.ts'
 import { PhotoOrder } from './photo-library.ts'
+import { LIBRARY_SOURCE, SourceKind } from './presentation-source.ts'
 
-const ALBUMS: Screen = { kind: ScreenKind.Albums }
+const ALBUMS: Screen = { kind: ScreenKind.Albums, intent: Intent.Browse }
+const TRIP = { id: 'trip', name: 'Trip', photoCount: 3, order: PhotoOrder.NewestFirst }
+const MARCH = { key: '2024-03-01', year: 2024, month: 3 }
+const YEAR = { year: 2024, months: [MARCH] }
 const ALBUM: Screen = {
   kind: ScreenKind.Album,
   album: { id: 'trip', name: 'Trip', photoCount: 3, order: PhotoOrder.NewestFirst },
@@ -88,10 +98,89 @@ describe('goBack', () => {
 })
 
 describe('HOME_ENTRIES', () => {
-  it('should open the albums, then the timeline by year', () => {
-    expect(HOME_ENTRIES.map((entry) => entry.kind)).toStrictEqual([
-      ScreenKind.Albums,
-      ScreenKind.Years,
+  it('should open the albums, the timeline by year, the presentations and their settings', () => {
+    expect(HOME_ENTRIES).toStrictEqual([
+      { kind: ScreenKind.Albums, intent: Intent.Browse },
+      { kind: ScreenKind.Years, intent: Intent.Browse },
+      { kind: ScreenKind.Present },
+      { kind: ScreenKind.Settings },
     ])
+  })
+})
+
+describe('PRESENT_OPTIONS', () => {
+  it('should present the library at once, or choose an album, a year or a month first', () => {
+    expect(PRESENT_OPTIONS).toStrictEqual([
+      {
+        choice: PresentChoice.Library,
+        screen: { kind: ScreenKind.Presentation, source: LIBRARY_SOURCE },
+      },
+      {
+        choice: PresentChoice.Album,
+        screen: { kind: ScreenKind.Albums, intent: Intent.PresentAlbum },
+      },
+      {
+        choice: PresentChoice.Year,
+        screen: { kind: ScreenKind.Years, intent: Intent.PresentYear },
+      },
+      {
+        choice: PresentChoice.Month,
+        screen: { kind: ScreenKind.Years, intent: Intent.PresentMonth },
+      },
+    ])
+  })
+})
+
+describe('albumScreen', () => {
+  it('should open the photos of the album to browse it', () => {
+    expect(albumScreen(TRIP, Intent.Browse)).toStrictEqual({ kind: ScreenKind.Album, album: TRIP })
+  })
+
+  it('should present the album chosen to present', () => {
+    expect(albumScreen(TRIP, Intent.PresentAlbum)).toStrictEqual({
+      kind: ScreenKind.Presentation,
+      source: { kind: SourceKind.Album, album: TRIP },
+    })
+  })
+})
+
+describe('yearScreen', () => {
+  it('should open the months of the year to browse them', () => {
+    expect(yearScreen(YEAR, Intent.Browse)).toStrictEqual({
+      kind: ScreenKind.Months,
+      year: YEAR,
+      intent: Intent.Browse,
+    })
+  })
+
+  it('should present the year chosen to present', () => {
+    expect(yearScreen(YEAR, Intent.PresentYear)).toStrictEqual({
+      kind: ScreenKind.Presentation,
+      source: { kind: SourceKind.Year, year: YEAR },
+    })
+  })
+
+  it('should open the months of the year to choose one to present', () => {
+    expect(yearScreen(YEAR, Intent.PresentMonth)).toStrictEqual({
+      kind: ScreenKind.Months,
+      year: YEAR,
+      intent: Intent.PresentMonth,
+    })
+  })
+})
+
+describe('monthScreen', () => {
+  it('should open the photos of the month to browse them', () => {
+    expect(monthScreen(MARCH, Intent.Browse)).toStrictEqual({
+      kind: ScreenKind.Month,
+      month: MARCH,
+    })
+  })
+
+  it('should present the month chosen to present', () => {
+    expect(monthScreen(MARCH, Intent.PresentMonth)).toStrictEqual({
+      kind: ScreenKind.Presentation,
+      source: { kind: SourceKind.Month, month: MARCH },
+    })
   })
 })

@@ -16,6 +16,8 @@ export function stubLibrary(reads: Partial<PhotoLibrary>): PhotoLibrary {
     listAlbumPhotos: unexpected,
     listTimelineMonths: unexpected,
     listMonthPhotos: unexpected,
+    listRandomPhotos: unexpected,
+    readCaption: unexpected,
     imageUrl: (photoId, size) => `https://images.test/${size}/${photoId}`,
     ...reads,
   }
@@ -28,6 +30,8 @@ export interface MemoryLibrary {
   readonly albumPhotos: ReadonlyMap<string, readonly Photo[]>
   readonly months: readonly TimelineMonth[]
   readonly monthPhotos: ReadonlyMap<string, readonly Photo[]>
+  // By photo id; a photo without one has no caption.
+  readonly captions?: ReadonlyMap<string, string>
 }
 
 // A library that answers from memory, at once.
@@ -38,6 +42,10 @@ export function memoryLibrary(data: MemoryLibrary): PhotoLibrary {
     listAlbumPhotos: async (album) => Promise.resolve(data.albumPhotos.get(album.id) ?? []),
     listTimelineMonths: async () => Promise.resolve(data.months),
     listMonthPhotos: async (month) => Promise.resolve(data.monthPhotos.get(month.key) ?? []),
+    // "At random": the first photos of the months, in the order of the map.
+    listRandomPhotos: async (count) =>
+      Promise.resolve(([] as Photo[]).concat(...data.monthPhotos.values()).slice(0, count)),
+    readCaption: async (photoId) => Promise.resolve(data.captions?.get(photoId)),
   })
 }
 
