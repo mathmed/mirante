@@ -24,31 +24,31 @@ load where the key reaches them without the app.
 
 ### Make targets
 
-| Command                    | Description                                                                         |
-| -------------------------- | ----------------------------------------------------------------------------------- |
-| `make setup`               | Install the locked dependencies and the git hooks.                                  |
-| `make dev`                 | Serve the app with hot reload (Vite).                                               |
-| `make build`               | Bundle `dist/` and the webOS build, and check them against Chromium 68.             |
-| `make logo`                | Write the logo files from `scripts/logo/mark.ts` (the app's mark and `docs/logo/`). |
-| `make screenshots`         | Capture the main screens at 1920x1080 into `docs/screenshots/` (Playwright).        |
-| `make package-webos`       | Package the build as the LG webOS app (`.ipk`), see `docs/webos.md`.                |
-| `make test-webos`          | Run the `.ipk` from `file://` in a headless Chromium (Playwright).                  |
-| `make package-tizen`       | Package the build as the Samsung Tizen app (unsigned `.wgt`), see `docs/tizen.md`.  |
-| `make test-tizen`          | Run the `.wgt` from `file://` in a headless Chromium (Playwright).                  |
-| `make format`              | Format (Prettier) and apply the fixes ESLint can make.                              |
-| `make lint`                | ESLint, Stylelint and the Prettier check.                                           |
-| `make typecheck`           | tsc 7 strict: the app, the core alone, the tests and the tooling.                   |
-| `make test`                | Unit tests with coverage (100%, a ratchet).                                         |
-| `make lint-arch`           | Architecture contracts (dependency-cruiser).                                        |
-| `make dead-code`           | Unused files, exports and dependencies (knip).                                      |
-| `make audit`               | Known vulnerabilities in the dependencies.                                          |
-| `make suppressions`        | Suppression ratchet against `suppressions-baseline.json`.                           |
-| `make quality`             | All of the above but the build: what the pre-commit hook runs.                      |
-| `make mutation`            | Mutation testing of the whole core (weekly in CI).                                  |
-| `make mutation-changed`    | Mutation testing of the core files changed against `BASE` (`origin/main`).          |
-| `make suppressions-update` | Lower the suppression baseline after removing suppressions.                         |
-| `make risk-labels`         | Create or update the `risk:<level>` labels on GitHub (needs `gh`).                  |
-| `make all`                 | Everything CI runs on a pull request.                                               |
+| Command                    | Description                                                                               |
+| -------------------------- | ----------------------------------------------------------------------------------------- |
+| `make setup`               | Install the locked dependencies and the git hooks.                                        |
+| `make dev`                 | Serve the app with hot reload (Vite).                                                     |
+| `make build`               | Bundle `dist/` and the webOS build, and check them against Chromium 68.                   |
+| `make logo`                | Write the logo files from `scripts/logo/mark.ts` (the app's mark and icon, `docs/logo/`). |
+| `make screenshots`         | Capture the main screens at 1920x1080 into `docs/screenshots/` (Playwright).              |
+| `make package-webos`       | Package the build as the LG webOS app (`.ipk`), see `docs/webos.md`.                      |
+| `make test-webos`          | Run the `.ipk` from `file://` in a headless Chromium (Playwright).                        |
+| `make package-tizen`       | Package the build as the Samsung Tizen app (unsigned `.wgt`), see `docs/tizen.md`.        |
+| `make test-tizen`          | Run the `.wgt` from `file://` in a headless Chromium (Playwright).                        |
+| `make format`              | Format (Prettier) and apply the fixes ESLint can make.                                    |
+| `make lint`                | ESLint, Stylelint and the Prettier check.                                                 |
+| `make typecheck`           | tsc 7 strict: the app, the core alone, the tests and the tooling.                         |
+| `make test`                | Unit tests with coverage (100%, a ratchet).                                               |
+| `make lint-arch`           | Architecture contracts (dependency-cruiser).                                              |
+| `make dead-code`           | Unused files, exports and dependencies (knip).                                            |
+| `make audit`               | Known vulnerabilities in the dependencies.                                                |
+| `make suppressions`        | Suppression ratchet against `suppressions-baseline.json`.                                 |
+| `make quality`             | All of the above but the build: what the pre-commit hook runs.                            |
+| `make mutation`            | Mutation testing of the whole core (weekly in CI).                                        |
+| `make mutation-changed`    | Mutation testing of the core files changed against `BASE` (`origin/main`).                |
+| `make suppressions-update` | Lower the suppression baseline after removing suppressions.                               |
+| `make risk-labels`         | Create or update the `risk:<level>` labels on GitHub (needs `gh`).                        |
+| `make all`                 | Everything CI runs on a pull request.                                                     |
 
 ## Making a change
 
@@ -91,28 +91,44 @@ writes is out of scope.
 
 ## The look of the app
 
-- **Palette**: a warm near-black background (`#0E0C09`), surfaces (`#1B1710`), golds (`#D4A93C`,
-  light `#F0CF7A`, dark `#8A6A1F`, for lines only) and warm text (`#F4EEDF`, secondary `#A89B7C`):
-  the custom properties at the top of `src/ui/styles.css`, the same colors as the logo. Every text
+- **Palette**: neutral graphite with one soft amber accent: background `#0C0C0E`, surface `#17171B`,
+  raised surface `#222228`, border `#2B2B33`, text `#F4F4F6`, secondary text `#9B9BA7`, amber
+  `#F0B65A` (light `#FFD08A`, dark `#B8802D`) and danger `#E5625A`, kept for destructive actions.
+  They are the custom properties at the top of `src/ui/styles.css`, the only place a color is
+  written (the `--gold` names are the amber): a color changes on its line. Those that also show with
+  transparency are written as their channels (`--gold-rgb: 240 182 90`), and every shade of them is
+  `rgb(var(--gold-rgb) / 30%)` (Chromium 65 reads it), never a hexadecimal of its own. The logo
+  (`scripts/logo/mark.ts`) draws with the same colors. Every text
   keeps a contrast of 4.5:1 or more with what is behind it.
-- **Type**: Playfair Display (SIL Open Font License, `src/ui/fonts/OFL.txt`) for titles, names and
-  dates, as two Latin-subset WOFF2 files (normal and italic, about 44 KB) with `font-display: swap`;
-  the font of the system for the rest. No font is loaded from the network.
-- **The logo** is drawn from its shapes in `scripts/logo/mark.ts`: an M on the horizon under the
-  arch of a rising sun, over two lines of water. `make logo` writes it as SVG
-  (`src/ui/assets/mirante-mark.svg`, which the app shows, and `docs/logo/`, with the horizontal logo
-  and its name in Playfair Display), and the TV packages rasterize the same shapes into their icons
-  (`scripts/packaging/icon.ts`). Never edit the SVG files by hand: a test fails while one differs
+- **Type**: Manrope (SIL Open Font License, `src/ui/fonts/OFL.txt`), a geometric sans-serif, for the
+  whole interface, titles included, in its weights 400, 600 and 700; hierarchy comes from weight
+  and size, never from ornaments, and counters, counts and years use tabular figures
+  (`font-variant-numeric: tabular-nums`). The italic of Playfair Display only sets the captions of
+  the photos (the photo book, when it comes, keeps it for the title of its cover). Four Latin-subset WOFF2 files, about
+  64 KB, with `font-display: swap`; no font is loaded from the network.
+- **The logo** is drawn from its shapes in `scripts/logo/mark.ts` (`scripts/logo/shapes.ts`: strokes
+  of one width with round ends and corners, and disks): two rounded peaks in one amber stroke that
+  make a geometric M, and the sun, a dot above and to the right of the right peak. The icon sets it
+  on a rounded graphite square with a diagonal gradient (`#1B1B20` to `#0E0E11`). `make logo` writes
+  `src/ui/assets/mirante-mark.svg` and `mirante-icon.svg`, which the app shows (the mark on the
+  screens, the icon on the opening), and `docs/logo/`: the icon and the horizontal logo, the mark and
+  the name in lowercase Manrope semibold, slightly tightened. The TV packages rasterize the same
+  shapes and gradient into their icons (`scripts/packaging/icon.ts`). The two alternatives the icon
+  was chosen against (`scripts/logo/alternatives.ts`) only show in
+  `docs/screenshots/icone-alternativas.webp`. Never edit the SVG files by hand: a test fails while one differs
   from the shapes.
+- **Focus**: an amber ring of 3 px, one short glow and a growth to 1.04 (`--focus-glow` and
+  `--focus-scale`), on every focusable element; the focus never leaves a doubt.
 - **Motion and effects for the TVs' GPUs**: only `opacity` and `transform` animate (screens fade in
-  in 320 ms, the viewer's transitions take 0.9 to 1.5 s and the slow zoom drifts for the time of a
-  photo, the focused tile grows to 1.04), shadows and glows stay
+  in 320 ms, the icon of the opening appears by opacity and a short scale, the viewer's transitions
+  take 0.9 to 1.5 s and the slow zoom drifts for the time of a photo), shadows and glows stay
   on the focused element, and darkening is done with gradients. Stylelint rejects `blur()` and the
   individual `translate`, `scale` and `rotate` properties (Chromium 104) besides what `browserslist`
   lacks.
 - **Screenshots**: `make screenshots` writes the main screens to `docs/screenshots/` (WebP, each under
   300 KB) from the build, against a fake Immich whose photos are landscapes drawn from their ids
-  (`e2e/screenshots.test.ts`). Run it after a visual change and commit the images with it.
+  (`e2e/screenshots.test.ts`), and the icon beside its two alternatives
+  (`icone-alternativas.webp`). Run it after a visual change and commit the images with it.
 
 ## The pipeline
 

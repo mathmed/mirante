@@ -68,12 +68,18 @@ your certificates as described below. The unsigned `.wgt` holds exactly the file
 
 What goes into the package:
 
-| File                    | Where it comes from                                                                     |
-| ----------------------- | --------------------------------------------------------------------------------------- |
-| `index.html`, `assets/` | `dist/`, byte for byte                                                                  |
-| `config.xml`            | `tizen/config.xml`, plus the `version` of `package.json`                                |
-| `config.json`           | `MIRANTE_IMMICH_URL`, or `tizen/config.json`                                            |
-| `icon.png`              | 117x117, the mark of the logo drawn by `scripts/packaging/icon.ts` (no committed image) |
+| File                    | Where it comes from                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `index.html`, `assets/` | `dist/`, byte for byte                                                                                     |
+| `config.xml`            | `tizen/config.xml`, plus the `version` of `package.json`                                                   |
+| `config.json`           | `MIRANTE_IMMICH_URL`, or `tizen/config.json`                                                               |
+| `icon.png`              | 117x117, the icon of the app (the amber mark on its graphite square), drawn by `scripts/packaging/icon.ts` |
+
+<img src="logo/mirante-icon.svg" alt="The icon of Mirante" width="117">
+
+The icon is drawn from the same shapes as [`docs/logo/mirante-icon.svg`](logo/mirante-icon.svg):
+nothing is committed, and a package made after `make logo` changes it always carries the current
+icon. A signed package must be packaged and signed again to show a new icon.
 
 `tizen/config.xml` declares the widget:
 

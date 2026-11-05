@@ -103,7 +103,7 @@ fade without zoom, for slow TVs. Only `opacity` and `transform` animate, and at 
 are decoded at once (the photo after the next one is only downloaded ahead).
 
 The **caption** of a photo is its description in Immich (written in the info panel of the photo),
-shown under the photo in the golden italic serif. It is read for the photo on the screen and the next one only,
+shown under the photo in an italic serif. It is read for the photo on the screen and the next one only,
 with a small cache; a photo without one shows nothing, and nothing on the screen moves.
 
 ### Settings
@@ -126,10 +126,12 @@ files, and keeps at most three photos decoded. Every screen stays inside the TVs
 
 ## Look
 
-A warm near-black with golds, the titles in a serif (Playfair Display, shipped with the app) and
-the logo throughout: an M standing on the horizon under the arch of a rising sun, the view from a
-_mirante_. The focus is a golden ring that grows a little; screens fade in, and the viewer
-crossfades between photos. Captured by `make screenshots` at 1920x1080, against a fake library:
+Graphite with one soft amber accent, and one modern sans-serif for the whole interface (Manrope,
+shipped with the app); an italic serif only for the captions of the photos. The icon is a rounded
+graphite square with an amber mark: two rounded peaks that make an M, and the sun just above the
+right one, the view from a _mirante_. Cards have round corners on two levels of graphite, the focus
+is an amber ring that grows a little, screens fade in, and the viewer crossfades between photos.
+Captured by `make screenshots` at 1920x1080, against a fake library:
 
 | Start screen                                     | Albums                                     |
 | ------------------------------------------------ | ------------------------------------------ |
@@ -146,7 +148,8 @@ Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screens
 [empty album](docs/screenshots/09-album-vazio.webp), [loading](docs/screenshots/10-carregando.webp),
 [error](docs/screenshots/11-erro.webp), [presentations](docs/screenshots/12-apresentar.webp),
 [settings](docs/screenshots/13-ajustes.webp) and
-[settings over a photo](docs/screenshots/14-ajustes-na-foto.webp).
+[settings over a photo](docs/screenshots/14-ajustes-na-foto.webp). The icon was chosen over two
+alternatives, compared in [docs/screenshots/icone-alternativas.webp](docs/screenshots/icone-alternativas.webp).
 
 ## Configuration
 
@@ -266,8 +269,8 @@ installing and opening the app with the Tizen CLI (`tizen package`, `sdb connect
 The TVs have little memory and old engines. Preact keeps React's component and hooks model at a
 fraction of its weight (about 5 kB gzipped against about 60 kB for React 19 with `react-dom`), has no
 dependency, and its output runs on engines much older than Chromium 68. The whole app, Immich SDK
-and every screen included, is about 30 kB of JavaScript gzipped today, plus the two files of its
-serif (about 44 kB).
+and every screen included, is about 30 kB of JavaScript gzipped today, plus its four font files
+(about 64 kB: three weights of Manrope and the italic of Playfair Display).
 
 ## Architecture
 

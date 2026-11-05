@@ -8,6 +8,25 @@ All notable changes to Mirante are documented in this file. The format is based 
 
 ### Changed
 
+- **A modern identity: graphite with a soft amber accent.** The warm near-black and golds give way
+  to neutral graphite (background `#0C0C0E`, surfaces `#17171B` and `#222228`) with one amber
+  (`#F0B65A`), every color set once in `src/ui/styles.css`, and every text at a contrast of 4.5:1 or
+  more, checked by a test. The whole interface, titles included, is set in Manrope (400, 600 and
+  700, shipped with the app, OFL), with tabular figures on counters and counts; Playfair Display
+  keeps only its italic, for the captions of the photos. Cards have round corners (20 to 28 px) on
+  two levels of graphite, the line icons are redrawn with a stroke of 2 and round ends, the focus is
+  an amber ring with one short glow and a growth to 1.04, and the name no longer shows in wide
+  uppercase. The viewer keeps a thin amber progress line, the date in the secondary text and a
+  subtler vignette. The fonts weigh about 64 KB, against 44 KB before.
+- **A new icon and logo.** A rounded graphite square with a diagonal gradient, and in its middle an
+  amber mark: two rounded peaks in one stroke that make a geometric M, and the sun, a dot above the
+  right one. The horizontal logo sets the mark beside the name in lowercase Manrope semibold. The
+  opening now shows the icon appearing by opacity and a short scale. `make logo` writes the app's
+  mark and icon and `docs/logo/`; the webOS and Tizen icons are drawn from the same shapes, so the
+  TV packages need building again (`make package-webos`, `make package-tizen`; a signed Tizen
+  package needs signing again). `docs/screenshots/icone-alternativas.webp` compares the icon with
+  the two alternatives it was chosen against, which nothing ships.
+
 - **The proxy needs two more routes, and one more CORS header for the TV apps.** The presentation
   of the whole library draws its photos with `POST /api/search/random` (a read, with a JSON body)
   and the captions come from `GET /api/assets/{id}`. A proxy that only lets through the routes the
