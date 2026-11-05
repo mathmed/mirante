@@ -1,15 +1,15 @@
+import { LoadFailure, loadFailureOf } from './loading.ts'
+import type { PhotoLibrary, ServerInfo } from './photo-library.ts'
 import {
-  LibraryFailure,
-  type PhotoLibrary,
-  PhotoLibraryError,
-  type ServerInfo,
-} from './photo-library.ts'
-import { ConfigProblem, type ConfigResult, type RuntimeConfig } from './runtime-config.ts'
+  ConfigProblem,
+  type ConfigResult,
+  resolveImmichUrl,
+  type RuntimeConfig,
+} from './runtime-config.ts'
 
 export const StartupFailure = {
   ...ConfigProblem,
-  ...LibraryFailure,
-  Unexpected: 'unexpected',
+  ...LoadFailure,
 } as const
 
 export type StartupFailure = (typeof StartupFailure)[keyof typeof StartupFailure]
@@ -20,15 +20,24 @@ export const StartupStatus = {
   Failed: 'failed',
 } as const
 
+// What the gallery needs once the server answered; the API key stays inside the library.
+export interface Session {
+  readonly server: ServerInfo
+  readonly library: PhotoLibrary
+  readonly slideshowSeconds: number
+}
+
 export type StartupState =
   | { readonly status: typeof StartupStatus.Loading }
-  | { readonly status: typeof StartupStatus.Connected; readonly server: ServerInfo }
+  | { readonly status: typeof StartupStatus.Connected; readonly session: Session }
   | { readonly status: typeof StartupStatus.Failed; readonly failure: StartupFailure }
 
 export type StartupOutcome = Exclude<StartupState, { readonly status: 'loading' }>
 
 export interface StartupDependencies {
   readonly loadConfig: () => Promise<ConfigResult>
+  // Where the page was served from: a relative immichUrl points there.
+  readonly pageOrigin: string
   readonly openLibrary: (config: RuntimeConfig) => PhotoLibrary
   readonly reportError: (error: unknown) => void
 }
@@ -42,7 +51,7 @@ export async function startUp(dependencies: StartupDependencies): Promise<Startu
     return await connect(dependencies)
   } catch (error) {
     dependencies.reportError(error)
-    return failed(error instanceof PhotoLibraryError ? error.failure : StartupFailure.Unexpected)
+    return failed(loadFailureOf(error))
   }
 }
 
@@ -51,8 +60,11 @@ async function connect(dependencies: StartupDependencies): Promise<StartupOutcom
   if (!result.isValid) {
     return failed(result.problem)
   }
-  const server = await dependencies.openLibrary(result.config).describeServer()
-  return { status: StartupStatus.Connected, server }
+  const config = resolveImmichUrl(result.config, dependencies.pageOrigin)
+  const library = dependencies.openLibrary(config)
+  const server = await library.describeServer()
+  const session = { server, library, slideshowSeconds: config.slideshowSeconds }
+  return { status: StartupStatus.Connected, session }
 }
 
 function failed(failure: StartupFailure): StartupOutcome {

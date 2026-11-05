@@ -8,16 +8,17 @@ import {
   serveConfigStatus,
   VALID_CONFIG,
 } from '../../test/fake-immich.ts'
-import { ConfigProblem, invalidConfig } from '../core/runtime-config.ts'
+import { ConfigProblem, DEFAULT_SLIDESHOW_SECONDS, invalidConfig } from '../core/runtime-config.ts'
 import { configFrom, readConfigFile } from './config-file.ts'
 
 const VALID_TEXT = JSON.stringify(VALID_CONFIG)
+const PARSED_CONFIG = { ...VALID_CONFIG, slideshowSeconds: DEFAULT_SLIDESHOW_SECONDS }
 
 describe('readConfigFile', () => {
   it('should read the configuration next to the page', async () => {
     serveConfig(VALID_CONFIG)
 
-    expect(await readConfigFile(CONFIG_URL)).toStrictEqual({ isValid: true, config: VALID_CONFIG })
+    expect(await readConfigFile(CONFIG_URL)).toStrictEqual({ isValid: true, config: PARSED_CONFIG })
   })
 
   it('should ask for a fresh copy, so that an edited file is read again', async () => {
@@ -69,7 +70,7 @@ describe('configFrom', () => {
   it('should read a local file, which answers with status 0', () => {
     expect(configFrom({ status: 0, text: VALID_TEXT, contentType: null })).toStrictEqual({
       isValid: true,
-      config: VALID_CONFIG,
+      config: PARSED_CONFIG,
     })
   })
 
