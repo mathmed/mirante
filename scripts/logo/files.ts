@@ -1,12 +1,15 @@
 import { join } from 'node:path'
 
 import { readBytes, readOptionalText, writeText } from '../shared/files.ts'
+import { MARK } from './mark.ts'
 import { iconSvg, logoSvg, markSvg } from './svg.ts'
 
 // The logo files in the repository, written by `make logo` from scripts/logo/mark.ts and never
-// edited by hand: the mark the app shows, and the icon and the horizontal logo of the docs.
-export const LOGO_FONT = 'src/ui/fonts/playfair-display-latin-400-normal.woff2'
+// edited by hand: the mark and the icon the app shows, and the icon and the horizontal logo of the
+// docs.
+export const LOGO_FONT = 'src/ui/fonts/manrope-latin-600-normal.woff2'
 const MARK_FILE = 'src/ui/assets/mirante-mark.svg'
+const APP_ICON_FILE = 'src/ui/assets/mirante-icon.svg'
 const ICON_FILE = 'docs/logo/mirante-icon.svg'
 const LOGO_FILE = 'docs/logo/mirante-logo.svg'
 
@@ -19,8 +22,9 @@ export interface LogoFile {
 export async function logoFiles(root: string): Promise<readonly LogoFile[]> {
   const font = await readBytes(join(root, LOGO_FONT))
   return [
-    { path: MARK_FILE, text: markSvg() },
-    { path: ICON_FILE, text: iconSvg() },
+    { path: MARK_FILE, text: markSvg(MARK) },
+    { path: APP_ICON_FILE, text: iconSvg(MARK) },
+    { path: ICON_FILE, text: iconSvg(MARK) },
     { path: LOGO_FILE, text: logoSvg(font) },
   ]
 }

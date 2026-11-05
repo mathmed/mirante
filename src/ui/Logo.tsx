@@ -1,14 +1,16 @@
 import type { JSX } from 'preact'
 
+import iconUrl from './assets/mirante-icon.svg'
 import markUrl from './assets/mirante-mark.svg'
 import { MESSAGES } from './messages.ts'
 
-// The logo of Mirante (scripts/logo/ draws the mark): the mark alone, small, on the screens of the
-// gallery and their states, or with the name, set in the serif of the titles, widely spaced.
+// The logo of Mirante (scripts/logo/ draws the mark and the icon): the mark alone, small, on the
+// screens of the gallery and their states, or with the name, in lowercase: beside the mark, or
+// under the icon of the app.
 export const LogoLayout = {
   // The mark beside the name: the start screen.
   Inline: 'inline',
-  // The mark above the name: the opening of the app.
+  // The icon of the app above the name: the opening of the app.
   Stacked: 'stacked',
 } as const
 
@@ -19,9 +21,8 @@ export interface MarkProps {
   readonly class: string
 }
 
-// Decoration only: the text next to it says where people are.
 export function Mark(props: MarkProps): JSX.Element {
-  return <img class={`mark ${props.class}`} src={markUrl} alt="" aria-hidden="true" />
+  return <Decoration url={markUrl} class={props.class} />
 }
 
 export interface LogoProps {
@@ -29,10 +30,20 @@ export interface LogoProps {
 }
 
 export function Logo({ layout }: LogoProps): JSX.Element {
+  const url = layout === LogoLayout.Stacked ? iconUrl : markUrl
   return (
     <span class={`logo logo-${layout}`}>
-      <Mark class="logo-mark" />
+      <Decoration url={url} class="logo-mark" />
       <span class="logo-name">{MESSAGES.appName}</span>
     </span>
   )
+}
+
+interface DecorationProps extends MarkProps {
+  readonly url: string
+}
+
+// Decoration only: the text next to it says where people are.
+function Decoration(props: DecorationProps): JSX.Element {
+  return <img class={`mark ${props.class}`} src={props.url} alt="" aria-hidden="true" />
 }

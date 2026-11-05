@@ -28,7 +28,7 @@ describe('logo command line', () => {
 
     expect(sut).toBe(0)
     expect(log).toHaveBeenCalledWith(
-      'Arquivos do logo escritos:\n  src/ui/assets/mirante-mark.svg\n  docs/logo/mirante-icon.svg\n  docs/logo/mirante-logo.svg',
+      'Arquivos do logo escritos:\n  src/ui/assets/mirante-mark.svg\n  src/ui/assets/mirante-icon.svg\n  docs/logo/mirante-icon.svg\n  docs/logo/mirante-logo.svg',
     )
   })
 

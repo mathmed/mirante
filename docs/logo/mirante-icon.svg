@@ -1,16 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000" role="img" aria-label="MIRANTE">
-<title>MIRANTE</title>
-<rect width="1000" height="1000" rx="200" fill="#0E0C09"/>
-<path d="M130 615A370 370 0 0 1 870 615H830A330 330 0 0 0 170 615Z" fill="#D4A93C"/>
-<path d="M365.6 370L388 370L388 597L365.6 597Z" fill="#F0CF7A"/>
-<path d="M365.6 370L436 370L522.4 597L480.8 597Z" fill="#F0CF7A"/>
-<path d="M596 370L621.6 370L522.4 597L500 597Z" fill="#F0CF7A"/>
-<path d="M596 370L640.8 370L640.8 597L596 597Z" fill="#F0CF7A"/>
-<path d="M340 370L365.6 370L365.6 381.3L340 381.3Z" fill="#F0CF7A"/>
-<path d="M640.8 370L660 370L660 381.3L640.8 381.3Z" fill="#F0CF7A"/>
-<path d="M340 585.7L413.6 585.7L413.6 597L340 597Z" fill="#F0CF7A"/>
-<path d="M567.2 585.7L660 585.7L660 597L567.2 597Z" fill="#F0CF7A"/>
-<path d="M80 597H920A18 18 0 0 1 920 633H80A18 18 0 0 1 80 597Z" fill="#D4A93C"/>
-<path d="M270 686H730A14 14 0 0 1 730 714H270A14 14 0 0 1 270 686Z" fill="#D4A93C"/>
-<path d="M390 761H610A14 14 0 0 1 610 789H390A14 14 0 0 1 390 761Z" fill="#8A6A1F"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000" role="img" aria-label="Mirante">
+<title>Mirante</title>
+<defs><linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1B1B20"/><stop offset="1" stop-color="#0E0E11"/></linearGradient></defs>
+<rect width="1000" height="1000" rx="225" fill="url(#background)"/>
+<path d="M250 690L385 420L500 600L625 360L760 690" fill="none" stroke="#F0B65A" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="750" cy="290" r="44" fill="#FFD08A"/>
 </svg>
