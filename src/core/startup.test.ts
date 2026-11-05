@@ -7,6 +7,7 @@ import {
   PhotoLibraryError,
   type ServerInfo,
 } from './photo-library.ts'
+import { DEFAULT_PRESENTATION, PlaybackOrder } from './presentation-settings.ts'
 import {
   ConfigProblem,
   type ConfigResult,
@@ -18,7 +19,7 @@ import { startUp, type StartupDependencies, StartupFailure, StartupStatus } from
 const CONFIG: RuntimeConfig = {
   immichUrl: 'http://immich.test',
   apiKey: 'key',
-  slideshowSeconds: 5,
+  presentation: { ...DEFAULT_PRESENTATION, order: PlaybackOrder.Random },
 }
 const SERVER: ServerInfo = { address: 'immich.test', version: '3.3.6' }
 const PAGE_ORIGIN = 'http://tv.test'
@@ -60,14 +61,14 @@ describe('startUp', () => {
 
     expect(await startUp(sut.dependencies)).toStrictEqual({
       status: StartupStatus.Connected,
-      session: { server: SERVER, library, slideshowSeconds: 5 },
+      session: { server: SERVER, library, presentationDefaults: CONFIG.presentation },
     })
     expect(sut.opened).toStrictEqual([CONFIG])
     expect(sut.reported).toStrictEqual([])
   })
 
   it('should open the server of the page when the address is relative', async () => {
-    const relative: RuntimeConfig = { immichUrl: '/immich', slideshowSeconds: 8 }
+    const relative: RuntimeConfig = { immichUrl: '/immich', presentation: DEFAULT_PRESENTATION }
     const sut = dependencies(
       { isValid: true, config: relative },
       libraryAnswering(Promise.resolve(SERVER)),
@@ -75,7 +76,9 @@ describe('startUp', () => {
 
     await startUp(sut.dependencies)
 
-    expect(sut.opened).toStrictEqual([{ immichUrl: `${PAGE_ORIGIN}/immich`, slideshowSeconds: 8 }])
+    expect(sut.opened).toStrictEqual([
+      { immichUrl: `${PAGE_ORIGIN}/immich`, presentation: DEFAULT_PRESENTATION },
+    ])
   })
 
   it.each(Object.values(ConfigProblem))(

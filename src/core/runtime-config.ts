@@ -1,10 +1,20 @@
+import { fieldsOf, isRecord, parseJson } from './json.ts'
+import {
+  DEFAULT_PRESENTATION,
+  INTERVAL_RANGE,
+  type PresentationSettings,
+  secondsWithin,
+} from './presentation-settings.ts'
+import { parsePresentation } from './settings-input.ts'
+
 export interface RuntimeConfig {
   // An absolute http(s) address, or a path on the server of the page ('' for its root) when Mirante
   // is served from the same address as Immich, behind a proxy that sends /api to it.
   readonly immichUrl: string
   // Absent when that proxy adds the key to every request itself.
   readonly apiKey?: string
-  readonly slideshowSeconds: number
+  // The defaults of the presentations: the app's, under the "presentation" block of the file.
+  readonly presentation: PresentationSettings
 }
 
 export const ConfigProblem = {
@@ -14,6 +24,7 @@ export const ConfigProblem = {
   InvalidImmichUrl: 'config-invalid-immich-url',
   InvalidApiKey: 'config-invalid-api-key',
   InvalidSlideshowSeconds: 'config-invalid-slideshow-seconds',
+  InvalidPresentation: 'config-invalid-presentation',
 } as const
 
 export type ConfigProblem = (typeof ConfigProblem)[keyof typeof ConfigProblem]
@@ -22,7 +33,6 @@ export type ConfigResult =
   | { readonly isValid: true; readonly config: RuntimeConfig }
   | { readonly isValid: false; readonly problem: ConfigProblem }
 
-export const DEFAULT_SLIDESHOW_SECONDS = 8
 export const MIN_SLIDESHOW_SECONDS = 3
 export const MAX_SLIDESHOW_SECONDS = 3600
 
@@ -76,7 +86,27 @@ function withOptionalFields(
   if (slideshowSeconds === undefined) {
     return invalidConfig(ConfigProblem.InvalidSlideshowSeconds)
   }
-  return { isValid: true, config: { immichUrl, slideshowSeconds, ...keyField } }
+  const presentation = presentationOf(json['presentation'], slideshowSeconds)
+  if (presentation === undefined) {
+    return invalidConfig(ConfigProblem.InvalidPresentation)
+  }
+  return { isValid: true, config: { immichUrl, presentation, ...keyField } }
+}
+
+// slideshowSeconds, the interval before the "presentation" block existed, still sets the default
+// interval, within the limits of the setting; presentation.intervalSeconds wins over it.
+function presentationOf(
+  block: unknown,
+  slideshowSeconds: number | null,
+): PresentationSettings | undefined {
+  const defaults =
+    slideshowSeconds === null
+      ? DEFAULT_PRESENTATION
+      : {
+          ...DEFAULT_PRESENTATION,
+          intervalSeconds: secondsWithin(slideshowSeconds, INTERVAL_RANGE),
+        }
+  return block === undefined ? defaults : parsePresentation(fieldsOf(block), defaults)
 }
 
 // An absolute http(s) address with a host, an optional port and path, or a path that starts at the
@@ -120,26 +150,12 @@ function parseApiKey(value: unknown): KeyField | undefined {
   return key === '' ? {} : { apiKey: key }
 }
 
-function parseSlideshowSeconds(value: unknown): number | undefined {
+// null when the file leaves it out.
+function parseSlideshowSeconds(value: unknown): number | null | undefined {
   if (value === undefined) {
-    return DEFAULT_SLIDESHOW_SECONDS
+    return null
   }
   const isInRange =
     typeof value === 'number' && value >= MIN_SLIDESHOW_SECONDS && value <= MAX_SLIDESHOW_SECONDS
   return isInRange ? value : undefined
-}
-
-function parseJson(text: string): unknown {
-  try {
-    return JSON.parse(text)
-  } catch (error) {
-    if (error instanceof SyntaxError) {
-      return undefined
-    }
-    throw error
-  }
-}
-
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

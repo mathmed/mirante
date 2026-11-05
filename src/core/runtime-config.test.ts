@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
+import browserExample from '../../public/config.example.json'
+import tizenExample from '../../tizen/config.example.json'
+import webosExample from '../../webos/config.example.json'
+import {
+  DEFAULT_PRESENTATION,
+  PlaybackOrder,
+  type PresentationSettings,
+  Transition,
+} from './presentation-settings.ts'
 import {
   ConfigProblem,
-  DEFAULT_SLIDESHOW_SECONDS,
   invalidConfig,
   MAX_SLIDESHOW_SECONDS,
   MIN_SLIDESHOW_SECONDS,
@@ -14,6 +22,11 @@ import {
 
 const IMMICH_URL = 'https://192.168.0.10:2283'
 const API_KEY = 'read-only-key'
+const DEFAULTS = DEFAULT_PRESENTATION
+
+function withInterval(intervalSeconds: number): PresentationSettings {
+  return { ...DEFAULT_PRESENTATION, intervalSeconds }
+}
 
 function configText(fields: Readonly<Record<string, unknown>>): string {
   return JSON.stringify(fields)
@@ -28,7 +41,7 @@ describe('parseRuntimeConfig', () => {
       config: {
         immichUrl: IMMICH_URL,
         apiKey: API_KEY,
-        slideshowSeconds: DEFAULT_SLIDESHOW_SECONDS,
+        presentation: DEFAULTS,
       },
     })
   })
@@ -41,7 +54,7 @@ describe('parseRuntimeConfig', () => {
       config: {
         immichUrl: IMMICH_URL,
         apiKey: API_KEY,
-        slideshowSeconds: DEFAULT_SLIDESHOW_SECONDS,
+        presentation: DEFAULTS,
       },
     })
   })
@@ -54,7 +67,7 @@ describe('parseRuntimeConfig', () => {
   ])('should accept the address %j on the server of the page as %j', (immichUrl, expected) => {
     expect(parseRuntimeConfig(configText({ immichUrl, apiKey: API_KEY }))).toStrictEqual({
       isValid: true,
-      config: { immichUrl: expected, apiKey: API_KEY, slideshowSeconds: DEFAULT_SLIDESHOW_SECONDS },
+      config: { immichUrl: expected, apiKey: API_KEY, presentation: DEFAULTS },
     })
   })
 
@@ -63,20 +76,87 @@ describe('parseRuntimeConfig', () => {
     (fields) => {
       expect(parseRuntimeConfig(configText({ immichUrl: '', ...fields }))).toStrictEqual({
         isValid: true,
-        config: { immichUrl: '', slideshowSeconds: DEFAULT_SLIDESHOW_SECONDS },
+        config: { immichUrl: '', presentation: DEFAULTS },
       })
     },
   )
 
-  it.each([MIN_SLIDESHOW_SECONDS, 12.5, MAX_SLIDESHOW_SECONDS])(
-    'should read the interval of the slideshow, %d seconds',
-    (slideshowSeconds) => {
+  it.each([
+    [MIN_SLIDESHOW_SECONDS, 3],
+    [12.4, 12],
+    [12.5, 13],
+    [60, 60],
+    [MAX_SLIDESHOW_SECONDS, 60],
+  ])(
+    'should take the interval of the slideshow, %d seconds, as the default interval, %d',
+    (slideshowSeconds, intervalSeconds) => {
       expect(parseRuntimeConfig(configText({ immichUrl: '', slideshowSeconds }))).toStrictEqual({
         isValid: true,
-        config: { immichUrl: '', slideshowSeconds },
+        config: { immichUrl: '', presentation: withInterval(intervalSeconds) },
       })
     },
   )
+
+  it('should read the defaults of the presentation block over those of the app', () => {
+    const presentation = { order: 'random', transition: 'ken-burns', showCaption: false }
+
+    expect(parseRuntimeConfig(configText({ immichUrl: '', presentation }))).toStrictEqual({
+      isValid: true,
+      config: {
+        immichUrl: '',
+        presentation: {
+          ...DEFAULTS,
+          order: PlaybackOrder.Random,
+          transition: Transition.KenBurns,
+          shouldShowCaption: false,
+        },
+      },
+    })
+  })
+
+  it('should prefer the interval of the presentation block to that of the slideshow', () => {
+    const fields = { immichUrl: '', slideshowSeconds: 20, presentation: { intervalSeconds: 5 } }
+
+    expect(parseRuntimeConfig(configText(fields))).toStrictEqual({
+      isValid: true,
+      config: { immichUrl: '', presentation: withInterval(5) },
+    })
+  })
+
+  it('should keep the interval of the slideshow under a presentation block without one', () => {
+    const fields = { immichUrl: '', slideshowSeconds: 20, presentation: { loop: false } }
+
+    expect(parseRuntimeConfig(configText(fields))).toStrictEqual({
+      isValid: true,
+      config: { immichUrl: '', presentation: { ...withInterval(20), shouldLoop: false } },
+    })
+  })
+
+  it.each([null, 'fade', [], { order: 'shuffled' }, { intervalSeconds: 90 }])(
+    'should reject the presentation block %j',
+    (presentation) => {
+      expect(parseRuntimeConfig(configText({ immichUrl: '', presentation }))).toStrictEqual(
+        invalidConfig(ConfigProblem.InvalidPresentation),
+      )
+    },
+  )
+
+  it.each([
+    { folder: 'public', example: browserExample },
+    { folder: 'webos', example: webosExample },
+    { folder: 'tizen', example: tizenExample },
+  ])('should read the example configuration of $folder', ({ example }) => {
+    expect(parseRuntimeConfig(JSON.stringify(example))).toMatchObject({
+      isValid: true,
+      config: { presentation: DEFAULTS },
+    })
+  })
+
+  it('should check the interval of the slideshow before the presentation block', () => {
+    expect(
+      parseRuntimeConfig(configText({ immichUrl: '', slideshowSeconds: 0, presentation: 1 })),
+    ).toStrictEqual(invalidConfig(ConfigProblem.InvalidSlideshowSeconds))
+  })
 
   it.each([MIN_SLIDESHOW_SECONDS - 0.5, MAX_SLIDESHOW_SECONDS + 1, 0, -8, '8', null, Number.NaN])(
     'should reject the interval of the slideshow %j',
@@ -157,7 +237,7 @@ describe('serverAddress', () => {
     ['http://localhost:2283', 'localhost:2283'],
     ['HTTPS://photos.example.com/immich', 'photos.example.com/immich'],
   ])('should show %s as %s', (immichUrl, address) => {
-    const config: RuntimeConfig = { immichUrl, apiKey: API_KEY, slideshowSeconds: 8 }
+    const config: RuntimeConfig = { immichUrl, apiKey: API_KEY, presentation: DEFAULTS }
 
     expect(serverAddress(config)).toBe(address)
   })
@@ -170,18 +250,18 @@ describe('resolveImmichUrl', () => {
     ['', PAGE_ORIGIN],
     ['/immich', `${PAGE_ORIGIN}/immich`],
   ])('should place the address %j on the server of the page', (immichUrl, resolved) => {
-    const config: RuntimeConfig = { immichUrl, slideshowSeconds: 8 }
+    const config: RuntimeConfig = { immichUrl, presentation: DEFAULTS }
 
     expect(resolveImmichUrl(config, PAGE_ORIGIN)).toStrictEqual({
       immichUrl: resolved,
-      slideshowSeconds: 8,
+      presentation: DEFAULTS,
     })
   })
 
   it.each(['http://localhost:2283', 'HTTPS://photos.example.com/immich'])(
     'should keep the absolute address %s',
     (immichUrl) => {
-      const sut: RuntimeConfig = { immichUrl, apiKey: API_KEY, slideshowSeconds: 8 }
+      const sut: RuntimeConfig = { immichUrl, apiKey: API_KEY, presentation: DEFAULTS }
 
       expect(resolveImmichUrl(sut, PAGE_ORIGIN)).toBe(sut)
     },

@@ -8,11 +8,12 @@ import {
   serveConfigStatus,
   VALID_CONFIG,
 } from '../../test/fake-immich.ts'
-import { ConfigProblem, DEFAULT_SLIDESHOW_SECONDS, invalidConfig } from '../core/runtime-config.ts'
+import { DEFAULT_PRESENTATION } from '../core/presentation-settings.ts'
+import { ConfigProblem, invalidConfig } from '../core/runtime-config.ts'
 import { configFrom, readConfigFile } from './config-file.ts'
 
 const VALID_TEXT = JSON.stringify(VALID_CONFIG)
-const PARSED_CONFIG = { ...VALID_CONFIG, slideshowSeconds: DEFAULT_SLIDESHOW_SECONDS }
+const PARSED_CONFIG = { ...VALID_CONFIG, presentation: DEFAULT_PRESENTATION }
 
 describe('readConfigFile', () => {
   it('should read the configuration next to the page', async () => {

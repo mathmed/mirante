@@ -1,4 +1,9 @@
 {
   "immichUrl": "http://192.168.0.10:8085",
-  "slideshowSeconds": 8
+  "presentation": {
+    "intervalSeconds": 8,
+    "order": "oldest-first",
+    "transition": "fade",
+    "showCaption": true
+  }
 }
