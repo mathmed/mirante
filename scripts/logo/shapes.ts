@@ -174,16 +174,15 @@ function squaredDistance(first: Point, second: Point): number {
 }
 
 // Even-odd rule: a point is inside when a ray from it crosses the edges an odd number of times.
+// The loop starts on an empty edge (the first point to itself) and the last edge closes the polygon.
 function isInPolygon(point: Point, points: readonly [Point, ...Point[]]): boolean {
   let isInside = false
-  let start = points[points.length - 1] ?? points[0]
+  let start = points[0]
   for (const end of points) {
-    if (crosses(point, start, end)) {
-      isInside = !isInside
-    }
+    isInside = crosses(point, start, end) !== isInside
     start = end
   }
-  return isInside
+  return crosses(point, start, points[0]) !== isInside
 }
 
 // Whether the ray from the point to the right crosses the edge from start to end.
