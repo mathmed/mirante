@@ -24,6 +24,21 @@ All notable changes to Mirante are documented in this file. The format is based 
 
 ### Added
 
+- **The identity of Mirante.** A logo, an M standing on the horizon under the arch of a rising sun
+  over two lines of water, drawn from its shapes by `make logo` (`scripts/logo/`): the mark the app
+  shows, and an icon and a horizontal logo with the name MIRANTE in `docs/logo/`. The webOS and
+  Tizen icons are now that mark, rasterized from the same shapes.
+- **A new look for every screen**: a warm near-black palette with golds, titles, album names, years,
+  months and dates in Playfair Display (shipped with the app, Latin subset, about 44 KB, OFL), an
+  opening with the logo while the app connects (it never delays the gallery), a start screen with
+  the logo, two large cards with icons and the cover of the most recent album darkened behind them,
+  cards with soft corners, a golden focus ring that grows a little, a viewer with a vignette, the
+  date in gold and a thin golden line during the slideshow, and loading, empty and error states
+  under the small mark, with warmer words. Screens fade in; the viewer crossfades in 600 ms. Only
+  opacity and transform animate, and nothing is blurred, for the TVs' GPUs.
+- **`make screenshots`**: the main screens at 1920x1080 from a headless Chromium against a fake
+  Immich, written to `docs/screenshots/` as WebP for reviewing the look.
+
 - **The Samsung Tizen app.** `make package-tizen` turns the build into an **unsigned**
   `build/tizen/Mirante.wgt` (and the folder `build/tizen/widget/` it is made from), zipped by the
   packaging script itself: the bundle as `make build` checked it, `tizen/config.xml` (the widget
@@ -70,6 +85,10 @@ All notable changes to Mirante are documented in this file. The format is based 
 
 ### Changed
 
+- **The start screen reads the albums** once per visit, for the photo behind it; a failure there only
+  goes to the log and leaves the background plain.
+- **Stylelint rejects `blur()`** and the individual `translate`, `scale` and `rotate` properties,
+  which Chromium 68 lacks and its data misses.
 - **Mirante is served at the address of Immich**, behind a proxy that sends `/api` to it: `immichUrl`
   may be relative (empty or a path), and `apiKey` is optional, for a proxy that adds the key itself
   (which is what lets the images load). Without a key, none is sent.

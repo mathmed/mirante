@@ -3,12 +3,14 @@ import { MAX_SLIDESHOW_SECONDS, MIN_SLIDESHOW_SECONDS } from '../core/runtime-co
 import { StartupFailure } from '../core/startup.ts'
 
 // Every text people read on the screen, in Brazilian Portuguese. Code, logs and docs stay in English.
-export interface FailureText {
+
+// What a panel says when a screen fails or has nothing to show: what happened, and what to do.
+export interface PanelText {
   readonly title: string
   readonly hint: string
 }
 
-const FAILURES: Readonly<Record<StartupFailure, FailureText>> = {
+const FAILURES: Readonly<Record<StartupFailure, PanelText>> = {
   [StartupFailure.Missing]: {
     title: 'Configuração não encontrada',
     hint: 'Crie o arquivo config.json ao lado do app, a partir do config.example.json, com o endereço do Immich (immichUrl).',
@@ -61,21 +63,34 @@ const FAILURES: Readonly<Record<StartupFailure, FailureText>> = {
 
 export const MESSAGES = {
   appName: 'Mirante',
+  tagline: 'Suas memórias, vistas do alto',
   connecting: 'Conectando ao Immich…',
-  loading: 'Carregando…',
+  loading: 'Buscando suas fotos…',
   retry: 'Tentar novamente',
   back: 'Voltar',
   albums: 'Álbuns',
   timeline: 'Linha do tempo',
-  noAlbums: 'Nenhum álbum no Immich',
-  emptyAlbum: 'Este álbum não tem fotos',
-  emptyTimeline: 'Nenhuma foto na linha do tempo',
-  emptyMonth: 'Nenhuma foto neste mês',
+  noAlbums: {
+    title: 'Nenhum álbum por aqui ainda',
+    hint: 'Os álbuns que você criar no Immich aparecem nesta tela.',
+  },
+  emptyAlbum: {
+    title: 'Este álbum ainda não tem fotos',
+    hint: 'Quando houver fotos nele, no Immich, elas aparecem aqui.',
+  },
+  emptyTimeline: {
+    title: 'A linha do tempo ainda está vazia',
+    hint: 'As fotos enviadas ao Immich aparecem aqui, por ano e por mês.',
+  },
+  emptyMonth: {
+    title: 'Nenhuma foto neste mês',
+    hint: 'Volte e escolha outro mês da linha do tempo.',
+  },
   photoUnavailable: 'Foto indisponível',
   previewUnavailable: 'Não foi possível carregar esta foto',
-  slideshowPlaying: 'Apresentação em andamento · OK pausa',
-  slideshowPaused: 'OK inicia a apresentação',
-} as const
+  slideshowPlaying: 'Em apresentação · OK pausa',
+  slideshowPaused: 'OK inicia a apresentação · as setas trocam a foto',
+} as const satisfies Readonly<Record<string, PanelText | string>>
 
 const ELLIPSIS = '…'
 
@@ -94,9 +109,9 @@ const MONTH_NAMES: readonly string[] = [
   'dezembro',
 ]
 
-const FAILURE_TEXTS: ReadonlyMap<string, FailureText> = new Map(Object.entries(FAILURES))
+const FAILURE_TEXTS: ReadonlyMap<string, PanelText> = new Map(Object.entries(FAILURES))
 
-export function failureText(failure: StartupFailure): FailureText {
+export function failureText(failure: StartupFailure): PanelText {
   const text = FAILURE_TEXTS.get(failure)
   if (text === undefined) {
     throw new RangeError(`No text for the startup failure "${failure}"`)

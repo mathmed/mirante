@@ -1,9 +1,45 @@
-/* Sized for a TV seen from the couch: 1920x1080, large type, and a focus ring nobody can miss.
-   Only features Chromium 68 has (stylelint checks them against browserslist). Every screen keeps
-   its content inside the safe area: TVs may hide up to 5% of each edge (overscan). The only
-   animations change opacity, on the viewer alone. Nothing relies on overflow (Chromium 68 supports
-   it only in part): a screen is fixed to the viewport, so what lies past its edges never scrolls
-   the page, and the cells off the screen are hidden. */
+/* Sized for a TV seen from the couch: 1920x1080, large type, and a golden focus nobody can miss.
+   Only features Chromium 68 has (stylelint checks them against browserslist): no gap in flexbox,
+   no inset, no clamp(), no :is(), no blur. Every screen keeps its content inside the safe area:
+   TVs may hide up to 5% of each edge (overscan). Only opacity and transform animate, on few
+   elements. Nothing relies on overflow (Chromium 68 supports it only in part): a screen is fixed to
+   the viewport, so what lies past its edges never scrolls the page, and the cells off the screen are
+   hidden. Colors with transparency are 8-digit hex, which Chromium 68 reads. */
+
+/* The serif of the titles, shipped with the app (SIL Open Font License, fonts/OFL.txt): the Latin
+   subset only. The rest of the text is the font of the system. */
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/playfair-display-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/playfair-display-latin-400-italic.woff2') format('woff2');
+}
+
+/* The palette of the logo (scripts/logo/mark.ts). Every text keeps a contrast of 4.5:1 or more
+   with what is behind it; the dark gold only draws lines. */
+:root {
+  --background: #0e0c09;
+  --surface: #1b1710;
+  --surface-raised: #2a2318;
+  --gold: #d4a93c;
+  --gold-light: #f0cf7a;
+  --gold-dark: #8a6a1f;
+  --text: #f4eedf;
+  --text-secondary: #a89b7c;
+  --serif: 'Playfair Display', georgia, 'Times New Roman', serif;
+  --focus-glow: 0 0 0 1px #f0cf7a80, 0 0 28px #d4a93c59, 0 12px 32px #0000008c;
+  --enter: 320ms ease-out both;
+}
+
 html,
 body {
   height: 100%;
@@ -11,8 +47,8 @@ body {
 }
 
 body {
-  background: #101418;
-  color: #f2f4f7;
+  background: var(--background);
+  color: var(--text);
   font-family:
     system-ui,
     -apple-system,
@@ -23,6 +59,50 @@ body {
   line-height: 1.4;
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes fill {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* A screen fades in when it opens, and over the one it replaces. */
 .screen {
   position: fixed;
   top: 0;
@@ -33,6 +113,7 @@ body {
   width: 100%;
   height: 100%;
   padding: 5vh 5vw;
+  animation: fade-in var(--enter);
 }
 
 .screen-centered {
@@ -41,72 +122,250 @@ body {
   text-align: center;
 }
 
-.screen-title {
+.screen-header {
+  display: flex;
   flex: none;
-  margin: 0 0 3vh;
-  font-size: 48px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 3vh;
+}
+
+.screen-title {
+  margin: 0;
+  color: var(--gold-light);
+  font-family: var(--serif);
+  font-size: 56px;
+  font-weight: 400;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
-.brand {
-  margin: 0 0 48px;
-  font-size: 64px;
-  letter-spacing: 0.04em;
+/* A thin golden line under each title, fading to the right. */
+.screen-title::after {
+  content: '';
+  display: block;
+  width: 120px;
+  height: 2px;
+  margin-top: 16px;
+  background: linear-gradient(90deg, var(--gold), #d4a93c00);
 }
 
+.mark {
+  display: block;
+}
+
+.screen-mark {
+  height: 52px;
+  margin-top: 8px;
+  opacity: 0.85;
+}
+
+/* The logo: the mark with the name, widely spaced; the spacing after the last letter is balanced
+   by a padding before the first. */
+.logo {
+  display: flex;
+  align-items: center;
+}
+
+.logo-stacked {
+  flex-direction: column;
+}
+
+.logo-name {
+  padding-left: 0.42em;
+  color: var(--gold-light);
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+}
+
+.logo-stacked .logo-mark {
+  height: 220px;
+  margin-bottom: 44px;
+}
+
+.logo-stacked .logo-name {
+  font-size: 68px;
+  line-height: 1;
+}
+
+.logo-inline .logo-mark {
+  height: 76px;
+  margin-right: 28px;
+}
+
+.logo-inline .logo-name {
+  padding-left: 0;
+  font-size: 42px;
+  line-height: 1;
+}
+
+/* Waiting, empty and failed: the small mark, a few warm words, and the button already focused. */
 .status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   margin: auto;
-  color: #b8c0cc;
+}
+
+.status-mark {
+  height: 76px;
+  margin-bottom: 28px;
+  animation: breathe 1800ms ease-in-out infinite;
+}
+
+.status-text {
+  margin: 0;
+  color: var(--text-secondary);
+  font-family: var(--serif);
+  font-size: 34px;
+  font-style: italic;
 }
 
 .panel {
-  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 1100px;
   margin: auto;
   text-align: center;
 }
 
-.panel h2 {
-  margin: 0 0 24px;
-  font-size: 40px;
+.panel-mark {
+  height: 68px;
+  margin-bottom: 32px;
 }
 
-.panel p {
-  margin: 0 0 40px;
-  color: #d0d6de;
+.panel-title {
+  margin: 0 0 16px;
+  color: var(--gold-light);
+  font-family: var(--serif);
+  font-size: 46px;
+  font-weight: 400;
+  line-height: 1.2;
 }
 
-.panel-error h2 {
-  color: #ffb4a8;
-}
-
-.footnote {
-  flex: none;
-  margin: 3vh 0 0;
-  color: #8a94a3;
-  font-size: 22px;
+.panel-hint {
+  margin: 0 0 48px;
+  color: var(--text-secondary);
 }
 
 .action {
-  padding: 16px 48px;
-  border: 4px solid transparent;
-  border-radius: 12px;
-  background: #2b3440;
-  color: inherit;
+  padding: 16px 56px;
+  border: 3px solid transparent;
+  border-radius: 48px;
+  background: var(--surface-raised);
+  color: var(--text);
   font: inherit;
+  font-weight: 600;
+  transition: transform 180ms ease-out;
 }
 
-/* The grids: only the rows on the screen are in the page, each cell placed with a transform. */
+/* The opening: the logo rises into view; the status under it only shows when the server is slow. */
+.splash-logo {
+  margin: 0 0 64px;
+  font-size: inherit;
+  font-weight: inherit;
+  animation: rise-in 900ms ease-out both;
+}
+
+.splash .status {
+  margin: 0;
+  animation: fade-in 400ms ease-out 1200ms both;
+}
+
+.splash .panel {
+  margin: 0;
+}
+
+.splash .status-mark,
+.splash .panel-mark {
+  display: none;
+}
+
+/* The start screen: the logo, two large cards over a darkened photo of the library, the server. */
+.home {
+  justify-content: space-between;
+}
+
+.home-header,
+.footnote {
+  position: relative;
+  flex: none;
+}
+
+.home-logo {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.home-tagline {
+  margin: 24px 0 0;
+  color: var(--text-secondary);
+  font-family: var(--serif);
+  font-size: 32px;
+  font-style: italic;
+}
+
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 900ms ease-out;
+}
+
+.backdrop.is-shown {
+  opacity: 1;
+}
+
+.backdrop-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Darker where the text and the cards are, on the left and at the bottom. */
+.backdrop::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(0deg, #0e0c09f2 0%, #0e0c098c 35%, #0e0c0900 65%),
+    linear-gradient(90deg, #0e0c09f2 0%, #0e0c09a6 40%, #0e0c0933 100%);
+}
+
+.footnote {
+  margin: 3vh 0 0;
+  color: var(--text-secondary);
+  font-size: 22px;
+}
+
+/* The grids: only the rows on the screen are in the page, each cell placed with a transform. The
+   negative margin lines the tiles up with the title, past the padding of the cells. */
 .grid {
   position: relative;
   flex: 1 1 0;
   min-height: 0;
-  margin: 0;
+  margin: 0 -12px;
   padding: 0;
   list-style: none;
+  animation: fade-in var(--enter);
 }
 
 .grid-home {
-  flex: 0 0 40vh;
+  flex: none;
+  width: 62vw;
+  height: 32vh;
+  margin-top: auto;
 }
 
 .cell {
@@ -118,33 +377,28 @@ body {
   outline: none;
 }
 
+/* The focused cell above its neighbors, so that its glow is never covered. */
+.cell:focus {
+  z-index: 1;
+}
+
 /* The rows around the screen load their images without showing. */
 .cell-offscreen {
   visibility: hidden;
 }
 
 .tile {
+  position: relative;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
-  border: 6px solid transparent;
-  border-radius: 12px;
-  background: #1c232b;
-}
-
-.grid-photos .tile {
-  border-width: 4px;
-}
-
-/* Every focusable element shows where the remote control is. */
-.action:focus,
-.cell:focus .tile {
-  border-color: #ffd166;
-  outline: none;
-  background: #3a4656;
+  border: 3px solid transparent;
+  border-radius: 16px;
+  background: var(--surface);
+  transition: transform 180ms ease-out;
 }
 
 .tile-title {
@@ -154,44 +408,159 @@ body {
   white-space: nowrap;
 }
 
-.grid-home .tile-title {
-  font-size: 56px;
-}
-
 .tile-detail {
-  color: #b8c0cc;
-  font-size: 24px;
-}
-
-.album-cover {
-  flex: 1 1 0;
-  align-self: stretch;
-  min-height: 0;
-  margin-bottom: 8px;
-  border-radius: 6px 6px 0 0;
-  background: #151b21;
+  color: var(--text-secondary);
+  font-size: 22px;
 }
 
 .picture {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 6px;
+  border-radius: 13px;
   object-fit: cover;
 }
 
 .picture-missing {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
   padding: 8px;
-  color: #8a94a3;
-  font-size: 22px;
+  color: var(--text-secondary);
+  font-size: 20px;
   text-align: center;
 }
 
-/* The viewer: the photo inside the safe area, and the next ones waiting, invisible, under it. */
+.grid-home .tile {
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 40px 44px;
+  border-color: #d4a93c40;
+  background: #1b1710e0;
+}
+
+.home-icon {
+  width: 96px;
+  height: 96px;
+  color: var(--gold);
+}
+
+.grid-home .tile-title {
+  font-family: var(--serif);
+  font-size: 56px;
+  line-height: 1.1;
+  text-align: left;
+}
+
+/* The albums: the cover above, the name in the golden serif and the count below it. */
+.grid-albums .tile {
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.album-cover {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  border-radius: 13px 13px 0 0;
+  background: #15120d;
+}
+
+.album-cover .picture {
+  border-radius: 13px 13px 0 0;
+}
+
+.album-cover-mark {
+  width: 36%;
+  opacity: 0.3;
+}
+
+.grid-albums .tile-title {
+  max-width: none;
+  margin: 14px 22px 0;
+  color: var(--gold-light);
+  font-family: var(--serif);
+  font-size: 31px;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.grid-albums .tile-detail {
+  margin: 2px 22px 16px;
+}
+
+/* The timeline: years and months in the serif, under a thin golden band. */
+.grid-years .tile,
+.grid-months .tile {
+  background: linear-gradient(180deg, #231d14 0%, #16120c 100%);
+}
+
+.grid-years .tile::before,
+.grid-months .tile::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 18%;
+  width: 64%;
+  height: 2px;
+  background: linear-gradient(90deg, #d4a93c00, var(--gold), #d4a93c00);
+}
+
+.grid-years .tile-title {
+  color: var(--gold-light);
+  font-family: var(--serif);
+  font-size: 88px;
+  line-height: 1.1;
+}
+
+.grid-years .tile-detail {
+  margin-top: 12px;
+  font-size: 20px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.grid-months .tile-title {
+  font-family: var(--serif);
+  font-size: 46px;
+}
+
+/* The photos: thumbnails with soft corners. */
+.grid-photos .cell {
+  padding: 10px;
+}
+
+.grid-photos .tile {
+  background: #15120d;
+}
+
+/* Every focusable element shows where the remote control is: a golden ring, a contained glow and
+   a slight growth. */
+.action:focus,
+.cell:focus .tile {
+  border-color: var(--gold);
+  outline: none;
+  background: var(--surface-raised);
+  box-shadow: var(--focus-glow);
+  transform: scale(1.04);
+}
+
+.action:focus {
+  background: var(--gold);
+  color: var(--background);
+}
+
+.grid-home .cell:focus .tile-title,
+.grid-months .cell:focus .tile-title {
+  color: var(--gold-light);
+}
+
+/* The viewer: the photo inside the safe area, the next ones waiting, invisible, under it, and a
+   crossfade between them. */
 .viewer {
   position: fixed;
   top: 0;
@@ -200,6 +569,7 @@ body {
   height: 100%;
   background: #000;
   outline: none;
+  animation: fade-in 300ms ease-out both;
 }
 
 .slide {
@@ -209,7 +579,7 @@ body {
   width: 90vw;
   height: 90vh;
   opacity: 0;
-  transition: opacity 0.4s;
+  transition: opacity 600ms ease-in-out;
 }
 
 .slide.is-current {
@@ -221,26 +591,76 @@ body {
   object-fit: contain;
 }
 
+/* A light vignette, drawn once: a gradient, never a filter. */
+.viewer-vignette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at center, #0000 58%, #0000008c 100%);
+  pointer-events: none;
+}
+
 .viewer-info {
   position: absolute;
-  bottom: 5vh;
-  left: 5vw;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   justify-content: space-between;
-  width: 90vw;
-  color: #f2f4f7;
-  font-size: 26px;
-  text-shadow: 0 2px 6px #000;
+  width: 100%;
+  padding: 160px 5vw calc(5vh + 32px);
+  background: linear-gradient(0deg, #000000b3 0%, #0000 100%);
   opacity: 0;
-  transition: opacity 0.6s;
+  transition: opacity 600ms;
 }
 
 .viewer-info.is-visible {
   opacity: 1;
 }
 
+.viewer-caption {
+  display: flex;
+  flex-direction: column;
+}
+
+.viewer-date {
+  color: var(--gold-light);
+  font-family: var(--serif);
+  font-size: 42px;
+  font-style: italic;
+  line-height: 1.2;
+  text-shadow: 0 2px 8px #000000b3;
+}
+
 .viewer-hint {
-  color: #b8c0cc;
+  margin-top: 10px;
+  color: var(--text-secondary);
   font-size: 22px;
+}
+
+.viewer-counter {
+  color: var(--text);
+  font-size: 26px;
+  letter-spacing: 0.06em;
+}
+
+/* The interval of the slideshow: a thin golden line that fills up, on the bottom of the safe area. */
+.viewer-progress {
+  position: absolute;
+  bottom: 5vh;
+  left: 5vw;
+  width: 90vw;
+  height: 3px;
+  background: #f4eedf26;
+}
+
+.viewer-progress-bar {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+  transform-origin: left center;
+  animation: fill linear both;
 }

@@ -3,6 +3,7 @@ import { render } from 'preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  fakeServer,
   IMMICH_URL,
   PAGE_ORIGIN,
   serveConfig,
@@ -35,8 +36,9 @@ async function title(text: string): Promise<void> {
   await screen.findByRole('heading', { level: 1, name: text })
 }
 
+// The photos on the screen: the grid's thumbnails or the viewer's previews, not the mark of the app.
 function sources(): (string | null)[] {
-  return [...document.querySelectorAll('img')].map((image) => image.getAttribute('src'))
+  return [...document.querySelectorAll('img.picture')].map((image) => image.getAttribute('src'))
 }
 
 beforeEach(() => {
@@ -44,6 +46,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  fakeServer.events.removeAllListeners()
   const root = document.getElementById('app')
   if (root !== null) {
     render(null, root)
@@ -59,13 +62,18 @@ async function start(): Promise<void> {
 describe('main', () => {
   it('should connect to the Immich server of config.json', async () => {
     serveConfig(VALID_CONFIG)
-    serveImmich()
+    serveLibrary(SAMPLE_LIBRARY)
 
     await start()
 
     expect(
       await screen.findByText(`Immich 3.3.6 em ${IMMICH_URL.replace('http://', '')}`),
     ).toBeTruthy()
+    await waitFor(() => {
+      expect(document.querySelector('.backdrop-photo')?.getAttribute('src')).toBe(
+        `${IMMICH_URL}/api/assets/trip-00/thumbnail?size=preview`,
+      )
+    })
   })
 
   it('should explain a rejected API key and log why', async () => {
@@ -152,7 +160,7 @@ describe('main', () => {
     const platformBack = vi.fn<() => void>()
     vi.stubGlobal('PalmSystem', { platformBack })
     serveConfig(VALID_CONFIG)
-    serveImmich()
+    serveLibrary(SAMPLE_LIBRARY)
     await start()
     await focusedOn(MESSAGES.albums)
 
@@ -181,7 +189,7 @@ describe('main', () => {
 
   it('should stay on the start screen on Back in a browser', async () => {
     serveConfig(VALID_CONFIG)
-    serveImmich()
+    serveLibrary(SAMPLE_LIBRARY)
     await start()
     await focusedOn(MESSAGES.albums)
 
@@ -189,6 +197,27 @@ describe('main', () => {
 
     await focusedOn(MESSAGES.albums)
     expect(screen.getByRole('heading', { level: 1, name: MESSAGES.appName })).toBeTruthy()
+  })
+
+  it('should read the albums for the photo behind the start screen once for the whole visit', async () => {
+    const albumReads: string[] = []
+    fakeServer.events.on('request:start', ({ request }) => {
+      if (new URL(request.url).pathname === '/api/albums') {
+        albumReads.push(request.url)
+      }
+    })
+    serveConfig(VALID_CONFIG)
+    serveLibrary(SAMPLE_LIBRARY)
+    await start()
+    await focusedOn(MESSAGES.albums)
+
+    press(KEY.enter)
+    await focusedOn(TRIP.name)
+    press(ESCAPE)
+    await focusedOn(MESSAGES.albums)
+
+    expect(document.querySelector('.backdrop-photo')).not.toBeNull()
+    expect(albumReads).toHaveLength(2)
   })
 
   it('should walk the timeline by year and month with the remote control', async () => {

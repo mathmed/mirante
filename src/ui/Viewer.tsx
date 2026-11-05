@@ -54,7 +54,8 @@ export function Viewer(props: ViewerProps): JSX.Element {
           />
         </div>
       ))}
-      <Info state={state} count={count} photo={current} />
+      <div class="viewer-vignette" />
+      <Info state={state} count={count} photo={current} seconds={props.slideshowSeconds} />
     </div>
   )
 }
@@ -82,19 +83,38 @@ interface InfoProps {
   readonly state: ViewerState
   readonly count: number
   readonly photo: Photo | undefined
+  readonly seconds: number
 }
 
-// The date and the counter, discreet, gone by themselves a few seconds after each change.
-function Info({ state, count, photo }: InfoProps): JSX.Element {
+// The date, the counter, the keys and, during the slideshow, how long until the next photo:
+// discreet, and gone by themselves a few seconds after each change.
+function Info({ state, count, photo, seconds }: InfoProps): JSX.Element {
   const isVisible = useVisibleAfterChange(state)
   return (
     <div class={isVisible ? 'viewer-info is-visible' : 'viewer-info'} aria-hidden={!isVisible}>
-      <span class="viewer-date">{photo === undefined ? '' : photoDateText(photo.date)}</span>
-      <span class="viewer-hint">
-        {state.isPlaying ? MESSAGES.slideshowPlaying : MESSAGES.slideshowPaused}
-      </span>
+      <div class="viewer-caption">
+        <span class="viewer-date">{photo === undefined ? '' : photoDateText(photo.date)}</span>
+        <span class="viewer-hint">
+          {state.isPlaying ? MESSAGES.slideshowPlaying : MESSAGES.slideshowPaused}
+        </span>
+      </div>
       <span class="viewer-counter">{counterText(state.index, count)}</span>
+      {state.isPlaying && <Progress key={state.index} seconds={seconds} />}
     </div>
+  )
+}
+
+interface ProgressProps {
+  readonly seconds: number
+}
+
+// A thin line that fills up in the interval of the slideshow, by a transform alone; each photo
+// draws a new one.
+function Progress({ seconds }: ProgressProps): JSX.Element {
+  return (
+    <span class="viewer-progress">
+      <span class="viewer-progress-bar" style={{ animationDuration: `${String(seconds)}s` }} />
+    </span>
   )
 }
 

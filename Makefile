@@ -1,4 +1,4 @@
-.PHONY: setup dev build package-webos test-webos package-tizen test-tizen format lint typecheck test lint-arch dead-code audit suppressions suppressions-update quality mutation mutation-changed risk-labels all
+.PHONY: setup dev build logo screenshots package-webos test-webos package-tizen test-tizen format lint typecheck test lint-arch dead-code audit suppressions suppressions-update quality mutation mutation-changed risk-labels all
 
 # Base branch of mutation-changed
 BASE ?= origin/main
@@ -16,6 +16,16 @@ dev:
 # build/webos-dist/; check both against ES2018 (es-check) and their browser APIs against Chrome 68
 build:
 	npm run build
+
+# Write the logo files from scripts/logo/mark.ts: the mark the app shows (src/ui/assets/) and the
+# icon and the horizontal logo of the docs (docs/logo/). make test fails while they are stale
+logo:
+	npm run logo
+
+# Screenshots of the main screens at 1920x1080 (headless Chromium, the build from file:// against a
+# fake Immich of landscapes), written to docs/screenshots/ as WebP under 300 KB. Not part of make quality
+screenshots: build
+	npm run screenshots
 
 # Package build/webos-dist/ as the app of LG's webOS TVs: build/webos/com.mathmed.mirante_<version>_all.ipk, with
 # the config.json of webos/config.json or MIRANTE_IMMICH_URL (see docs/webos.md)

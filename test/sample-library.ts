@@ -1,4 +1,4 @@
-import type { FakeAsset, FakeLibrary } from './fake-immich.ts'
+import type { FakeAsset, FakeLibrary } from './immich-answers.ts'
 
 // A small library for the tests: a trip over two months with a video among its photos, a family
 // album with an archived photo, and an empty album.

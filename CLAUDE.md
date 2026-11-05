@@ -17,6 +17,8 @@ driven by the remote control alone. TypeScript and Preact, built with Vite; the 
 make setup             # install the locked dependencies and the git hooks
 make dev               # serve the app with hot reload (Vite); public/config.json points it at Immich
 make build             # bundle dist/ and the webOS build/webos-dist/ (Vite), check them against ES2018 (es-check) and Chrome 68's APIs
+make logo              # write the logo files from scripts/logo/mark.ts (src/ui/assets/, docs/logo/)
+make screenshots       # the main screens at 1920x1080, headless Chromium, into docs/screenshots/ (WebP)
 make package-webos     # the build as the LG webOS app: build/webos/com.mathmed.mirante_<version>_all.ipk
 make test-webos        # end-to-end: the .ipk unpacked and run from file:// in a headless Chromium
 make package-tizen     # the build as the Samsung Tizen app, unsigned: build/tizen/Mirante.wgt and build/tizen/widget/
@@ -48,13 +50,17 @@ src/core/      pure logic: the startup flow, the runtime configuration, the phot
 src/immich/    the photo library implemented with @immich/sdk, read only
 src/platform/  what differs between TVs and browsers: config.json, polyfills, the console, the key
                codes of the remote controls of Tizen and webOS
-src/ui/        Preact components and src/ui/messages.ts, every text people read
+src/ui/        Preact components, src/ui/messages.ts (every text people read), styles.css, the
+               fonts it ships (src/ui/fonts) and the mark of the logo (src/ui/assets, written by
+               make logo)
 src/main.tsx   composition root: wires the adapters into the UI
-scripts/       tooling: the TV packages (scripts/packaging, shared: the icon, the packaged config.json,
-               the app folder; scripts/webos, with the classic-script plugin of the webOS build;
+scripts/       tooling: the logo (scripts/logo: its shapes, the SVG files and their check), the TV
+               packages (scripts/packaging, shared: the icon, the packaged config.json, the app
+               folder; scripts/webos, with the classic-script plugin of the webOS build;
                scripts/tizen), the browser API check (scripts/browser-apis), Quality Report,
                suppression ratchet, mutation runner, risk label check
-test/          test support: the fake Immich server (MSW) and its sample library, the stub photo
+test/          test support: the fake Immich server (MSW), the answers it shares with the one of e2e/
+               (test/immich-answers.ts) and its sample library, the stub photo
                library and the fake remote control of the component tests, the test setup, throwaway
                git repositories, the .ipk, .wgt (zip) and PNG helpers of the packaging tests
 webos/         the appinfo.json of the webOS app (no version: it comes from package.json) and
@@ -62,10 +68,12 @@ webos/         the appinfo.json of the webOS app (no version: it comes from pack
 tizen/         the config.xml of the Tizen widget (no version: it comes from package.json) and
                config.example.json; tizen/config.json is gitignored
 e2e/           the end-to-end tests of the TV packages (Playwright, vitest.e2e.config.ts), what they
-               share, the emulation of the LG's Chromium 68 (legacy-chromium.ts), and the fake Immich
-               they run against on a real port
+               share, the emulation of the LG's Chromium 68 (legacy-chromium.ts), the fake Immich
+               they run against on a real port, and the screenshots of the docs (make
+               screenshots), with their library of drawn landscapes
 docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signing (Tizen),
-               installing and debugging on an LG or a Samsung TV
+               installing and debugging on an LG or a Samsung TV; docs/logo and docs/screenshots,
+               both generated (make logo, make screenshots)
 ```
 
 - `src/core` imports nothing from the other layers and no package at all (not even Preact or the
@@ -135,6 +143,15 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   and `opacity` change, few elements animate, and nothing relies on `overflow`, which Chromium 68
   supports only in part: screens are `position: fixed` and off-screen cells are hidden.
 - **Overscan**: every screen keeps its content inside the safe area, 5% of each edge.
+- **The look** (CONTRIBUTING.md, "The look of the app"): the palette of the logo (warm near-black,
+  golds, warm text; every text at a contrast of 4.5:1 or more; the dark gold only draws lines) as
+  custom properties of `src/ui/styles.css`, Playfair Display for titles (Latin-subset WOFF2 shipped
+  in `src/ui/fonts`, OFL, `font-display: swap`) and the system font for the rest; never a font or an
+  image from the network but Immich's. Only `opacity` and `transform` animate; glows stay on the
+  focused element; darken with gradients, never `filter: blur` or `backdrop-filter` (Stylelint bans
+  `blur()` and the individual `translate`, `scale` and `rotate` properties). The logo is drawn from
+  `scripts/logo/mark.ts` (the TV icons too): run `make logo` after changing it, never edit its SVG
+  files by hand. After a visual change, run `make screenshots` and commit `docs/screenshots/`.
 - **Relative paths** (`base: './'`) and **no service worker**: the packaged apps load from `file://`.
 - **No module script on webOS**: webOS serves `file://` without a MIME type, and its Chromium refuses
   a module script then (the owner's LG showed a grey screen). The webOS build

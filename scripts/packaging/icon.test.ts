@@ -4,8 +4,10 @@ import { type DecodedPng, pixelOf, readPng } from '../../test/support/png.ts'
 import { drawIcon } from './icon.ts'
 import { encodePng } from './png.ts'
 
-const BACKGROUND = [0x10, 0x14, 0x18, 255]
-const LETTER = [0xff, 0xd1, 0x66, 255]
+const BACKGROUND = [0x0e, 0x0c, 0x09, 255]
+const GOLD = [0xd4, 0xa9, 0x3c, 255]
+const LIGHT_GOLD = [0xf0, 0xcf, 0x7a, 255]
+const DARK_GOLD = [0x8a, 0x6a, 0x1f, 255]
 const TRANSPARENT = [0, 0, 0, 0]
 
 function icon(size: number): DecodedPng {
@@ -24,15 +26,15 @@ describe('drawIcon', () => {
     expect([sut.width, sut.height]).toStrictEqual([size, size])
   })
 
-  it('should draw the M in the yellow of the focus ring on the dark background of the app', () => {
+  it('should draw the mark of the logo in its golds on the dark background of the app', () => {
     const sut = icon(130)
 
-    expect(at(sut, 0.28, 0.6)).toStrictEqual(LETTER)
-    expect(at(sut, 0.72, 0.3)).toStrictEqual(LETTER)
-    expect(at(sut, 0.5, 0.55)).toStrictEqual(LETTER)
-    expect(at(sut, 0.5, 0.35)).toStrictEqual(BACKGROUND)
-    expect(at(sut, 0.5, 0.75)).toStrictEqual(BACKGROUND)
-    expect(at(sut, 0.1, 0.5)).toStrictEqual(BACKGROUND)
+    expect(at(sut, 0.5, 0.265)).toStrictEqual(GOLD)
+    expect(at(sut, 0.62, 0.48)).toStrictEqual(LIGHT_GOLD)
+    expect(at(sut, 0.15, 0.615)).toStrictEqual(GOLD)
+    expect(at(sut, 0.5, 0.775)).toStrictEqual(DARK_GOLD)
+    expect(at(sut, 0.5, 0.33)).toStrictEqual(BACKGROUND)
+    expect(at(sut, 0.5, 0.9)).toStrictEqual(BACKGROUND)
   })
 
   it('should leave the corners outside the rounded square transparent', () => {
@@ -40,7 +42,7 @@ describe('drawIcon', () => {
 
     expect(pixelOf(sut, 0, 0)).toStrictEqual(TRANSPARENT)
     expect(pixelOf(sut, 79, 79)).toStrictEqual(TRANSPARENT)
-    expect(pixelOf(sut, 79, 40)).toStrictEqual(BACKGROUND)
+    expect(pixelOf(sut, 79, 30)).toStrictEqual(BACKGROUND)
   })
 
   it('should smooth the edges with pixels partly covered', () => {
@@ -53,6 +55,8 @@ describe('drawIcon', () => {
   })
 
   it('should draw the same pixels every time', () => {
-    expect(drawIcon(130)).toStrictEqual(drawIcon(130))
+    const sut = drawIcon(130)
+
+    expect(Buffer.from(sut.pixels).equals(Buffer.from(drawIcon(130).pixels))).toBe(true)
   })
 })

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { stubLibrary } from '../../test/library-stub.ts'
 import {
+  backdropPhotoId,
   loadAlbumPhotos,
   loadAlbums,
   loadMonthPhotos,
@@ -30,6 +31,23 @@ function month(
 }
 
 const ids = (items: readonly { readonly id: string }[]): string[] => items.map((item) => item.id)
+
+describe('backdropPhotoId', () => {
+  it('should take the cover of the first album that has one', () => {
+    const sut = backdropPhotoId([
+      album('empty'),
+      { ...album('trip', 30), coverPhotoId: 'trip-cover' },
+      { ...album('family', 20), coverPhotoId: 'family-cover' },
+    ])
+
+    expect(sut).toBe('trip-cover')
+  })
+
+  it('should give no photo when no album has a cover', () => {
+    expect(backdropPhotoId([album('a', 1), album('b', 2)])).toBeUndefined()
+    expect(backdropPhotoId([])).toBeUndefined()
+  })
+})
 
 describe('sortAlbums', () => {
   it('should put the albums with the most recent photos first and the empty ones last', () => {

@@ -4,11 +4,13 @@ import { useCallback, useEffect, useRef } from 'preact/hooks'
 import type { LoadFailure } from '../core/loading.ts'
 import { type KeySource, RemoteKey } from '../core/remote-key.ts'
 import type { StartupFailure } from '../core/startup.ts'
-import { failureText, MESSAGES } from './messages.ts'
+import { Mark } from './Logo.tsx'
+import { failureText, MESSAGES, type PanelText } from './messages.ts'
 import { useRemoteKeys } from './use-remote-keys.ts'
 
-// What a screen shows while it waits, when it fails and when there is nothing to show. The button
-// takes the focus by itself: Enter presses it, Back leaves the screen.
+// What a screen shows while it waits, when it fails and when there is nothing to show, under the
+// small mark of the app. The button takes the focus by itself: Enter presses it, Back leaves the
+// screen.
 
 export interface WaitingProps {
   readonly text: string
@@ -28,9 +30,10 @@ export function Waiting({ text, keys, onBack }: WaitingProps): JSX.Element {
   )
   useRemoteKeys(keys, onKey)
   return (
-    <p class="status" role="status">
-      {text}
-    </p>
+    <div class="status" role="status">
+      <Mark class="status-mark" />
+      <p class="status-text">{text}</p>
+    </div>
   )
 }
 
@@ -43,27 +46,40 @@ export interface FailureProps {
 }
 
 export function Failure({ failure, keys, onRetry, onBack }: FailureProps): JSX.Element {
-  const text = failureText(failure)
   return (
-    <section class="panel panel-error" role="alert">
-      <h2>{text.title}</h2>
-      <p>{text.hint}</p>
+    <Panel role="alert" text={failureText(failure)}>
       <ActionButton text={MESSAGES.retry} keys={keys} onPress={onRetry} onBack={onBack} />
-    </section>
+    </Panel>
   )
 }
 
 export interface EmptyProps {
-  readonly text: string
+  readonly text: PanelText
   readonly keys: KeySource
   readonly onBack: () => void
 }
 
 export function Empty({ text, keys, onBack }: EmptyProps): JSX.Element {
   return (
-    <section class="panel" role="status">
-      <h2>{text}</h2>
+    <Panel role="status" text={text}>
       <ActionButton text={MESSAGES.back} keys={keys} onPress={onBack} onBack={onBack} />
+    </Panel>
+  )
+}
+
+interface PanelProps {
+  readonly role: 'alert' | 'status'
+  readonly text: PanelText
+  readonly children: JSX.Element
+}
+
+function Panel({ role, text, children }: PanelProps): JSX.Element {
+  return (
+    <section class="panel" role={role}>
+      <Mark class="panel-mark" />
+      <h2 class="panel-title">{text.title}</h2>
+      <p class="panel-hint">{text.hint}</p>
+      {children}
     </section>
   )
 }

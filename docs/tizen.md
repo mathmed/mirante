@@ -64,12 +64,12 @@ your certificates as described below. The unsigned `.wgt` holds exactly the file
 
 What goes into the package:
 
-| File                    | Where it comes from                                                |
-| ----------------------- | ------------------------------------------------------------------ |
-| `index.html`, `assets/` | `dist/`, byte for byte                                             |
-| `config.xml`            | `tizen/config.xml`, plus the `version` of `package.json`           |
-| `config.json`           | `MIRANTE_IMMICH_URL`, or `tizen/config.json`                       |
-| `icon.png`              | 117x117, drawn by `scripts/packaging/icon.ts` (no committed image) |
+| File                    | Where it comes from                                                                     |
+| ----------------------- | --------------------------------------------------------------------------------------- |
+| `index.html`, `assets/` | `dist/`, byte for byte                                                                  |
+| `config.xml`            | `tizen/config.xml`, plus the `version` of `package.json`                                |
+| `config.json`           | `MIRANTE_IMMICH_URL`, or `tizen/config.json`                                            |
+| `icon.png`              | 117x117, the mark of the logo drawn by `scripts/packaging/icon.ts` (no committed image) |
 
 `tizen/config.xml` declares the widget:
 

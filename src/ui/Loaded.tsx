@@ -2,13 +2,13 @@ import type { JSX } from 'preact'
 
 import { type LoadState, LoadStatus } from '../core/loading.ts'
 import type { KeySource } from '../core/remote-key.ts'
-import { MESSAGES } from './messages.ts'
+import { MESSAGES, type PanelText } from './messages.ts'
 import { Empty, Failure, Waiting } from './Status.tsx'
 import type { Load } from './use-load.ts'
 
 export interface LoadedProps<T> {
   readonly load: Load<LoadState<readonly T[]>>
-  readonly emptyText: string
+  readonly emptyText: PanelText
   readonly keys: KeySource
   readonly onBack: () => void
   readonly render: (items: readonly T[]) => JSX.Element

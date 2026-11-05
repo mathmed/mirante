@@ -202,7 +202,8 @@ describe('Gallery', () => {
 
     sut.remote.press(Right, Right, Enter)
     await title(EMPTY.name)
-    expect(await screen.findByText(MESSAGES.emptyAlbum)).toBeTruthy()
+    expect(await screen.findByText(MESSAGES.emptyAlbum.title)).toBeTruthy()
+    expect(screen.getByText(MESSAGES.emptyAlbum.hint)).toBeTruthy()
     await focusedOn(MESSAGES.back)
     sut.remote.press(Enter)
 
@@ -248,7 +249,7 @@ describe('Gallery', () => {
     sut.remote.press(Enter, Right, Right, Enter)
 
     await title('Maio de 2024')
-    expect(await screen.findByText(MESSAGES.emptyMonth)).toBeTruthy()
+    expect(await screen.findByText(MESSAGES.emptyMonth.title)).toBeTruthy()
   })
 
   it.each([
@@ -268,20 +269,23 @@ describe('Gallery', () => {
 
     sut.remote.press(key, Enter)
 
-    expect(await screen.findByText(text)).toBeTruthy()
+    expect(await screen.findByText(text.title)).toBeTruthy()
+    expect(screen.getByText(text.hint)).toBeTruthy()
   })
 
   it('should explain a failure, log it and try again on Enter', async () => {
     const error = new PhotoLibraryError(LibraryFailure.Unreachable, 'timeout')
+    // The start screen reads the albums first, for the photo behind it.
     let attempts = 0
     const sut = show(
       stubLibrary({
         listAlbums: async () => {
           attempts += 1
-          return attempts === 1 ? Promise.reject(error) : Promise.resolve([FAMILY])
+          return attempts === 2 ? Promise.reject(error) : Promise.resolve([FAMILY])
         },
       }),
     )
+    await focusedOn(MESSAGES.albums)
     sut.remote.press(Enter)
 
     expect((await screen.findByRole('alert')).textContent).toContain(
@@ -309,10 +313,11 @@ describe('Gallery', () => {
 
     sut.remote.press(Back)
     await title(MESSAGES.appName)
-    pending[0]?.([])
+    expect(pending).toHaveLength(2)
+    pending[1]?.([])
     await Promise.resolve()
 
-    expect(screen.queryByText(MESSAGES.noAlbums)).toBeNull()
+    expect(screen.queryByText(MESSAGES.noAlbums.title)).toBeNull()
     await focusedOn(MESSAGES.albums)
   })
 

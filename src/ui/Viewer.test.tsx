@@ -199,4 +199,26 @@ describe('Viewer', () => {
     expect(document.querySelector('.viewer-date')?.textContent).toBe('')
     expect(sut.closed).toStrictEqual([0])
   })
+
+  it('should draw a line that fills up in the interval of the slideshow, a new one for each photo', () => {
+    const sut = show(0)
+    expect(document.querySelector('.viewer-progress')).toBeNull()
+
+    sut.remote.press(RemoteKey.Enter)
+    const first = document.querySelector<HTMLElement>('.viewer-progress-bar')
+    expect(first?.style.animationDuration).toBe(`${String(SLIDESHOW_SECONDS)}s`)
+    wait(SLIDESHOW_MS)
+    const second = document.querySelector('.viewer-progress-bar')
+
+    expect(second).not.toBeNull()
+    expect(second).not.toBe(first)
+    sut.remote.press(RemoteKey.Enter)
+    expect(document.querySelector('.viewer-progress')).toBeNull()
+  })
+
+  it('should darken the edges of the photo with a vignette', () => {
+    show()
+
+    expect(document.querySelector('.viewer-vignette')).not.toBeNull()
+  })
 })
