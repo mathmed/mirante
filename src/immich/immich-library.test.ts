@@ -215,9 +215,9 @@ describe('listTimelineMonths', () => {
     serveLibrary(SAMPLE_LIBRARY)
 
     expect(await library().listTimelineMonths()).toStrictEqual([
-      { key: '2024-04-01', year: 2024, month: 4 },
-      { key: '2024-03-01', year: 2024, month: 3 },
-      { key: '2023-12-01', year: 2023, month: 12 },
+      { key: '2024-04-01', year: 2024, month: 4, photoCount: 6 },
+      { key: '2024-03-01', year: 2024, month: 3, photoCount: 9 },
+      { key: '2023-12-01', year: 2023, month: 12, photoCount: 1 },
     ])
   })
 
@@ -228,15 +228,31 @@ describe('listTimelineMonths', () => {
     )
 
     expect(await library().listTimelineMonths()).toStrictEqual([
-      { key: timeBucket, year: 2024, month: 1 },
+      { key: timeBucket, year: 2024, month: 1, photoCount: 3 },
+    ])
+  })
+
+  it('should read a month the server counts empty', async () => {
+    fakeServer.use(
+      http.get(`${API}/timeline/buckets`, () =>
+        HttpResponse.json([{ timeBucket: '2024-02-01', count: 0 }]),
+      ),
+    )
+
+    expect(await library().listTimelineMonths()).toStrictEqual([
+      { key: '2024-02-01', year: 2024, month: 2, photoCount: 0 },
     ])
   })
 
   it.each([
     [{ count: 1 }],
     [{ timeBucket: 'last year', count: 1 }],
-    [{ timeBucket: '2024-13-01' }],
-    [{ timeBucket: '2024-00-01' }],
+    [{ timeBucket: '2024-13-01', count: 1 }],
+    [{ timeBucket: '2024-00-01', count: 1 }],
+    [{ timeBucket: '2024-01-01' }],
+    [{ timeBucket: '2024-01-01', count: '3' }],
+    [{ timeBucket: '2024-01-01', count: -1 }],
+    [{ timeBucket: '2024-01-01', count: 1.5 }],
   ])('should fail as not Immich on the month %j', async (bucket) => {
     fakeServer.use(http.get(`${API}/timeline/buckets`, () => HttpResponse.json([bucket])))
 
@@ -248,7 +264,12 @@ describe('listMonthPhotos', () => {
   it('should list the photos of the month on the date of the place they were taken', async () => {
     serveLibrary(SAMPLE_LIBRARY)
 
-    const photos = await library().listMonthPhotos({ key: '2023-12-01', year: 2023, month: 12 })
+    const photos = await library().listMonthPhotos({
+      key: '2023-12-01',
+      year: 2023,
+      month: 12,
+      photoCount: 1,
+    })
 
     expect(photos).toStrictEqual([
       {
@@ -279,7 +300,9 @@ describe('listMonthPhotos', () => {
     fakeServer.use(http.get(`${API}/timeline/bucket`, () => HttpResponse.json(bucket)))
 
     expect(
-      await failureOf(library().listMonthPhotos({ key: '2024-01-01', year: 2024, month: 1 })),
+      await failureOf(
+        library().listMonthPhotos({ key: '2024-01-01', year: 2024, month: 1, photoCount: 1 }),
+      ),
     ).toBe(LibraryFailure.NotImmich)
   })
 })

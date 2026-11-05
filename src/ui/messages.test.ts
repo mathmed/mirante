@@ -79,7 +79,9 @@ describe('the texts of the gallery', () => {
   })
 
   it('should title a month of the timeline with its year', () => {
-    expect(monthTitle({ key: '2024-03-01', year: 2024, month: 3 })).toBe('Março de 2024')
+    expect(monthTitle({ key: '2024-03-01', year: 2024, month: 3, photoCount: 1 })).toBe(
+      'Março de 2024',
+    )
   })
 
   it('should write the date of a photo', () => {

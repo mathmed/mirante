@@ -27,7 +27,7 @@ function month(
   number: number,
   key = `${String(year)}-${String(number)}`,
 ): TimelineMonth {
-  return { key, year, month: number }
+  return { key, year, month: number, photoCount: 1 }
 }
 
 const ids = (items: readonly { readonly id: string }[]): string[] => items.map((item) => item.id)

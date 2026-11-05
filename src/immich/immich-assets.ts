@@ -95,15 +95,23 @@ function lastPhotoOf(endDate: string | undefined): Pick<Album, 'lastPhotoAtMs'> 
   return endDate === undefined ? {} : { lastPhotoAtMs: instantOf(endDate, 'album date') }
 }
 
+// Immich counts every asset of the month, its videos too, as it does for an album.
 function monthOf(answer: TimeBucketsResponseDto): TimelineMonth {
-  const key = answer.timeBucket
+  const { timeBucket: key, count } = answer
   const match = typeof key === 'string' ? MONTH_OF_BUCKET.exec(key) : null
   const year = Number(match?.[1])
   const month = Number(match?.[2])
   if (!isMonth(month)) {
     throw malformed('month of the timeline')
   }
-  return { key, year, month }
+  return { key, year, month, photoCount: countOf(count) }
+}
+
+function countOf(count: unknown): number {
+  if (typeof count !== 'number' || !Number.isInteger(count) || count < 0) {
+    throw malformed('count of the month')
+  }
+  return count
 }
 
 // NaN, when the bucket has no month, is not one either.
