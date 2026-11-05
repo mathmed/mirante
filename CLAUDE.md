@@ -17,6 +17,8 @@ driven by the remote control alone. TypeScript and Preact, built with Vite; the 
 make setup             # install the locked dependencies and the git hooks
 make dev               # serve the app with hot reload (Vite); public/config.json points it at Immich
 make build             # bundle the app into dist/ (Vite) and check it against ES2018 (es-check)
+make package-webos     # the build as the LG webOS app: build/webos/com.mathmed.mirante_<version>_all.ipk
+make test-webos        # end-to-end: the .ipk unpacked and run from file:// in a headless Chromium
 make format            # format with Prettier and apply the fixes ESLint can make
 make lint              # ESLint (strict, complexity, security, browser support), Stylelint and the Prettier check
 make typecheck         # tsc 7 strict: the app, the pure core alone, the tests and the tooling
@@ -46,10 +48,16 @@ src/platform/  what differs between TVs and browsers: config.json, polyfills, th
                codes of the remote controls of Tizen and webOS
 src/ui/        Preact components and src/ui/messages.ts, every text people read
 src/main.tsx   composition root: wires the adapters into the UI
-scripts/       CI tooling: Quality Report, suppression ratchet, mutation runner, risk label check
+scripts/       tooling: the webOS packaging (scripts/webos), Quality Report, suppression ratchet,
+               mutation runner, risk label check
 test/          test support: the fake Immich server (MSW) and its sample library, the stub photo
                library and the fake remote control of the component tests, the test setup, throwaway
-               git repositories
+               git repositories, the .ipk and PNG helpers of the packaging tests
+webos/         the appinfo.json of the webOS app (no version: it comes from package.json) and
+               config.example.json; webos/config.json is gitignored
+e2e/           the end-to-end test of the webOS package (Playwright, vitest.e2e.config.ts) and the
+               fake Immich it runs against on a real port
+docs/          docs/webos.md: packaging, Developer Mode, installing and debugging on an LG TV
 ```
 
 - `src/core` imports nothing from the other layers and no package at all (not even Preact or the
@@ -101,13 +109,23 @@ test/          test support: the fake Immich server (MSW) and its sample library
   webOS, Escape and Backspace on the desktop). Every action is reachable with them; the focus is
   always visible (`:focus` styles) and never lost when a screen changes. Navigation logic (where the
   focus goes) is pure and lives in the core; key codes live in `src/platform`. One component listens
-  to the keys at a time (the screen on top, or the viewer over it), through `useRemoteKeys`.
+  to the keys at a time (the screen on top, or the viewer over it), through `useRemoteKeys`. Back on
+  the first screen (the start screen, or the connecting and error screens before it) leaves the app
+  through `src/platform/app-exit.ts` (`webOS.platformBack` or `PalmSystem.platformBack`,
+  feature-detected; a browser stays): never trap people in the app.
 - **Memory is scarce**: grids render only the rows on the screen and one around them (the rest is
   unmounted, its images unloaded), and the viewer keeps at most three images decoded. Only `transform`
   and `opacity` change, few elements animate, and nothing relies on `overflow`, which Chromium 68
   supports only in part: screens are `position: fixed` and off-screen cells are hidden.
 - **Overscan**: every screen keeps its content inside the safe area, 5% of each edge.
 - **Relative paths** (`base: './'`) and **no service worker**: the packaged apps load from `file://`.
+- **The webOS app** (`make package-webos`, `docs/webos.md`) loads from `file://`, another origin than
+  Immich: its `config.json` holds the full address of the proxy, which answers CORS and adds the key.
+  The packaging (`scripts/webos/`) refuses a relative `immichUrl` and any `apiKey`, takes the version
+  from `package.json`, draws the icons (no committed images) and runs `ares-package --no-minify`, so
+  the package holds the bundle es-check verified. `@webos-tools/cli` runs through `npx` at the version
+  pinned in `scripts/webos/ares.ts`, never as a devDependency: its shrinkwrapped dependencies fail
+  `npm audit`. `webos/appinfo.json` keeps `disableBackHistoryAPI: true`, or Back never reaches the app.
 - **Runtime configuration**: `config.json` next to `index.html` (`immichUrl`, the optional `apiKey`
   and `slideshowSeconds`) is read on every start and never committed (`.gitignore`);
   `public/config.example.json` documents it. Its fields are the public contract of every installation.
@@ -123,10 +141,11 @@ does.
   in the `x-api-key` header and never in a URL. A call that writes changes the library for good.
 - **The API key**: read from `config.json` (`src/core/runtime-config.ts`,
   `src/platform/config-file.ts`), kept out of logs, messages, URLs and the repository; `config.json` is
-  gitignored.
+  gitignored. The webOS package never carries one (`scripts/webos/packaged-config.ts`).
 - **What the TVs run**: the build target, the polyfills and the compatibility checks (`vite.config.ts`,
-  `.escheckrc.json`, `src/platform/polyfills.ts`, `browserslist`, `stylelint.config.mjs`). A gap shows
-  as a blank screen on the TV, where there is no developer at hand.
+  `.escheckrc.json`, `src/platform/polyfills.ts`, `browserslist`, `stylelint.config.mjs`), and the
+  webOS package (`webos/appinfo.json`, `scripts/webos/`). A gap shows as a blank screen on the TV,
+  where there is no developer at hand.
 
 Usually high rather than critical: the fields of `config.json` (a rename breaks every installation
 until its file is edited), and focus or key handling that can leave the remote control stuck.
