@@ -6,10 +6,17 @@ import { type Browser, chromium, type Page } from 'playwright'
 import { expect } from 'vitest'
 
 import { ALBUM_NAME, type FakeImmich, PHOTO_IDS } from './fake-immich-server.ts'
+import { emulateChromium68 } from './legacy-chromium.ts'
 
 // The TV whose system the page gets: webOS's PalmSystem or Tizen's tizen global.
 export const TvSystem = { Webos: 'webos', Tizen: 'tizen' } as const
 export type TvSystem = (typeof TvSystem)[keyof typeof TvSystem]
+
+export interface Tv {
+  readonly system: TvSystem
+  // The Chromium 68 of the owner's LG, emulated (see legacy-chromium.ts); the Samsung runs 85.
+  readonly isChromium68: boolean
+}
 
 export interface OpenedApp {
   readonly page: Page
@@ -21,12 +28,11 @@ export async function launchBrowser(): Promise<Browser> {
   return chromium.launch({ args: ['--allow-file-access-from-files'] })
 }
 
-export async function openApp(
-  browser: Browser,
-  indexUrl: string,
-  system: TvSystem,
-): Promise<OpenedApp> {
+export async function openApp(browser: Browser, indexUrl: string, tv: Tv): Promise<OpenedApp> {
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } })
+  if (tv.isChromium68) {
+    await emulateChromium68(page)
+  }
   // Runs in the page, which does not see this module: the system arrives as its name.
   await page.addInitScript((name: TvSystem) => {
     let exits = 0
@@ -42,7 +48,7 @@ export async function openApp(
         application: { getCurrentApplication: () => ({ exit: leave }) },
       })
     }
-  }, system)
+  }, tv.system)
   await page.goto(indexUrl)
   return {
     page,

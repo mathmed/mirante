@@ -1,6 +1,8 @@
 // The .ipk of `make package-webos`, run the way a webOS TV runs it: unpacked, opened from file://
-// in Chromium (headless, here) with access to its own files, as LG's web app runtime allows. The
-// fake Immich answers CORS like the proxy in front of the owner's server. Needs `make build`
+// in Chromium (headless, here) with access to its own files, as LG's web app runtime allows, and
+// made to look like the Chromium 68 of the owner's LG (legacy-chromium.ts): module scripts refused,
+// queueMicrotask and Object.fromEntries missing. The fake Immich answers CORS like the proxy in
+// front of the owner's server. Needs `make build`
 // first (its webOS build, build/webos-dist/); `make test-webos` runs both.
 import { execFile } from 'node:child_process'
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -19,6 +21,7 @@ import { appFiles, type ArchiveFile, ipkFiles } from '../scripts/webos/ipk.ts'
 import { WEBOS_BUILD } from '../scripts/webos/package.ts'
 import { readPng } from '../test/support/png.ts'
 import { type FakeImmich, startFakeImmich } from './fake-immich-server.ts'
+import { emulateChromium68, MISSING_APIS, MODULE_REFUSED, nativeApis } from './legacy-chromium.ts'
 import {
   expectBackToLeave,
   expectBrowsingAcrossOrigins,
@@ -64,7 +67,7 @@ function fileText(path: string): string {
 }
 
 async function open(): Promise<OpenedApp> {
-  return openApp(browser, indexUrl, TvSystem.Webos)
+  return openApp(browser, indexUrl, { system: TvSystem.Webos, isChromium68: true })
 }
 
 beforeAll(async () => {
@@ -118,6 +121,39 @@ describe('the webOS package', () => {
       version,
     })
     expect(JSON.parse(fileText('config.json'))).toStrictEqual({ immichUrl: immich.url })
+  })
+
+  it('should load the app as one classic script, without modules', () => {
+    const html = fileText('index.html')
+
+    expect(html).toMatch(/<script defer src="\.\/assets\/index-[\w-]+\.js"><\/script>/)
+    expect(html).toMatch(/<link rel="stylesheet" href="\.\/assets\/style-[\w-]+\.css">/)
+    for (const mark of ['type="module"', 'crossorigin', 'modulepreload']) {
+      expect(html).not.toContain(mark)
+    }
+  })
+
+  it('should start where module scripts are refused and the polyfilled APIs are missing', async () => {
+    const app = await open()
+
+    await app.page.getByText('Álbuns').waitFor()
+    expect(MISSING_APIS).toStrictEqual(['Object.fromEntries', 'queueMicrotask'])
+    expect(await nativeApis(app.page)).toStrictEqual([])
+    await app.page.close()
+  })
+
+  it('should reproduce the grey screen of the LG with the web build, a module script', async () => {
+    const page = await browser.newPage()
+    await emulateChromium68(page)
+    const refused = page.waitForEvent('console', (message) =>
+      message.text().includes(MODULE_REFUSED),
+    )
+
+    await page.goto(pathToFileURL(join(ROOT, 'dist', 'index.html')).href)
+
+    await refused
+    expect(await page.locator('#app').innerHTML()).toBe('')
+    await page.close()
   })
 
   it('should read the albums and load the images across origins from file://', async () => {
