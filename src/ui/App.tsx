@@ -1,6 +1,7 @@
 import type { JSX } from 'preact'
 
 import type { KeySource } from '../core/remote-key.ts'
+import type { TextStorage } from '../core/settings-storage.ts'
 import { LOADING, type StartupOutcome, type StartupState, StartupStatus } from '../core/startup.ts'
 import { Gallery } from './Gallery.tsx'
 import { Logo, LogoLayout } from './Logo.tsx'
@@ -14,14 +15,19 @@ export interface AppProps {
   readonly reportError: (error: unknown) => void
   // Back on the first screen leaves the app (on a TV; a browser stays on the page).
   readonly leave: () => void
+  // Where the TV keeps its settings of the presentations.
+  readonly storage: TextStorage
+  // A new seed for each random order.
+  readonly newSeed: () => number
 }
 
 // The opening: the logo fades in while the app connects, and gives way to the gallery as soon as
 // the server answers, never later.
-export function App({ start, keys, reportError, leave }: AppProps): JSX.Element {
+export function App(props: AppProps): JSX.Element {
+  const { start, keys, leave } = props
   const { state, retry } = useLoad<StartupState>(start, LOADING)
   if (state.status === StartupStatus.Connected) {
-    return <Gallery session={state.session} keys={keys} reportError={reportError} leave={leave} />
+    return <Gallery {...props} session={state.session} />
   }
   return (
     <main class="screen screen-centered splash">

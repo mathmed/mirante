@@ -8,7 +8,10 @@ import { createImmichLibrary } from './immich/immich-library.ts'
 import { leaveApp } from './platform/app-exit.ts'
 import { CONFIG_FILE, readConfigFile } from './platform/config-file.ts'
 import { logError } from './platform/error-log.ts'
+import { localTextStorage, SETTINGS_KEY } from './platform/local-settings.ts'
+import { randomSeed } from './platform/random-seed.ts'
 import { listenToRemote } from './platform/remote-control.ts'
+import { registerTizenKeys } from './platform/tizen-keys.ts'
 import { App } from './ui/App.tsx'
 import './ui/styles.css'
 
@@ -22,6 +25,7 @@ if (root === null) {
 }
 
 const configUrl = new URL(CONFIG_FILE, document.baseURI).href
+registerTizenKeys(window, logError)
 const keys = listenToRemote(document)
 
 const start = async (): ReturnType<typeof startUp> =>
@@ -36,4 +40,14 @@ const leave = (): void => {
   leaveApp(window)
 }
 
-render(<App start={start} keys={keys} reportError={logError} leave={leave} />, root)
+render(
+  <App
+    start={start}
+    keys={keys}
+    reportError={logError}
+    leave={leave}
+    storage={localTextStorage(window, SETTINGS_KEY)}
+    newSeed={randomSeed}
+  />,
+  root,
+)

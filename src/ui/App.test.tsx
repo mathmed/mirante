@@ -2,7 +2,9 @@ import { render, screen, waitFor } from '@testing-library/preact'
 import { describe, expect, it, vi } from 'vitest'
 
 import { memoryLibrary } from '../../test/library-stub.ts'
+import { memoryStorage } from '../../test/memory-storage.ts'
 import { fakeRemote, type FakeRemote } from '../../test/remote.ts'
+import { DEFAULT_PRESENTATION } from '../core/presentation-settings.ts'
 import { RemoteKey } from '../core/remote-key.ts'
 import { StartupFailure, type StartupOutcome, StartupStatus } from '../core/startup.ts'
 import { App } from './App.tsx'
@@ -18,7 +20,7 @@ const LIBRARY = memoryLibrary({
 })
 const CONNECTED: StartupOutcome = {
   status: StartupStatus.Connected,
-  session: { server: SERVER, library: LIBRARY, slideshowSeconds: 8 },
+  session: { server: SERVER, library: LIBRARY, presentationDefaults: DEFAULT_PRESENTATION },
 }
 
 function startingWith(outcome: StartupOutcome): () => Promise<StartupOutcome> {
@@ -55,7 +57,16 @@ function renderApp(
   leave: () => void = () => undefined,
 ): FakeRemote {
   const remote = fakeRemote()
-  render(<App start={start} keys={remote.keys} reportError={() => undefined} leave={leave} />)
+  render(
+    <App
+      start={start}
+      keys={remote.keys}
+      reportError={() => undefined}
+      leave={leave}
+      storage={memoryStorage().storage}
+      newSeed={() => 1}
+    />,
+  )
   return remote
 }
 
@@ -147,6 +158,8 @@ describe('App', () => {
         keys={remote.keys}
         reportError={() => undefined}
         leave={() => undefined}
+        storage={memoryStorage().storage}
+        newSeed={() => 1}
       />,
     )
     rerender(
@@ -155,6 +168,8 @@ describe('App', () => {
         keys={remote.keys}
         reportError={() => undefined}
         leave={() => undefined}
+        storage={memoryStorage().storage}
+        newSeed={() => 1}
       />,
     )
     expect(await screen.findByText(MESSAGES.albums)).toBeTruthy()

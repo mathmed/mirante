@@ -1,162 +1,163 @@
 import type { JSX } from 'preact'
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks'
 
-import { ImageSize, type Photo, type PhotoLibrary } from '../core/photo-library.ts'
+import { createCaptionCache } from '../core/captions.ts'
+import { ImageSize, type PhotoLibrary } from '../core/photo-library.ts'
+import type { PresentationSettings } from '../core/presentation-settings.ts'
+import { currentSlide, decodedSlides, type Slide, slidesAhead } from '../core/presentation.ts'
 import { type KeySource, RemoteKey } from '../core/remote-key.ts'
-import {
-  advanceSlideshow,
-  decodedPhotos,
-  openViewer,
-  pressInViewer,
-  type ViewerState,
-} from '../core/slideshow.ts'
-import { counterText, MESSAGES, photoDateText } from './messages.ts'
-import { Picture } from './Picture.tsx'
-import { useRemoteKeys } from './use-remote-keys.ts'
-
-// How long the date and the counter stay on the screen after the photo changes.
-export const INFO_VISIBLE_MS = 4000
-const MS_PER_SECOND = 1000
+import { Caption } from './Caption.tsx'
+import { KeyListener } from './KeyListener.tsx'
+import { counterText, MESSAGES } from './messages.ts'
+import type { PresentationControls } from './screen-props.ts'
+import { SettingsPanel } from './SettingsPanel.tsx'
+import { Slides } from './Slides.tsx'
+import { type PresentationControl, type Rounds, usePresentation } from './use-presentation.ts'
+import { ViewerInfo } from './ViewerInfo.tsx'
 
 export interface ViewerProps {
-  readonly photos: readonly Photo[]
-  // The photo chosen in the grid.
+  readonly slides: readonly Slide[]
+  // The slide chosen in the grid; the first one for a presentation.
   readonly start: number
+  readonly shouldPlay: boolean
+  readonly rounds: Rounds
   readonly library: PhotoLibrary
   readonly keys: KeySource
-  readonly slideshowSeconds: number
-  // Back: the grid takes the focus to the photo on the screen.
+  readonly reportError: (error: unknown) => void
+  readonly presentation: PresentationControls
+  // Back: the grid takes the focus to the slide on the screen.
   readonly onClose: (index: number) => void
 }
 
-// One photo at a time, full screen, in its preview size: never the original.
+// One photo at a time, full screen: left and right move, Enter starts or pauses the slideshow,
+// Info or Down opens its settings over it, and Back closes it.
 export function Viewer(props: ViewerProps): JSX.Element {
-  const { photos, library } = props
-  const count = photos.length
-  const [state, setState] = useSlideshow(props.start, count, props.slideshowSeconds)
-  useViewerKeys(props, state, setState)
-  const viewerRef = useFocusOnMount()
-  const current = photos[state.index]
+  const { library, presentation } = props
+  const { settings } = presentation
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const control = usePresentation({ ...props, settings, isHeld: isSettingsOpen })
+  const { state, upcoming } = control
+  const viewerRef = useFocusWhileOnTop(isSettingsOpen)
+  const ahead = slidesAhead(state, upcoming)
+  const current = currentSlide(state)
   return (
     <div
       ref={viewerRef}
-      class="viewer"
+      class={viewerClass(state.isPlaying, isSettingsOpen)}
       role="dialog"
-      aria-label={counterText(state.index, count)}
+      aria-label={counterText(state.index, state.slides.length)}
       tabIndex={-1}
     >
-      {decodedPhotos(photos, state).map((photo) => (
-        <div key={photo.id} class={photo === current ? 'slide is-current' : 'slide'}>
-          <Picture
-            url={library.imageUrl(photo.id, ImageSize.Preview)}
-            alt={photoDateText(photo.date)}
-            missingText={MESSAGES.previewUnavailable}
-          />
-        </div>
-      ))}
+      <Slides state={state} decoded={decodedSlides(state, ahead)} {...{ settings, library }} />
+      <Prefetch library={library} slide={ahead[1]} />
       <div class="viewer-vignette" />
-      <Info state={state} count={count} photo={current} seconds={props.slideshowSeconds} />
+      <ViewerInfo {...{ state, settings }} photo={current?.photos[0]} isHeld={isSettingsOpen} />
+      {settings.shouldShowCaption && <ViewerCaption {...props} current={current} next={ahead[0]} />}
+      <ViewerControls {...props} {...{ control, isSettingsOpen }} onSettings={setIsSettingsOpen} />
     </div>
   )
 }
 
-type SetViewerState = (update: (previous: ViewerState) => ViewerState) => void
+// Playing, the slow zoom moves; covered by its settings, the slideshow waits and the date, the
+// counter and the caption step aside.
+function viewerClass(isPlaying: boolean, isCovered: boolean): string {
+  if (isCovered) {
+    return 'viewer is-covered'
+  }
+  return isPlaying ? 'viewer is-playing' : 'viewer'
+}
 
-// Left and right move, Enter starts or pauses the slideshow, Back closes the viewer.
-function useViewerKeys(props: ViewerProps, state: ViewerState, setState: SetViewerState): void {
-  const { onClose } = props
-  const count = props.photos.length
-  const onKey = useCallback(
+interface ViewerCaptionProps extends ViewerProps {
+  readonly current: Slide | undefined
+  readonly next: Slide | undefined
+}
+
+// Today a slide holds one photo, whose caption it shows. The captions read stay while they show.
+function ViewerCaption({ library, reportError, current, next }: ViewerCaptionProps): JSX.Element {
+  const [captions] = useState(() => createCaptionCache(library.readCaption, reportError))
+  return (
+    <Caption captions={captions} photoId={current?.photos[0].id} nextPhotoId={next?.photos[0].id} />
+  )
+}
+
+interface ViewerControlsProps extends ViewerProps {
+  readonly control: PresentationControl
+  readonly isSettingsOpen: boolean
+  readonly onSettings: (isOpen: boolean) => void
+}
+
+// The keys go to the viewer, or to its settings while they are open: Back keeps them and returns
+// to the photo.
+function ViewerControls(props: ViewerControlsProps): JSX.Element {
+  const { presentation, keys, onSettings } = props
+  const { saveSettings } = presentation
+  const onKey = useViewerKeys(props)
+  const close = useCallback(
+    (settings: PresentationSettings) => {
+      saveSettings(settings)
+      onSettings(false)
+    },
+    [saveSettings, onSettings],
+  )
+  if (!props.isSettingsOpen) {
+    return <KeyListener keys={keys} onKey={onKey} />
+  }
+  return (
+    <div class="viewer-settings">
+      <h2 class="viewer-settings-title">{MESSAGES.settings}</h2>
+      <SettingsPanel
+        settings={presentation.settings}
+        defaults={presentation.defaults}
+        keys={keys}
+        onClose={close}
+      />
+    </div>
+  )
+}
+
+function useViewerKeys(props: ViewerControlsProps): (key: RemoteKey) => void {
+  const { onClose, onSettings, control } = props
+  const { state, press } = control
+  return useCallback(
     (key: RemoteKey) => {
       if (key === RemoteKey.Back) {
         onClose(state.index)
+      } else if (key === RemoteKey.Info || key === RemoteKey.Down) {
+        onSettings(true)
       } else {
-        setState((previous) => pressInViewer(previous, key, count))
+        press(key)
       }
     },
-    [state.index, count, onClose, setState],
-  )
-  useRemoteKeys(props.keys, onKey)
-}
-
-interface InfoProps {
-  readonly state: ViewerState
-  readonly count: number
-  readonly photo: Photo | undefined
-  readonly seconds: number
-}
-
-// The date, the counter, the keys and, during the slideshow, how long until the next photo:
-// discreet, and gone by themselves a few seconds after each change.
-function Info({ state, count, photo, seconds }: InfoProps): JSX.Element {
-  const isVisible = useVisibleAfterChange(state)
-  return (
-    <div class={isVisible ? 'viewer-info is-visible' : 'viewer-info'} aria-hidden={!isVisible}>
-      <div class="viewer-caption">
-        <span class="viewer-date">{photo === undefined ? '' : photoDateText(photo.date)}</span>
-        <span class="viewer-hint">
-          {state.isPlaying ? MESSAGES.slideshowPlaying : MESSAGES.slideshowPaused}
-        </span>
-      </div>
-      <span class="viewer-counter">{counterText(state.index, count)}</span>
-      {state.isPlaying && <Progress key={state.index} seconds={seconds} />}
-    </div>
+    [state.index, onClose, onSettings, press],
   )
 }
 
-interface ProgressProps {
-  readonly seconds: number
+interface PrefetchProps {
+  readonly library: PhotoLibrary
+  readonly slide: Slide | undefined
 }
 
-// A thin line that fills up in the interval of the slideshow, by a transform alone; each photo
-// draws a new one.
-function Progress({ seconds }: ProgressProps): JSX.Element {
-  return (
-    <span class="viewer-progress">
-      <span class="viewer-progress-bar" style={{ animationDuration: `${String(seconds)}s` }} />
-    </span>
-  )
-}
-
-// While the slideshow plays, the next photo comes after the interval; any change restarts it.
-function useSlideshow(
-  start: number,
-  count: number,
-  seconds: number,
-): [ViewerState, SetViewerState] {
-  const [state, setState] = useState(() => openViewer(start, count))
+// The slide after the next one is downloaded ahead, not decoded: a detached image, which the
+// browser only decodes once it shows.
+function Prefetch({ library, slide }: PrefetchProps): null {
+  const url =
+    slide === undefined ? undefined : library.imageUrl(slide.photos[0].id, ImageSize.Preview)
   useEffect(() => {
-    if (!state.isPlaying) {
-      return undefined
+    if (url !== undefined) {
+      const image = new Image()
+      image.src = url
     }
-    const timer = setTimeout(() => {
-      setState((previous) => advanceSlideshow(previous, count))
-    }, seconds * MS_PER_SECOND)
-    return () => {
-      clearTimeout(timer)
-    }
-  }, [state, count, seconds])
-  return [state, setState]
+  }, [url])
+  return null
 }
 
-function useVisibleAfterChange(state: ViewerState): boolean {
-  const [hiddenState, setHiddenState] = useState<ViewerState | undefined>(undefined)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setHiddenState(state)
-    }, INFO_VISIBLE_MS)
-    return () => {
-      clearTimeout(timer)
-    }
-  }, [state])
-  return hiddenState !== state
-}
-
-// The grid that held the focus is gone: the viewer takes it.
-function useFocusOnMount(): { readonly current: HTMLDivElement | null } {
+// The grid that held the focus is gone: the viewer takes it, and takes it back from its settings.
+function useFocusWhileOnTop(isCovered: boolean): { readonly current: HTMLDivElement | null } {
   const viewerRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    viewerRef.current?.focus({ preventScroll: true })
-  }, [])
+    if (!isCovered) {
+      viewerRef.current?.focus({ preventScroll: true })
+    }
+  }, [isCovered])
   return viewerRef
 }

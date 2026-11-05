@@ -11,12 +11,17 @@ import {
   ScreenKind,
   startNavigation,
 } from '../core/navigation.ts'
+import type { PresentationSettings } from '../core/presentation-settings.ts'
 import type { KeySource } from '../core/remote-key.ts'
+import { persistSettings, restoreSettings, type TextStorage } from '../core/settings-storage.ts'
 import type { Session } from '../core/startup.ts'
 import { AlbumsScreen } from './AlbumsScreen.tsx'
 import { HomeScreen } from './HomeScreen.tsx'
 import { AlbumScreen, MonthScreen } from './PhotosScreen.tsx'
-import type { ScreenProps } from './screen-props.ts'
+import { PresentationScreen } from './PresentationScreen.tsx'
+import { PresentScreen } from './PresentScreen.tsx'
+import type { PresentationControls, ScreenProps } from './screen-props.ts'
+import { SettingsScreen } from './SettingsScreen.tsx'
 import { MonthsScreen, YearsScreen } from './TimelineScreens.tsx'
 import { useBackdrop } from './use-backdrop.ts'
 
@@ -26,31 +31,55 @@ export interface GalleryProps {
   readonly reportError: (error: unknown) => void
   // Back on the start screen, which has no screen below it.
   readonly leave: () => void
+  // Where the TV keeps its settings of the presentations.
+  readonly storage: TextStorage
+  // A new seed for each random order.
+  readonly newSeed: () => number
 }
 
 // The screens of the library, one on top of the other: Enter opens the next, Back returns to the
 // one below with the focus where it was; on the start screen, Back leaves the app.
-export function Gallery({ session, keys, reportError, leave }: GalleryProps): JSX.Element {
+export function Gallery(props: GalleryProps): JSX.Element {
+  const { session, keys, reportError, leave } = props
   const { navigation, depth, open, back } = useNavigation()
   const backdropUrl = useBackdrop(session.library, reportError)
-  const props: ScreenProps = {
+  const screenProps: ScreenProps = {
     library: session.library,
     keys,
     reportError,
     position: navigation.current.position,
     open,
     back,
+    presentation: usePresentationControls(props),
   }
-  return (
-    <ScreenView
-      key={depth}
-      screen={navigation.current.screen}
-      session={session}
-      props={props}
-      leave={leave}
-      backdropUrl={backdropUrl}
-    />
+  const screen = navigation.current.screen
+  if (screen.kind === ScreenKind.Home) {
+    return (
+      <HomeScreen
+        key={depth}
+        {...screenProps}
+        back={leave}
+        server={session.server}
+        backdropUrl={backdropUrl}
+      />
+    )
+  }
+  return <ScreenView key={depth} screen={screen} props={screenProps} />
+}
+
+// The settings of this TV over the defaults of config.json, kept on the TV at each change.
+function usePresentationControls(props: GalleryProps): PresentationControls {
+  const { session, storage, reportError, newSeed } = props
+  const defaults = session.presentationDefaults
+  const [settings, setSettings] = useState(() => restoreSettings(storage, defaults, reportError))
+  const saveSettings = useCallback(
+    (changed: PresentationSettings) => {
+      setSettings(changed)
+      persistSettings(storage, changed, reportError)
+    },
+    [storage, reportError],
   )
+  return { settings, defaults, saveSettings, newSeed }
 }
 
 interface NavigationControls {
@@ -76,43 +105,44 @@ function useNavigation(): NavigationControls {
   return { navigation, depth, open, back }
 }
 
+type DeeperScreen = Exclude<Screen, { readonly kind: typeof ScreenKind.Home }>
+
 interface ScreenViewProps {
-  readonly screen: Screen
-  readonly session: Session
+  readonly screen: DeeperScreen
   readonly props: ScreenProps
 }
 
-interface StackViewProps extends ScreenViewProps {
-  readonly leave: () => void
-  readonly backdropUrl: string | undefined
-}
-
-function ScreenView({ screen, session, props, leave, backdropUrl }: StackViewProps): JSX.Element {
+// The screens of the library itself.
+function ScreenView({ screen, props }: ScreenViewProps): JSX.Element {
   switch (screen.kind) {
-    case ScreenKind.Home:
-      return (
-        <HomeScreen {...props} back={leave} server={session.server} backdropUrl={backdropUrl} />
-      )
     case ScreenKind.Albums:
-      return <AlbumsScreen {...props} />
+      return <AlbumsScreen {...props} intent={screen.intent} />
     case ScreenKind.Years:
-      return <YearsScreen {...props} />
+      return <YearsScreen {...props} intent={screen.intent} />
     case ScreenKind.Months:
-      return <MonthsScreen {...props} year={screen.year} />
+      return <MonthsScreen {...props} year={screen.year} intent={screen.intent} />
     default:
-      return <PhotoScreenView screen={screen} session={session} props={props} />
+      return <PhotosOrPresentationView screen={screen} props={props} />
   }
 }
 
-interface PhotoScreenViewProps extends ScreenViewProps {
-  readonly screen: Extract<Screen, { readonly kind: 'album' | 'month' }>
+interface PhotosOrPresentationViewProps {
+  readonly screen: Exclude<DeeperScreen, { readonly kind: 'albums' | 'months' | 'years' }>
+  readonly props: ScreenProps
 }
 
-function PhotoScreenView({ screen, session, props }: PhotoScreenViewProps): JSX.Element {
-  const { slideshowSeconds } = session
-  return screen.kind === ScreenKind.Album ? (
-    <AlbumScreen {...props} album={screen.album} slideshowSeconds={slideshowSeconds} />
-  ) : (
-    <MonthScreen {...props} month={screen.month} slideshowSeconds={slideshowSeconds} />
-  )
+// The photos of an album or a month, and the presentations with their settings.
+function PhotosOrPresentationView({ screen, props }: PhotosOrPresentationViewProps): JSX.Element {
+  switch (screen.kind) {
+    case ScreenKind.Album:
+      return <AlbumScreen {...props} album={screen.album} />
+    case ScreenKind.Month:
+      return <MonthScreen {...props} month={screen.month} />
+    case ScreenKind.Presentation:
+      return <PresentationScreen {...props} source={screen.source} />
+    case ScreenKind.Present:
+      return <PresentScreen {...props} />
+    default:
+      return <SettingsScreen {...props} />
+  }
 }

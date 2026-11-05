@@ -1,13 +1,14 @@
 import type { JSX } from 'preact'
 
-import { type HomeEntry, ScreenKind } from '../core/navigation.ts'
+import { ScreenKind } from '../core/navigation.ts'
 
-// The line icons of the start screen, drawn in the color of the text around them.
+// The line icons of the start screen, drawn in the color of the text around them, by the screen
+// each card opens.
 export interface HomeIconProps {
-  readonly entry: HomeEntry
+  readonly kind: ScreenKind
 }
 
-export function HomeIcon({ entry }: HomeIconProps): JSX.Element {
+export function HomeIcon({ kind }: HomeIconProps): JSX.Element {
   return (
     <svg
       class="home-icon"
@@ -19,9 +20,22 @@ export function HomeIcon({ entry }: HomeIconProps): JSX.Element {
       stroke-linecap="round"
       stroke-linejoin="round"
     >
-      {entry.kind === ScreenKind.Albums ? <AlbumsLines /> : <TimelineLines />}
+      <Lines kind={kind} />
     </svg>
   )
+}
+
+function Lines({ kind }: HomeIconProps): JSX.Element {
+  switch (kind) {
+    case ScreenKind.Albums:
+      return <AlbumsLines />
+    case ScreenKind.Years:
+      return <TimelineLines />
+    case ScreenKind.Present:
+      return <PresentLines />
+    default:
+      return <SettingsLines />
+  }
 }
 
 // Two frames, one behind the other, with a sun over the hills in the front one.
@@ -45,6 +59,29 @@ function TimelineLines(): JSX.Element {
       <circle cx="32" cy="32" r="4.5" fill="currentColor" />
       <circle cx="50" cy="32" r="4.5" />
       <path d="M14 26V14M32 38v12M50 26V14" opacity="0.55" />
+    </>
+  )
+}
+
+// A screen with the sign of play, and the edge of the next photo behind it.
+function PresentLines(): JSX.Element {
+  return (
+    <>
+      <path d="M14 10h40a4 4 0 0 1 4 4v28" opacity="0.55" />
+      <rect x="6" y="18" width="44" height="36" rx="4" />
+      <path d="M23 28l13 8-13 8z" fill="currentColor" />
+    </>
+  )
+}
+
+// Three sliders, each set to its own value.
+function SettingsLines(): JSX.Element {
+  return (
+    <>
+      <path d="M8 16h48M8 32h48M8 48h48" opacity="0.55" />
+      <circle cx="22" cy="16" r="5" fill="currentColor" />
+      <circle cx="44" cy="32" r="5" fill="currentColor" />
+      <circle cx="30" cy="48" r="5" fill="currentColor" />
     </>
   )
 }

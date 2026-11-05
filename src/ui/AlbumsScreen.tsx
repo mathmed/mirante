@@ -2,13 +2,13 @@ import type { JSX } from 'preact'
 import { useCallback, useState } from 'preact/hooks'
 
 import { loadAlbums } from '../core/gallery.ts'
-import { ScreenKind } from '../core/navigation.ts'
+import { albumScreen, type Intent } from '../core/navigation.ts'
 import { type Album, ImageSize, type PhotoLibrary } from '../core/photo-library.ts'
 import { Frame } from './Frame.tsx'
 import { Grid } from './Grid.tsx'
 import { Loaded } from './Loaded.tsx'
 import { Mark } from './Logo.tsx'
-import { MESSAGES, photoCountText, shortText } from './messages.ts'
+import { albumsTitle, MESSAGES, photoCountText, shortText } from './messages.ts'
 import { Picture } from './Picture.tsx'
 import type { ScreenProps } from './screen-props.ts'
 import { useLibraryLoad } from './use-load.ts'
@@ -17,13 +17,18 @@ const SHAPE = { columns: 4, visibleRows: 2 }
 // What fits on one line of a tile.
 const NAME_LENGTH = 24
 
+export interface AlbumsScreenProps extends ScreenProps {
+  // To browse the albums, or to choose one to present.
+  readonly intent: Intent
+}
+
 // The albums of the library, each with its cover, its name and how many photos it has.
-export function AlbumsScreen(props: ScreenProps): JSX.Element {
+export function AlbumsScreen(props: AlbumsScreenProps): JSX.Element {
   const { library, keys, reportError, back } = props
   const task = useCallback(async () => loadAlbums(library), [library])
   const load = useLibraryLoad(task, reportError)
   return (
-    <Frame title={MESSAGES.albums}>
+    <Frame title={albumsTitle(props.intent)}>
       <Loaded
         load={load}
         emptyText={MESSAGES.noAlbums}
@@ -35,15 +40,16 @@ export function AlbumsScreen(props: ScreenProps): JSX.Element {
   )
 }
 
-interface AlbumGridProps extends ScreenProps {
+interface AlbumGridProps extends AlbumsScreenProps {
   readonly albums: readonly Album[]
 }
 
-function AlbumGrid({ albums, library, keys, position, open, back }: AlbumGridProps): JSX.Element {
+function AlbumGrid(props: AlbumGridProps): JSX.Element {
+  const { albums, library, keys, position, open, back, intent } = props
   const [current, setCurrent] = useState(position)
   return (
     <Grid
-      label={MESSAGES.albums}
+      label={albumsTitle(intent)}
       variant="albums"
       items={albums}
       shape={SHAPE}
@@ -53,7 +59,7 @@ function AlbumGrid({ albums, library, keys, position, open, back }: AlbumGridPro
       renderTile={(album) => <AlbumTile album={album} library={library} />}
       onMove={setCurrent}
       onOpen={(album, from) => {
-        open(from, { kind: ScreenKind.Album, album })
+        open(from, albumScreen(album, intent))
       }}
       onBack={back}
     />

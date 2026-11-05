@@ -1,5 +1,16 @@
+import { Intent, PresentChoice, ScreenKind } from '../core/navigation.ts'
 import type { PhotoDate, ServerInfo, TimelineMonth } from '../core/photo-library.ts'
+import {
+  PlaybackOrder,
+  type PresentationSettings,
+  type Setting,
+  SettingName,
+  Transition,
+  ZoomIntensity,
+} from '../core/presentation-settings.ts'
+import { type PresentationSource, SourceKind } from '../core/presentation-source.ts'
 import { MAX_SLIDESHOW_SECONDS, MIN_SLIDESHOW_SECONDS } from '../core/runtime-config.ts'
+import { RESTORE_ROW, type SettingsRow } from '../core/settings-form.ts'
 import { StartupFailure } from '../core/startup.ts'
 
 // Every text people read on the screen, in Brazilian Portuguese. Code, logs and docs stay in English.
@@ -34,6 +45,10 @@ const FAILURES: Readonly<Record<StartupFailure, PanelText>> = {
   [StartupFailure.InvalidSlideshowSeconds]: {
     title: 'Intervalo da apresentação inválido',
     hint: `Em slideshowSeconds, use um número de segundos entre ${String(MIN_SLIDESHOW_SECONDS)} e ${String(MAX_SLIDESHOW_SECONDS)}, ou retire o campo para usar o padrão.`,
+  },
+  [StartupFailure.InvalidPresentation]: {
+    title: 'Ajustes da apresentação inválidos',
+    hint: 'No bloco presentation do config.json, confira os nomes e os valores (intervalSeconds de 3 a 60, hideInterfaceSeconds de 3 a 20, order "oldest-first", "newest-first" ou "random"), ou retire o bloco para usar os padrões.',
   },
   [StartupFailure.Unreachable]: {
     title: 'O Immich não respondeu',
@@ -70,6 +85,18 @@ export const MESSAGES = {
   back: 'Voltar',
   albums: 'Álbuns',
   timeline: 'Linha do tempo',
+  present: 'Apresentar',
+  settings: 'Ajustes',
+  presentAlbum: 'Apresentar um álbum',
+  presentYear: 'Apresentar um ano',
+  presentMonth: 'Apresentar um mês',
+  wholeLibrary: 'Toda a biblioteca',
+  settingsKeys: '↑ ↓ escolhem · ← → mudam · OK alterna · Voltar salva',
+  restoreDefaults: 'Restaurar padrões',
+  emptyPresentation: {
+    title: 'Nada para apresentar',
+    hint: 'Não há fotos aqui. Volte e escolha outra coisa para apresentar.',
+  },
   noAlbums: {
     title: 'Nenhum álbum por aqui ainda',
     hint: 'Os álbuns que você criar no Immich aparecem nesta tela.',
@@ -88,11 +115,88 @@ export const MESSAGES = {
   },
   photoUnavailable: 'Foto indisponível',
   previewUnavailable: 'Não foi possível carregar esta foto',
-  slideshowPlaying: 'Em apresentação · OK pausa',
-  slideshowPaused: 'OK inicia a apresentação · as setas trocam a foto',
+  slideshowPlaying: 'Em apresentação · OK pausa · ↓ ajustes',
+  slideshowPaused: 'OK inicia a apresentação · as setas trocam a foto · ↓ ajustes',
 } as const satisfies Readonly<Record<string, PanelText | string>>
 
 const ELLIPSIS = '…'
+
+// The cards of the choices of a presentation: what they present, and how.
+const CHOICES: ReadonlyMap<PresentChoice, PanelText> = new Map([
+  [PresentChoice.Library, { title: 'Toda a biblioteca', hint: 'Aleatória, 200 fotos por vez' }],
+  [PresentChoice.Album, { title: 'Um álbum', hint: 'Escolha o álbum' }],
+  [PresentChoice.Year, { title: 'Um ano', hint: 'Escolha o ano' }],
+  [PresentChoice.Month, { title: 'Um mês', hint: 'Escolha o ano e o mês' }],
+])
+
+const HOME_TITLES: ReadonlyMap<ScreenKind, string> = new Map([
+  [ScreenKind.Albums, MESSAGES.albums],
+  [ScreenKind.Years, MESSAGES.timeline],
+  [ScreenKind.Present, MESSAGES.present],
+  [ScreenKind.Settings, MESSAGES.settings],
+])
+
+const TIMELINE_TITLES: ReadonlyMap<Intent, string> = new Map([
+  [Intent.PresentYear, MESSAGES.presentYear],
+  [Intent.PresentMonth, MESSAGES.presentMonth],
+])
+
+const SETTING_LABELS: ReadonlyMap<SettingName, string> = new Map([
+  [SettingName.Interval, 'Tempo de cada foto'],
+  [SettingName.Order, 'Ordem'],
+  [SettingName.Transition, 'Transição'],
+  [SettingName.Zoom, 'Intensidade do zoom'],
+  [SettingName.ShowDate, 'Mostrar a data'],
+  [SettingName.ShowCaption, 'Mostrar a legenda'],
+  [SettingName.ShowCounter, 'Mostrar o contador'],
+  [SettingName.Loop, 'Repetir em laço'],
+  [SettingName.HideInterface, 'Esconder a interface após'],
+  [SettingName.ReduceEffects, 'Reduzir efeitos'],
+])
+
+const OPTION_TEXTS: ReadonlyMap<string, string> = new Map([
+  [PlaybackOrder.OldestFirst, 'Data crescente'],
+  [PlaybackOrder.NewestFirst, 'Data decrescente'],
+  [PlaybackOrder.Random, 'Aleatória'],
+  [Transition.Cut, 'Corte'],
+  [Transition.Fade, 'Esmaecer'],
+  [Transition.Slide, 'Deslizar'],
+  [Transition.KenBurns, 'Zoom lento'],
+  [ZoomIntensity.Gentle, 'Suave'],
+  [ZoomIntensity.Normal, 'Normal'],
+])
+
+// What each value does, under the list: "<setting name> <value>" for the choices and switches.
+const OPTION_PREVIEWS: ReadonlyMap<string, string> = new Map([
+  [`order ${PlaybackOrder.OldestFirst}`, 'As fotos passam da mais antiga para a mais recente.'],
+  [`order ${PlaybackOrder.NewestFirst}`, 'As fotos passam da mais recente para a mais antiga.'],
+  [
+    `order ${PlaybackOrder.Random}`,
+    'Em ordem aleatória, sem repetir uma foto antes de mostrar todas.',
+  ],
+  [`transition ${Transition.Cut}`, 'A foto seguinte entra de uma vez, sem efeito.'],
+  [`transition ${Transition.Fade}`, 'Uma foto se dissolve suavemente na seguinte.'],
+  [`transition ${Transition.Slide}`, 'A foto seguinte desliza pela tela e empurra a anterior.'],
+  [`transition ${Transition.KenBurns}`, 'Cada foto se aproxima devagar e se dissolve na seguinte.'],
+  [`zoom ${ZoomIntensity.Gentle}`, 'O zoom lento aproxima um pouco cada foto.'],
+  [`zoom ${ZoomIntensity.Normal}`, 'O zoom lento aproxima mais cada foto.'],
+  ['showDate true', 'A data da foto aparece junto com a interface.'],
+  ['showDate false', 'A data da foto não aparece.'],
+  ['showCaption true', 'A legenda escrita no Immich aparece embaixo da foto.'],
+  ['showCaption false', 'As legendas ficam escondidas.'],
+  ['showCounter true', 'A posição da foto, como "12 de 87", aparece junto com a interface.'],
+  ['showCounter false', 'A posição da foto não aparece.'],
+  ['loop true', 'Depois da última foto, a apresentação recomeça.'],
+  ['loop false', 'A apresentação para na última foto.'],
+  ['reduceEffects true', 'Sem zoom e só esmaecer, para TVs mais lentas.'],
+  ['reduceEffects false', 'As transições e o zoom ficam como escolhidos.'],
+])
+
+// Notes on settings that only matter with another one.
+const PREVIEW_NOTES: ReadonlyMap<SettingName, string> = new Map([
+  [SettingName.Order, 'A biblioteca inteira é sempre aleatória.'],
+  [SettingName.Zoom, 'Vale para a transição Zoom lento.'],
+])
 
 const MONTH_NAMES: readonly string[] = [
   'janeiro',
@@ -112,11 +216,66 @@ const MONTH_NAMES: readonly string[] = [
 const FAILURE_TEXTS: ReadonlyMap<string, PanelText> = new Map(Object.entries(FAILURES))
 
 export function failureText(failure: StartupFailure): PanelText {
-  const text = FAILURE_TEXTS.get(failure)
-  if (text === undefined) {
-    throw new RangeError(`No text for the startup failure "${failure}"`)
+  return textOf(FAILURE_TEXTS, failure)
+}
+
+export function choiceText(choice: PresentChoice): PanelText {
+  return textOf(CHOICES, choice)
+}
+
+// The title of a card of the start screen, by the screen it opens.
+export function homeTitle(kind: ScreenKind): string {
+  return textOf(HOME_TITLES, kind)
+}
+
+export function albumsTitle(intent: Intent): string {
+  return intent === Intent.PresentAlbum ? MESSAGES.presentAlbum : MESSAGES.albums
+}
+
+export function yearsTitle(intent: Intent): string {
+  return TIMELINE_TITLES.get(intent) ?? MESSAGES.timeline
+}
+
+// What a presentation shows, on its screen while the photos load.
+export function sourceTitle(source: PresentationSource): string {
+  switch (source.kind) {
+    case SourceKind.Album:
+      return source.album.name
+    case SourceKind.Month:
+      return monthTitle(source.month)
+    case SourceKind.Year:
+      return String(source.year.year)
+    default:
+      return MESSAGES.wholeLibrary
   }
-  return text
+}
+
+export function settingLabel(row: SettingsRow): string {
+  return row.kind === RESTORE_ROW.kind ? MESSAGES.restoreDefaults : textOf(SETTING_LABELS, row.name)
+}
+
+// "8 s", "Aleatória", "Sim": the value of the setting.
+export function settingValueText(setting: Setting, settings: PresentationSettings): string {
+  const value = setting.valueOf(settings)
+  if (typeof value === 'number') {
+    return `${String(value)} s`
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'Sim' : 'Não'
+  }
+  return textOf(OPTION_TEXTS, value)
+}
+
+// What the value of the row does, in a sentence or two.
+export function settingPreview(row: SettingsRow, settings: PresentationSettings): string {
+  if (row.kind === RESTORE_ROW.kind) {
+    return 'OK volta todos os ajustes aos valores padrão.'
+  }
+  const value = row.valueOf(settings)
+  const text =
+    typeof value === 'number' ? secondsPreview(row.name, value) : optionPreview(row.name, value)
+  const note = PREVIEW_NOTES.get(row.name)
+  return note === undefined ? text : `${text} ${note}`
 }
 
 export function serverText(server: ServerInfo): string {
@@ -159,6 +318,24 @@ export function shortText(text: string, maxLength: number): string {
     return text
   }
   return `${text.slice(0, maxLength - ELLIPSIS.length)}${ELLIPSIS}`
+}
+
+function secondsPreview(name: SettingName, seconds: number): string {
+  return name === SettingName.Interval
+    ? `Cada foto fica ${String(seconds)} segundos na tela.`
+    : `A data, o contador e as dicas somem ${String(seconds)} segundos depois de cada troca.`
+}
+
+function optionPreview(name: SettingName, value: boolean | string): string {
+  return textOf(OPTION_PREVIEWS, `${name} ${String(value)}`)
+}
+
+function textOf<K, T>(texts: ReadonlyMap<K, T>, key: K): T {
+  const text = texts.get(key)
+  if (text === undefined) {
+    throw new RangeError(`No text for "${String(key)}"`)
+  }
+  return text
 }
 
 function monthOf(month: number): string {

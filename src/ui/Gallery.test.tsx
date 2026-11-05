@@ -1,101 +1,41 @@
-import { render, screen, waitFor } from '@testing-library/preact'
-import { describe, expect, it, type Mock, vi } from 'vitest'
+import { screen, waitFor } from '@testing-library/preact'
+import { describe, expect, it } from 'vitest'
 
-import { memoryLibrary, type MemoryLibrary, photos, stubLibrary } from '../../test/library-stub.ts'
-import { fakeRemote, type FakeRemote } from '../../test/remote.ts'
+import {
+  DATA,
+  EMPTY,
+  FAMILY,
+  focusedOn,
+  showGallery,
+  type ShownGallery,
+  title,
+  TRIP,
+} from '../../test/gallery.ts'
+import { memoryLibrary, stubLibrary } from '../../test/library-stub.ts'
 import {
   type Album,
   LibraryFailure,
   type PhotoLibrary,
   PhotoLibraryError,
-  PhotoOrder,
 } from '../core/photo-library.ts'
 import { RemoteKey } from '../core/remote-key.ts'
-import { Gallery } from './Gallery.tsx'
 import { failureText, MESSAGES } from './messages.ts'
 
 const { Up, Down, Left, Right, Enter, Back } = RemoteKey
-const SERVER = { address: '192.168.0.10:2283', version: '3.3.6' }
 
-const TRIP = {
-  id: 'trip',
-  name: 'Viagem a Lisboa',
-  photoCount: 30,
-  coverPhotoId: 'trip-1',
-  order: PhotoOrder.OldestFirst,
-  lastPhotoAtMs: Date.UTC(2024, 2, 30),
-}
-const FAMILY = {
-  id: 'family',
-  name: 'Família',
-  photoCount: 3,
-  order: PhotoOrder.NewestFirst,
-  lastPhotoAtMs: Date.UTC(2023, 11, 3),
-}
-const EMPTY = { id: 'empty', name: 'Sem fotos', photoCount: 0, order: PhotoOrder.NewestFirst }
-
-const DATA: MemoryLibrary = {
-  server: SERVER,
-  albums: [EMPTY, FAMILY, TRIP],
-  albumPhotos: new Map([
-    [TRIP.id, photos('trip', 30)],
-    [FAMILY.id, photos('family', 3, { year: 2023, month: 12 })],
-  ]),
-  months: [
-    { key: 'm-2023-12', year: 2023, month: 12 },
-    { key: 'm-2024-04', year: 2024, month: 4 },
-    { key: 'm-2024-03', year: 2024, month: 3 },
-    { key: 'm-2024-05', year: 2024, month: 5 },
-  ],
-  monthPhotos: new Map([
-    ['m-2024-03', photos('march', 10)],
-    ['m-2024-04', photos('april', 2, { year: 2024, month: 4 })],
-  ]),
-}
-
-interface Shown {
-  readonly remote: FakeRemote
-  readonly reported: unknown[]
-  readonly leave: Mock<() => void>
-}
-
-function show(library: PhotoLibrary = memoryLibrary(DATA)): Shown {
-  const remote = fakeRemote()
-  const reported: unknown[] = []
-  const leave = vi.fn<() => void>()
-  render(
-    <Gallery
-      session={{ server: SERVER, library, slideshowSeconds: 8 }}
-      keys={remote.keys}
-      reportError={(error) => reported.push(error)}
-      leave={leave}
-    />,
-  )
-  return { remote, reported, leave }
-}
-
-async function title(text: string): Promise<void> {
-  await screen.findByRole('heading', { level: 1, name: text })
-}
-
-function focused(): string | null | undefined {
-  return document.activeElement?.textContent
-}
-
-async function focusedOn(text: string): Promise<void> {
-  await waitFor(() => {
-    expect(focused()).toContain(text)
-  })
-}
+const show = (library?: PhotoLibrary): ShownGallery =>
+  showGallery(library === undefined ? {} : { library })
 
 describe('Gallery', () => {
-  it('should start on the two ways into the library, with the server below them', async () => {
+  it('should start on the ways into the library and its presentations, with the server below them', async () => {
     show()
 
     await title(MESSAGES.appName)
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toStrictEqual([
       MESSAGES.albums,
       MESSAGES.timeline,
+      MESSAGES.present,
+      MESSAGES.settings,
     ])
     expect(screen.getByText('Immich 3.3.6 em 192.168.0.10:2283')).toBeTruthy()
     await focusedOn(MESSAGES.albums)
