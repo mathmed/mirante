@@ -46,7 +46,9 @@ Always use `npm ci` / `npm install` (never another package manager) and commit `
 ```
 src/core/      pure logic: the startup flow, the runtime configuration, the photo library interface and
                its domain types, the order of albums, photos and months, the spatial focus navigation
-               of the grids, the stack of screens, the remote control keys, and the presentations:
+               of the grids, the feed of every photo ("Todas": photo-feed, its months read on demand,
+               and feed-layout, its grid with a heading per month), the count of the library under
+               the logo (library-summary), the stack of screens, the remote control keys, and the presentations:
                their settings (presentation-settings, settings-input, settings-storage,
                settings-form), the engine (presentation: playlists, rounds, what loads ahead), the
                seeded shuffle, their sources, the transitions (presentation-effects) and the captions
@@ -149,10 +151,13 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   never trap people in the app. Tizen delivers arrows, Enter and Back without
   `tizen.tvinputdevice.registerKey`, and Back as the 10009 keydown (never also `tizenhwkey`, or one
   press acts twice). Info (457 on Tizen and webOS, I on a keyboard) opens the settings over the
-  viewer; Tizen only sends it once `src/platform/tizen-keys.ts` registers it at startup. It is a
-  shortcut: Down opens the same settings, so that the arrows, Enter and Back still reach everything.
+  viewer, and presents from the photo in focus in "Todas"; Tizen only sends it once
+  `src/platform/tizen-keys.ts` registers it at startup. It is a shortcut: Down opens the same
+  settings, and Enter in the viewer starts the same presentation, so that the arrows, Enter and Back
+  still reach everything.
 - **Memory is scarce**: grids render only the rows on the screen and one around them (the rest is
-  unmounted, its images unloaded), and the viewer keeps at most three images decoded. Only `transform`
+  unmounted, its images unloaded), the viewer keeps at most three images decoded, and "Todas" reads
+  the library a month at a time as the focus nears the end of what is read, never all of it. Only `transform`
   and `opacity` change, few elements animate, and nothing relies on `overflow`, which Chromium 68
   supports only in part: screens are `position: fixed` and off-screen cells are hidden.
 - **Overscan**: every screen keeps its content inside the safe area, 5% of each edge.

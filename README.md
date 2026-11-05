@@ -8,8 +8,8 @@ A photo gallery viewer for TVs. Mirante runs in the TV's browser or as an app of
 reads the photos of your [Immich](https://immich.app/) server and is driven by the remote control
 alone: arrows, Enter and Back (and Info, optional).
 
-> **Status: version 1 in progress.** The gallery works in the browser of the TV: albums, the
-> timeline by year and month, the full-screen viewer, and presentations of an album, a month, a
+> **Status: version 1 in progress.** The gallery works in the browser of the TV: every photo in one
+> grid, albums, the timeline by year and month, the full-screen viewer, and presentations of an album, a month, a
 > year or the whole library, with their settings and the captions written in Immich. It also
 > packages as an LG webOS app (`.ipk`, see [docs/webos.md](docs/webos.md)) and as a Samsung Tizen
 > app (an unsigned `.wgt` you sign with your own certificates, see [docs/tizen.md](docs/tizen.md)),
@@ -19,7 +19,8 @@ alone: arrows, Enter and Back (and Info, optional).
 
 Version 1 shows photos, read only:
 
-- albums and the timeline of the library, and a full-screen photo viewer with a slideshow;
+- every photo of the library, the most recent first, month by month; albums and the timeline of
+  the library; and a full-screen photo viewer with a slideshow;
 - presentations of an album, a month, a year or the whole library (at random), with the captions
   written in Immich and settings each TV keeps: the interval, the order, the transition (cut, fade,
   slide or a slow "Ken Burns" zoom), what shows over the photo, and a lighter mode for slow TVs;
@@ -58,15 +59,16 @@ system (see [docs/webos.md](docs/webos.md#what-the-lg-taught-us)).
 
 The focus is always visible, and every screen is reachable with these keys only; nothing needs a
 mouse or a touch screen. A held arrow keeps moving; a held Enter, Back or Info acts once. Info is
-optional: it opens the settings over the viewer, which Down opens too, for remote controls without
-it. Tizen only sends Info to an app that registers it, which Mirante does at startup (the
+optional: it opens the settings over the viewer, which Down opens too, and presents from the photo
+in focus in **Todas**, which OK in the viewer does too, for remote controls without it. Tizen only sends Info to an app that registers it, which Mirante does at startup (the
 `tv.inputdevice` privilege of `tizen/config.xml`).
 
 ## Screens
 
 | Screen   | What it shows                                             | Enter                          | Back                               |
 | -------- | --------------------------------------------------------- | ------------------------------ | ---------------------------------- |
-| Start    | the logo and four cards, over a photo (see below)         | opens the one in focus         | leaves the app (TV apps)           |
+| Start    | the logo, the count of the library and five cards         | opens the one in focus         | leaves the app (TV apps)           |
+| All      | every photo, the most recent first, under each month      | opens the photo in the viewer  | start                              |
 | Albums   | the covers, with each album's name and number of photos   | opens the album                | start, focus where it was          |
 | Album    | the album's photos, in the order chosen for it in Immich  | opens the photo in the viewer  | albums, on the album that was open |
 | Timeline | the years with photos, the most recent first              | opens the year's months        | start                              |
@@ -78,8 +80,23 @@ it. Tizen only sends Info to an app that registers it, which Mirante does at sta
 
 The app opens on its logo while it connects to Immich, and moves on to the start screen as soon as
 the server answers. Behind the start screen lies the cover of the most recent album, darkened (a
-plain background when no album has a cover), under four cards: **Álbuns**, **Linha do tempo**,
-**Apresentar** and **Ajustes**.
+plain background when no album has a cover), under the logo, a line that says what the library
+holds (**12.340 fotos · de 2019 a 2026**, counted from the months of the timeline, videos included
+as Immich counts them; nothing for an empty library or when the read fails) and five cards:
+**Todas**, **Álbuns**, **Linha do tempo**, **Apresentar** and **Ajustes**.
+
+### Every photo
+
+**Todas** shows the whole library as one grid, the most recent photo first, like the "Recents" of
+a phone: each month opens with its name and how many photos it has. The months are read from
+Immich one at a time, from the most recent, as the focus nears the end of what is read, so a TV
+never asks for the whole library at once, and only the rows on the screen (and one around them)
+are rendered. ← and → go through the photos one by one, across rows and months; ↑ and ↓ change rows.
+OK opens the viewer, which goes on through the whole library in the same order, reading the next
+month ahead of it; Back returns to the grid on the photo shown last. **Info** (or OK again in the
+viewer) presents from the photo in focus, in the order of the screen, with the settings of the TV
+(its order setting aside). When a month cannot be read, the grid says so under the photos and
+tries again on the next move.
 
 Back on the start screen, and on the connecting and error screens before it, leaves the app when
 it runs as a webOS or a Tizen app (the TV returns to its launcher); in a browser it stays on the
@@ -137,9 +154,9 @@ Captured by `make screenshots` at 1920x1080, against a fake library:
 | ------------------------------------------------ | ------------------------------------------ |
 | ![Start screen](docs/screenshots/02-inicio.webp) | ![Albums](docs/screenshots/03-albuns.webp) |
 
-| Viewer, with a caption                   | Settings                                      |
-| ---------------------------------------- | --------------------------------------------- |
-| ![Viewer](docs/screenshots/05-foto.webp) | ![Settings](docs/screenshots/13-ajustes.webp) |
+| Every photo                                    | Viewer, with a caption                   |
+| ---------------------------------------------- | ---------------------------------------- |
+| ![Every photo](docs/screenshots/15-todas.webp) | ![Viewer](docs/screenshots/05-foto.webp) |
 
 Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screenshots/02-inicio.webp),
 [albums](docs/screenshots/03-albuns.webp), [album](docs/screenshots/04-album.webp),
@@ -147,9 +164,10 @@ Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screens
 [years](docs/screenshots/07-linha-do-tempo.webp), [months](docs/screenshots/08-meses.webp),
 [empty album](docs/screenshots/09-album-vazio.webp), [loading](docs/screenshots/10-carregando.webp),
 [error](docs/screenshots/11-erro.webp), [presentations](docs/screenshots/12-apresentar.webp),
-[settings](docs/screenshots/13-ajustes.webp) and
-[settings over a photo](docs/screenshots/14-ajustes-na-foto.webp). The icon was chosen over two
-alternatives, compared in [docs/screenshots/icone-alternativas.webp](docs/screenshots/icone-alternativas.webp).
+[settings](docs/screenshots/13-ajustes.webp),
+[settings over a photo](docs/screenshots/14-ajustes-na-foto.webp) and
+[every photo](docs/screenshots/15-todas.webp). The icon was chosen over two alternatives, compared in
+[docs/screenshots/icone-alternativas.webp](docs/screenshots/icone-alternativas.webp).
 
 ## Configuration
 
@@ -277,7 +295,8 @@ and every screen included, is about 30 kB of JavaScript gzipped today, plus its 
 ```
 src/core/      pure logic, no DOM and no package: the startup flow, the runtime configuration, the
                photo library interface and its domain types, the focus navigation of the grids, the
-               stack of screens, and the presentations: their settings and how they are kept, the
+               feed of every photo (its months read on demand and its grid with a heading per
+               month), the count of the library, the stack of screens, and the presentations: their settings and how they are kept, the
                engine (playlists, rounds, seeded shuffles, what loads ahead), their sources, the
                transitions and the captions
 src/immich/    the photo library implemented with @immich/sdk, read only
