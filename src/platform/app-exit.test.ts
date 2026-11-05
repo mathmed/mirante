@@ -56,6 +56,65 @@ describe('leaveApp', () => {
     }).not.toThrow()
   })
 
+  it('should leave the application on a Tizen TV', () => {
+    const exit = vi.fn<() => void>()
+
+    leaveApp({ tizen: { application: { getCurrentApplication: () => ({ exit }) } } })
+
+    expect(exit).toHaveBeenCalledOnce()
+  })
+
+  it('should keep the Tizen application and the current one as the objects of the calls', () => {
+    const calls: unknown[] = []
+    const current = {
+      exit(this: unknown): void {
+        calls.push(this)
+      },
+    }
+    const application = {
+      getCurrentApplication(this: unknown): object {
+        calls.push(this)
+        return current
+      },
+    }
+
+    leaveApp({ tizen: { application } })
+
+    expect(calls).toStrictEqual([application, current])
+  })
+
+  it('should prefer the system of webOS to a tizen global', () => {
+    const platformBack = vi.fn<() => void>()
+    const getCurrentApplication = vi.fn<() => object>()
+
+    leaveApp({ PalmSystem: { platformBack }, tizen: { application: { getCurrentApplication } } })
+
+    expect(platformBack).toHaveBeenCalledOnce()
+    expect(getCurrentApplication).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { name: 'a tizen that is not an object', host: { tizen: 'tizen' } },
+    { name: 'a tizen without its application', host: { tizen: {} } },
+    { name: 'an application that is not an object', host: { tizen: { application: null } } },
+    {
+      name: 'no current application',
+      host: { tizen: { application: { getCurrentApplication: 'app' } } },
+    },
+    {
+      name: 'a current application that is not an object',
+      host: { tizen: { application: { getCurrentApplication: () => undefined } } },
+    },
+    {
+      name: 'a current application without exit',
+      host: { tizen: { application: { getCurrentApplication: () => ({ exit: 1 }) } } },
+    },
+  ])('should not call into $name', ({ host }) => {
+    expect(() => {
+      leaveApp(host)
+    }).not.toThrow()
+  })
+
   it('should stay in a browser, which has neither', () => {
     expect(() => {
       leaveApp({})

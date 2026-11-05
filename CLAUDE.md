@@ -113,8 +113,11 @@ docs/          docs/webos.md: packaging, Developer Mode, installing and debuggin
   focus goes) is pure and lives in the core; key codes live in `src/platform`. One component listens
   to the keys at a time (the screen on top, or the viewer over it), through `useRemoteKeys`. Back on
   the first screen (the start screen, or the connecting and error screens before it) leaves the app
-  through `src/platform/app-exit.ts` (`webOS.platformBack` or `PalmSystem.platformBack`,
-  feature-detected; a browser stays): never trap people in the app.
+  through `src/platform/app-exit.ts` (`webOS.platformBack` or `PalmSystem.platformBack` on webOS,
+  `tizen.application.getCurrentApplication().exit()` on Tizen, feature-detected; a browser stays):
+  never trap people in the app. Tizen delivers arrows, Enter and Back without
+  `tizen.tvinputdevice.registerKey`, and Back as the 10009 keydown (never also `tizenhwkey`, or one
+  press acts twice).
 - **Memory is scarce**: grids render only the rows on the screen and one around them (the rest is
   unmounted, its images unloaded), and the viewer keeps at most three images decoded. Only `transform`
   and `opacity` change, few elements animate, and nothing relies on `overflow`, which Chromium 68
