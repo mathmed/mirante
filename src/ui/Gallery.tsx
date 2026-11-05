@@ -22,11 +22,13 @@ export interface GalleryProps {
   readonly session: Session
   readonly keys: KeySource
   readonly reportError: (error: unknown) => void
+  // Back on the start screen, which has no screen below it.
+  readonly leave: () => void
 }
 
 // The screens of the library, one on top of the other: Enter opens the next, Back returns to the
-// one below with the focus where it was.
-export function Gallery({ session, keys, reportError }: GalleryProps): JSX.Element {
+// one below with the focus where it was; on the start screen, Back leaves the app.
+export function Gallery({ session, keys, reportError, leave }: GalleryProps): JSX.Element {
   const [navigation, setNavigation] = useState(startNavigation)
   const depth = depthOf(navigation)
   const open = useCallback(
@@ -47,7 +49,13 @@ export function Gallery({ session, keys, reportError }: GalleryProps): JSX.Eleme
     back,
   }
   return (
-    <ScreenView key={depth} screen={navigation.current.screen} session={session} props={props} />
+    <ScreenView
+      key={depth}
+      screen={navigation.current.screen}
+      session={session}
+      props={props}
+      leave={leave}
+    />
   )
 }
 
@@ -57,10 +65,14 @@ interface ScreenViewProps {
   readonly props: ScreenProps
 }
 
-function ScreenView({ screen, session, props }: ScreenViewProps): JSX.Element {
+interface StackViewProps extends ScreenViewProps {
+  readonly leave: () => void
+}
+
+function ScreenView({ screen, session, props, leave }: StackViewProps): JSX.Element {
   switch (screen.kind) {
     case ScreenKind.Home:
-      return <HomeScreen {...props} server={session.server} />
+      return <HomeScreen {...props} back={leave} server={session.server} />
     case ScreenKind.Albums:
       return <AlbumsScreen {...props} />
     case ScreenKind.Years:
