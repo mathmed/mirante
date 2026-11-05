@@ -31,6 +31,7 @@
     "hooks": "lefthook install",
     "dev": "vite",
     "build": "vite build && vite build --config vite.webos.config.ts && es-check && node scripts/browser-apis.ts dist build/webos-dist",
+    "logo": "node scripts/logo.ts write",
     "package:webos": "node scripts/webos.ts package",
     "package:tizen": "node scripts/tizen.ts package",
     "test:webos": "playwright install --only-shell chromium && vitest run --config vitest.e2e.config.ts e2e/webos-package.test.ts",
