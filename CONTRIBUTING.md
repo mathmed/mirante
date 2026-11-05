@@ -105,7 +105,8 @@ writes is out of scope.
   (`scripts/packaging/icon.ts`). Never edit the SVG files by hand: a test fails while one differs
   from the shapes.
 - **Motion and effects for the TVs' GPUs**: only `opacity` and `transform` animate (screens fade in
-  in 320 ms, the viewer crossfades in 600 ms, the focused tile grows to 1.04), shadows and glows stay
+  in 320 ms, the viewer's transitions take 0.9 to 1.5 s and the slow zoom drifts for the time of a
+  photo, the focused tile grows to 1.04), shadows and glows stay
   on the focused element, and darkening is done with gradients. Stylelint rejects `blur()` and the
   individual `translate`, `scale` and `rotate` properties (Chromium 104) besides what `browserslist`
   lacks.

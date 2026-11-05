@@ -6,6 +6,22 @@ All notable changes to Mirante are documented in this file. The format is based 
 
 ## [Unreleased]
 
+### Changed
+
+- **The proxy needs two more routes, and one more CORS header for the TV apps.** The presentation
+  of the whole library draws its photos with `POST /api/search/random` (a read, with a JSON body)
+  and the captions come from `GET /api/assets/{id}`. A proxy that only lets through the routes the
+  app used before refuses them: the library does not present and no caption shows. Allow both, and,
+  for the packaged apps, answer the preflight with `Access-Control-Allow-Headers: Content-Type`.
+  [docs/proxy.md](docs/proxy.md) lists every route and method, what stays forbidden, and a Caddyfile.
+- **`slideshowSeconds` is now the default interval of the settings**, brought within their 3 to 60
+  seconds (it still accepts up to 3600, so no file breaks); `presentation.intervalSeconds` wins over
+  it.
+- **The viewer**: the date, the keys and the counter move to the top of the screen, to leave the
+  bottom to the caption, and its hint names ↓ for the settings.
+- **The Tizen app asks for the `tv.inputdevice` privilege**, to receive the Info key of the remote
+  control (registered at startup). A signed package needs signing again with it.
+
 ### Fixed
 
 - **The webOS app opened to a grey screen on the owner's LG (Chromium 68).** webOS refused the
@@ -23,6 +39,31 @@ All notable changes to Mirante are documented in this file. The format is based 
   debug the TV with `ares-inspect` and the Chrome DevTools Protocol.
 
 ### Added
+
+- **Presentations.** The start screen gets **Apresentar**: the whole library, at random, 200 photos
+  a round drawn by Immich and a new draw for each round; or an album, a year or a month, chosen on
+  the screens of the gallery. A presentation plays at once, in the order and with the transition of
+  the settings; Back returns to where it was chosen. The engine is pure logic in `src/core`: the
+  playlist of a source, a random order from a seed that never repeats a photo before the round
+  ends (nor across rounds), the next slide and when it comes, and what loads ahead (the next photo,
+  decoded, and the one after it, only downloaded; never more than three decoded). Each slide holds a
+  list of photos, one today.
+- **Transitions**: a cut, a fade, a slide, or a slow "Ken Burns" zoom whose direction each photo's
+  id decides, gentle or normal; only `opacity` and `transform` move. **Reduzir efeitos** leaves a
+  plain fade without zoom, for slow TVs.
+- **Captions**: the description of the photo in Immich, under it, in the golden italic serif,
+  fading in. It is read for the photo on the screen and the next one only, with a small cache; a
+  photo without one shows nothing and nothing moves.
+- **Ajustes**, the settings of the presentations, from the start screen or over the viewer (Info,
+  457 on Tizen and webOS, I on a keyboard, or Down): the interval (3 to 60 seconds), the order (by
+  date either way, or random), the transition, the zoom, whether the date, the caption and the
+  counter show, the loop, when the interface hides (3 to 20 seconds) and the lighter mode, with a
+  sentence on what each value does and **Restaurar padrões**. Back keeps them on the TV
+  (`localStorage`, versioned; anything unreadable is dropped for the defaults).
+- **`presentation`** in `config.json`: the defaults of those settings for every TV (see the
+  README). An invalid block is reported on the screen.
+- **More screenshots**: the choices of a presentation, the settings, the settings over a photo, and
+  the viewer with a caption.
 
 - **The identity of Mirante.** A logo, an M standing on the horizon under the arch of a rising sun
   over two lines of water, drawn from its shapes by `make logo` (`scripts/logo/`): the mark the app
