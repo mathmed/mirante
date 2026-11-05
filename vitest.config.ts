@@ -12,6 +12,7 @@ export default mergeConfig(
   viteConfig,
   defineConfig({
     test: {
+      globalSetup: ['test/support/temp-root.ts'],
       // Three environments: Node.js for the CI scripts and for the pure core (it has no DOM), a
       // browser (jsdom) for the rest of the app, with the fake Immich server of test/.
       projects: [

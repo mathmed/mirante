@@ -18,6 +18,9 @@ reports/
 quality-fragments/
 quality-report.md
 
+# Temporary directories of the test runs (test/support/temp-root.ts)
+.tmp/
+
 # Logs
 *.log
 
