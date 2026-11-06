@@ -8,7 +8,7 @@ import { createImmichLibrary } from './immich/immich-library.ts'
 import { leaveApp } from './platform/app-exit.ts'
 import { CONFIG_FILE, readConfigFile } from './platform/config-file.ts'
 import { logError } from './platform/error-log.ts'
-import { localTextStorage, SETTINGS_KEY } from './platform/local-settings.ts'
+import { BOOK_SEEDS_KEY, localTextStorage, SETTINGS_KEY } from './platform/local-settings.ts'
 import { randomSeed } from './platform/random-seed.ts'
 import { listenToRemote } from './platform/remote-control.ts'
 import { registerTizenKeys } from './platform/tizen-keys.ts'
@@ -47,6 +47,7 @@ render(
     reportError={logError}
     leave={leave}
     storage={localTextStorage(window, SETTINGS_KEY)}
+    bookStorage={localTextStorage(window, BOOK_SEEDS_KEY)}
     newSeed={randomSeed}
   />,
   root,

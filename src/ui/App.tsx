@@ -17,6 +17,8 @@ export interface AppProps {
   readonly leave: () => void
   // Where the TV keeps its settings of the presentations.
   readonly storage: TextStorage
+  // Where the TV keeps the seed of each book it reorganized.
+  readonly bookStorage: TextStorage
   // A new seed for each random order.
   readonly newSeed: () => number
 }

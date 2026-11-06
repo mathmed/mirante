@@ -86,14 +86,16 @@ writes is out of scope.
   and Backspace on the desktop). Every action is reachable with them, the focus is always visible
   (style `:focus`, never `:focus-visible`) and never lost when a screen changes.
 - **Relative paths, no service worker**: the packaged apps load from the file system.
-- **Text people read** lives in `src/ui/messages.ts`, in Brazilian Portuguese; everything else is in
-  English.
+- **Text people read** lives in `src/ui/messages.ts` and its companions `settings-messages.ts` and
+  `book-messages.ts`, in Brazilian Portuguese; everything else is in English.
 
 ## The look of the app
 
 - **Palette**: neutral graphite with one soft amber accent: background `#0C0C0E`, surface `#17171B`,
   raised surface `#222228`, border `#2B2B33`, text `#F4F4F6`, secondary text `#9B9BA7`, amber
   `#F0B65A` (light `#FFD08A`, dark `#B8802D`) and danger `#E5625A`, kept for destructive actions.
+  The pages of the photo book are printed on their own paper, neutral and warm whatever the palette:
+  paper `#F6F2EA`, its shade `#DED6C7`, and the ink `#3A332A` (soft `#64594A`).
   They are the custom properties at the top of `src/ui/styles.css`, the only place a color is
   written (the `--gold` names are the amber): a color changes on its line. Those that also show with
   transparency are written as their channels (`--gold-rgb: 240 182 90`), and every shade of them is
@@ -104,7 +106,7 @@ writes is out of scope.
   whole interface, titles included, in its weights 400, 600 and 700; hierarchy comes from weight
   and size, never from ornaments, and counters, counts and years use tabular figures
   (`font-variant-numeric: tabular-nums`). The italic of Playfair Display only sets the captions of
-  the photos (the photo book, when it comes, keeps it for the title of its cover). Four Latin-subset WOFF2 files, about
+  the photos and the title on the cover of the photo book. Four Latin-subset WOFF2 files, about
   64 KB, with `font-display: swap`; no font is loaded from the network.
 - **The logo** is drawn from its shapes in `scripts/logo/mark.ts` (`scripts/logo/shapes.ts`: strokes
   of one width with round ends and corners, and disks): two rounded peaks in one amber stroke that
@@ -127,7 +129,8 @@ writes is out of scope.
   lacks.
 - **Screenshots**: `make screenshots` writes the main screens to `docs/screenshots/` (WebP, each under
   300 KB) from the build, against a fake Immich whose photos are landscapes drawn from their ids
-  (`e2e/screenshots.test.ts`), and the icon beside its two alternatives
+  (`e2e/screenshots.test.ts`; the photos of the book, `Cachoeiras de Minas`, come in every shape),
+  and the icon beside its two alternatives
   (`icone-alternativas.webp`). Run it after a visual change and commit the images with it.
 
 ## The pipeline

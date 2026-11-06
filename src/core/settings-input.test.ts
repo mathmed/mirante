@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { BookDensity } from './book-pagination.ts'
 import { fieldsOf } from './json.ts'
 import {
   DEFAULT_PRESENTATION,
@@ -21,6 +22,10 @@ const EVERY_FIELD = {
   loop: false,
   hideInterfaceSeconds: 10,
   reduceEffects: true,
+  bookDensity: 'dense',
+  showBookCover: false,
+  showPageNumbers: false,
+  bookSpreadSeconds: 30,
 }
 
 const EVERY_SETTING: PresentationSettings = {
@@ -34,6 +39,10 @@ const EVERY_SETTING: PresentationSettings = {
   shouldLoop: false,
   hideInterfaceSeconds: 10,
   shouldReduceEffects: true,
+  bookDensity: BookDensity.Dense,
+  shouldShowBookCover: false,
+  shouldShowPageNumbers: false,
+  bookSpreadSeconds: 30,
 }
 
 describe('parsePresentation', () => {
@@ -76,6 +85,11 @@ describe('parsePresentation', () => {
     { showDate: 'yes' },
     { loop: 1 },
     { reduceEffects: null },
+    { bookDensity: 'crowded' },
+    { showBookCover: 'yes' },
+    { showPageNumbers: 0 },
+    { bookSpreadSeconds: 61 },
+    { bookSpreadSeconds: 2 },
   ])('should reject %j', (fields) => {
     expect(parsePresentation(fieldsOf(fields), DEFAULT_PRESENTATION)).toBeUndefined()
   })

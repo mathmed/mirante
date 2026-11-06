@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { BookDensity } from './book-pagination.ts'
 import {
   DEFAULT_PRESENTATION,
   HIDE_INTERFACE_RANGE,
@@ -25,7 +26,7 @@ function settingNamed(name: SettingName): Setting {
 
 describe('DEFAULT_PRESENTATION', () => {
   it('should play every 8 seconds, by date, with a fade, showing everything, in a loop', () => {
-    expect(DEFAULT_PRESENTATION).toStrictEqual({
+    expect(DEFAULT_PRESENTATION).toMatchObject({
       intervalSeconds: 8,
       order: PlaybackOrder.OldestFirst,
       transition: Transition.Fade,
@@ -37,6 +38,16 @@ describe('DEFAULT_PRESENTATION', () => {
       hideInterfaceSeconds: 4,
       shouldReduceEffects: false,
     })
+  })
+
+  it('should make books of a normal density, with a cover and numbered pages, 10 s a spread', () => {
+    expect(DEFAULT_PRESENTATION).toMatchObject({
+      bookDensity: BookDensity.Normal,
+      shouldShowBookCover: true,
+      shouldShowPageNumbers: true,
+      bookSpreadSeconds: 10,
+    })
+    expect(Object.keys(DEFAULT_PRESENTATION)).toHaveLength(14)
   })
 })
 
@@ -53,7 +64,39 @@ describe('SETTINGS', () => {
       'loop',
       'hideInterfaceSeconds',
       'reduceEffects',
+      'bookDensity',
+      'showBookCover',
+      'showPageNumbers',
+      'bookSpreadSeconds',
     ])
+  })
+
+  it('should step the time of a spread of a book like the interval', () => {
+    expect(settingNamed(SettingName.BookSpread)).toMatchObject({ range: INTERVAL_RANGE })
+  })
+
+  it('should read and change the settings of the books', () => {
+    const changed = SETTINGS.reduce(
+      (settings, setting) =>
+        setting.kind === 'toggle'
+          ? setting.withValue(settings, !setting.valueOf(settings))
+          : settings,
+      DEFAULT_PRESENTATION,
+    )
+    const density = settingNamed(SettingName.BookDensity)
+    const spread = settingNamed(SettingName.BookSpread)
+
+    expect(changed).toMatchObject({ shouldShowBookCover: false, shouldShowPageNumbers: false })
+    expect(
+      density.kind === 'choice' && density.withValue(changed, BookDensity.Dense),
+    ).toMatchObject({
+      bookDensity: BookDensity.Dense,
+    })
+    expect(spread.kind === 'seconds' && spread.withValue(changed, 25)).toMatchObject({
+      bookSpreadSeconds: 25,
+    })
+    expect(density.valueOf(DEFAULT_PRESENTATION)).toBe(BookDensity.Normal)
+    expect(spread.valueOf(DEFAULT_PRESENTATION)).toBe(10)
   })
 
   it('should step the interval from 3 to 60 seconds and the interface from 3 to 20', () => {

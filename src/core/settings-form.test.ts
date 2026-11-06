@@ -45,7 +45,7 @@ describe('openSettings', () => {
 
 describe('SETTINGS_ROWS', () => {
   it('should end on the row that restores the defaults', () => {
-    expect(SETTINGS_ROWS).toHaveLength(11)
+    expect(SETTINGS_ROWS).toHaveLength(15)
     expect(SETTINGS_ROWS[SETTINGS_ROWS.length - 1]).toBe(RESTORE_ROW)
   })
 })

@@ -41,6 +41,9 @@ All notable changes to Mirante are documented in this file. The format is based 
   it.
 - **The viewer**: the date, the keys and the counter move to the top of the screen, to leave the
   bottom to the caption, and its hint names ↓ for the settings.
+- **The photos of an album and of a month open on their first photo**, after the new tile that
+  opens them as a book; **Apresentar** offers six cards, the two books included. Playfair Display's
+  italic also sets the title on the cover of a book.
 - **The Tizen app asks for the `tv.inputdevice` privilege**, to receive the Info key of the remote
   control (registered at startup). A signed package needs signing again with it.
 
@@ -73,6 +76,27 @@ All notable changes to Mirante are documented in this file. The format is based 
 - **What the library holds, under the logo**, counted from the months of the timeline: "12.340
   fotos · de 2019 a 2026", "1 foto · de 2026". Nothing shows while it loads, for an empty library or
   when the read fails. Like Immich, the count of a month includes its videos.
+- **An album or a month as a photo book.** **Ver como livro**, the first tile of an album or a
+  month (and **Livro de um álbum** and **Livro de um mês** on **Apresentar**), shows its photos in
+  spreads of two pages, several photos on each, on warm white paper with the fold shaded, the
+  number of each page above it and an optional cover (the name and the period, the name in the
+  italic serif). The layout is dynamic, never a fixed list of templates: how many photos a page
+  takes follows the shapes and the number of the photos and a rhythm of light and full pages, and
+  where they go is an optimization over the guillotine cuts of the page (sizes drawn from the shapes
+  of the photos), scored on the room the photos fill, every photo whole and never stretched, a
+  constant gap, a margin of 6% of the page, no tiny photo and no arrangement repeated on the next
+  page; the result is plain data (pages, rectangles, weights, seed), in `src/core`. A seed makes the
+  same book every time; **Reorganizar** draws another, kept on the TV for that album or month
+  (`localStorage`, `mirante.books`). Pages are laid out as they are first shown, so a large album
+  opens at once. Under the spread, a bar (‹, **Reproduzir livro**, **Visão geral**, **Reorganizar**,
+  ›) and a strip of the spreads; the page turns by a short slide and a crossfade; OK opens a photo
+  full screen and Back returns to its spread; **Reproduzir livro** turns a spread every few seconds.
+  Small photos load Immich's thumbnails and large ones its previews, never the original, and at
+  most two spreads are kept decoded. No new route of Immich.
+- **Four settings for the book**, on **Ajustes** and in the `presentation` block of `config.json`:
+  `bookDensity` (`"light"`, `"normal"` or `"dense"`), `showBookCover`, `showPageNumbers` and
+  `bookSpreadSeconds` (3 to 60, 10 by default).
+- **Three more screenshots**: a book on its cover, two pages laid out differently, and its overview.
 - **Presentations.** The start screen gets **Apresentar**: the whole library, at random, 200 photos
   a round drawn by Immich and a new draw for each round; or an album, a year or a month, chosen on
   the screens of the gallery. A presentation plays at once, in the order and with the transition of

@@ -1,4 +1,5 @@
 import { type PresentationSettings, Transition } from './presentation-settings.ts'
+import { textSeed } from './shuffle.ts'
 
 // How the viewer moves from a photo to the next: the transition it plays, how long it lasts and,
 // for the slow zoom, which way each photo drifts. The viewer animates transform and opacity alone.
@@ -23,8 +24,6 @@ const ZOOM_OUT_BIT = 1
 const TO_RIGHT_BIT = 2
 
 const MS_PER_SECOND = 1000
-const FNV_OFFSET = 2_166_136_261
-const FNV_PRIME = 16_777_619
 
 // Reducing the effects, for a slow TV, leaves a plain fade, whatever the transition chosen.
 export function effectiveTransition(settings: PresentationSettings): Transition {
@@ -50,7 +49,7 @@ export function isZooming(settings: PresentationSettings): boolean {
 
 // The same photo always drifts the same way, whatever the TV and the order it comes in.
 export function zoomPathOf(photoId: string): ZoomPath {
-  const hash = hashOf(photoId)
+  const hash = textSeed(photoId)
   const zoom = (hash & ZOOM_OUT_BIT) === 0 ? 'in' : 'out'
   const drift = (hash & TO_RIGHT_BIT) === 0 ? 'left' : 'right'
   return `${zoom}-${drift}` as const
@@ -68,13 +67,4 @@ export function slideMs(settings: PresentationSettings): number {
 
 export function interfaceMs(settings: PresentationSettings): number {
   return settings.hideInterfaceSeconds * MS_PER_SECOND
-}
-
-// FNV-1a over the code units of the text, as an unsigned 32-bit number.
-function hashOf(text: string): number {
-  let hash = FNV_OFFSET
-  for (let index = 0; index < text.length; index += 1) {
-    hash = Math.imul(hash ^ text.charCodeAt(index), FNV_PRIME)
-  }
-  return hash >>> 0
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { randomSequence, roundSeed, shuffled } from './shuffle.ts'
+import { randomSequence, roundSeed, shuffled, textSeed } from './shuffle.ts'
 
 const ITEMS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 
@@ -64,5 +64,14 @@ describe('roundSeed', () => {
   it('should move the seed far for each round, as an unsigned 32-bit number', () => {
     expect(roundSeed(42, 1)).toBe(2_654_435_811)
     expect(roundSeed(42, 2)).toBe(1_013_904_284)
+  })
+})
+
+describe('textSeed', () => {
+  it('should give the FNV-1a hash of the text, as an unsigned number', () => {
+    expect(textSeed('')).toBe(2_166_136_261)
+    expect(textSeed('a')).toBe(0xe4_0c_29_2c)
+    expect(textSeed('album:trip')).toBe(textSeed('album:trip'))
+    expect(textSeed('album:trip')).not.toBe(textSeed('album:family'))
   })
 })

@@ -4,6 +4,7 @@
     "intervalSeconds": 8,
     "order": "oldest-first",
     "transition": "fade",
-    "showCaption": true
+    "showCaption": true,
+    "bookDensity": "normal"
   }
 }

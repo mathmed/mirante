@@ -7,7 +7,16 @@ import { shortText } from './messages.ts'
 // About two lines of the caption: nothing on the screen clips text.
 const CAPTION_LENGTH = 140
 
+// Under the photo of the viewer, or under the spread of a book.
+export const CaptionPlace = {
+  Viewer: 'viewer',
+  Book: 'book',
+} as const
+
+export type CaptionPlace = (typeof CaptionPlace)[keyof typeof CaptionPlace]
+
 export interface CaptionProps {
+  readonly place: CaptionPlace
   readonly captions: CaptionCache
   // The photo on the screen, and the next one, whose caption is read ahead.
   readonly photoId: string | undefined
@@ -21,13 +30,13 @@ interface KnownCaption {
 
 // The caption written for the photo in Immich, under it, in the italic serif. It fades in
 // when it arrives; without one nothing shows, and nothing else on the screen moves.
-export function Caption({ captions, photoId, nextPhotoId }: CaptionProps): JSX.Element {
+export function Caption({ place, captions, photoId, nextPhotoId }: CaptionProps): JSX.Element {
   const text = useCaption(captions, photoId)
   useReadAhead(captions, nextPhotoId)
   return (
-    <div class="viewer-caption">
+    <div class={`${place}-caption`}>
       {text !== undefined && (
-        <p key={photoId} class="viewer-caption-text">
+        <p key={photoId} class={`${place}-caption-text`}>
           {shortText(text, CAPTION_LENGTH)}
         </p>
       )}
