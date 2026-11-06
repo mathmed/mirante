@@ -30,7 +30,7 @@ load where the key reaches them without the app.
 | `make dev`                 | Serve the app with hot reload (Vite).                                                     |
 | `make build`               | Bundle `dist/` and the webOS build, and check them against Chromium 68.                   |
 | `make logo`                | Write the logo files from `scripts/logo/mark.ts` (the app's mark and icon, `docs/logo/`). |
-| `make screenshots`         | Capture the main screens at 1920x1080 into `docs/screenshots/` (Playwright).              |
+| `make screenshots`         | Capture the main screens at 1920x1080 (and 1280x720) into `docs/screenshots/`.            |
 | `make package-webos`       | Package the build as the LG webOS app (`.ipk`), see `docs/webos.md`.                      |
 | `make test-webos`          | Run the `.ipk` from `file://` in a headless Chromium (Playwright).                        |
 | `make package-tizen`       | Package the build as the Samsung Tizen app (unsigned `.wgt`), see `docs/tizen.md`.        |
@@ -130,7 +130,8 @@ writes is out of scope.
 - **Screenshots**: `make screenshots` writes the main screens to `docs/screenshots/` (WebP, each under
   300 KB) from the build, against a fake Immich whose photos are landscapes drawn from their ids
   (`e2e/screenshots.test.ts`; the photos of the book, `Cachoeiras de Minas`, come in every shape),
-  and the icon beside its two alternatives
+  the settings scrolled to their end at 1920x1080 and 1280x720 (checking the last row stays inside
+  the safe area), and the icon beside its two alternatives
   (`icone-alternativas.webp`). Run it after a visual change and commit the images with it.
 
 ## The pipeline
