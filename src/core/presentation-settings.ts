@@ -1,3 +1,4 @@
+import { BookFormat } from './book-geometry.ts'
 import { BookDensity } from './book-pagination.ts'
 
 // How a presentation of photos runs: the interval, the order, the transition and what shows over
@@ -44,6 +45,8 @@ export interface PresentationSettings {
   readonly shouldReduceEffects: boolean
   // How many photos the pages of a book hold.
   readonly bookDensity: BookDensity
+  // The shape of the pages of a book: full screen, or the classic shape.
+  readonly bookFormat: BookFormat
   readonly shouldShowBookCover: boolean
   readonly shouldShowPageNumbers: boolean
   // How long each spread of a book stays on the screen while the book plays.
@@ -64,6 +67,7 @@ export const SettingName = {
   HideInterface: 'hideInterfaceSeconds',
   ReduceEffects: 'reduceEffects',
   BookDensity: 'bookDensity',
+  BookFormat: 'bookFormat',
   ShowBookCover: 'showBookCover',
   ShowPageNumbers: 'showPageNumbers',
   BookSpread: 'bookSpreadSeconds',
@@ -131,6 +135,7 @@ export const DEFAULT_PRESENTATION: PresentationSettings = {
   hideInterfaceSeconds: 4,
   shouldReduceEffects: false,
   bookDensity: BookDensity.Normal,
+  bookFormat: BookFormat.Wide,
   shouldShowBookCover: true,
   shouldShowPageNumbers: true,
   bookSpreadSeconds: 10,
@@ -189,6 +194,10 @@ export const SETTINGS: readonly Setting[] = [
   choice(SettingName.BookDensity, [BookDensity.Light, BookDensity.Normal, BookDensity.Dense], {
     valueOf: (settings) => settings.bookDensity,
     withValue: (settings, bookDensity) => ({ ...settings, bookDensity }),
+  }),
+  choice(SettingName.BookFormat, [BookFormat.Wide, BookFormat.Classic], {
+    valueOf: (settings) => settings.bookFormat,
+    withValue: (settings, bookFormat) => ({ ...settings, bookFormat }),
   }),
   toggle(SettingName.ShowBookCover, {
     valueOf: (settings) => settings.shouldShowBookCover,

@@ -59,6 +59,7 @@ describe('SettingsPanel', () => {
       'Mostrar o contadorSim',
       'Repetir em laçoSim',
       'Densidade do livroNormal',
+      'Formato do livroTela cheia (16:9)',
       'Mostrar a capa do livroSim',
       'Mostrar os números das páginasSim',
       'Tempo de cada página dupla10 s',
@@ -121,7 +122,7 @@ describe('SettingsPanel', () => {
   it('should say when the interface hides', () => {
     const sut = show()
 
-    sut.remote.press(...Array<RemoteKey>(12).fill(Down))
+    sut.remote.press(...Array<RemoteKey>(13).fill(Down))
 
     expect(preview()).toBe('A data, o contador e as dicas somem 4 segundos depois de cada troca.')
   })
@@ -140,9 +141,25 @@ describe('SettingsPanel', () => {
     )
     sut.remote.press(Right, Right)
     expect(focused()).toBe('Densidade do livroDensa')
-    sut.remote.press(Down, Enter)
+    sut.remote.press(Down)
+    expect(focused()).toBe('Formato do livroTela cheia (16:9)')
+    expect(preview()).toBe(
+      'As duas páginas ocupam a tela inteira, cada uma um pouco mais alta que larga.',
+    )
+    sut.remote.press(Right)
+    expect(focused()).toBe('Formato do livroClássico (4:3)')
+    expect(preview()).toBe(
+      'O formato anterior: páginas mais largas que altas, com faixas acima e abaixo do livro.',
+    )
+    sut.remote.press(Enter)
+    expect(focused()).toBe('Formato do livroTela cheia (16:9)')
+    sut.remote.press(Down)
+    expect(preview()).toBe('O livro abre com uma capa: o nome do álbum e o período das fotos.')
+    sut.remote.press(Enter)
     expect(preview()).toBe('O livro abre direto nas páginas de fotos.')
-    sut.remote.press(Down, Enter)
+    sut.remote.press(Down)
+    expect(preview()).toBe('O número de cada página aparece pequeno, no canto de baixo do papel.')
+    sut.remote.press(Enter)
     expect(preview()).toBe('As páginas aparecem sem número.')
     sut.remote.press(Down, Right)
     expect(focused()).toBe('Tempo de cada página dupla15 s')
@@ -151,7 +168,7 @@ describe('SettingsPanel', () => {
 
   it('should restore the defaults on Enter on the last row', () => {
     const sut = show({ ...DEFAULT_PRESENTATION, order: PlaybackOrder.Random })
-    sut.remote.press(...Array<RemoteKey>(16).fill(Down))
+    sut.remote.press(...Array<RemoteKey>(17).fill(Down))
     expect(focused()).toBe(MESSAGES.restoreDefaults)
     expect(preview()).toBe('OK volta todos os ajustes aos valores padrão.')
 

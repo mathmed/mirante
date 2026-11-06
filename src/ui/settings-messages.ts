@@ -1,3 +1,4 @@
+import { BookFormat } from '../core/book-geometry.ts'
 import { BookDensity } from '../core/book-pagination.ts'
 import {
   PlaybackOrder,
@@ -25,6 +26,7 @@ const SETTING_LABELS: ReadonlyMap<SettingName, string> = new Map([
   [SettingName.HideInterface, 'Esconder a interface após'],
   [SettingName.ReduceEffects, 'Reduzir efeitos'],
   [SettingName.BookDensity, 'Densidade do livro'],
+  [SettingName.BookFormat, 'Formato do livro'],
   [SettingName.ShowBookCover, 'Mostrar a capa do livro'],
   [SettingName.ShowPageNumbers, 'Mostrar os números das páginas'],
   [SettingName.BookSpread, 'Tempo de cada página dupla'],
@@ -49,6 +51,8 @@ const OPTION_TEXTS: ReadonlyMap<string, string> = new Map([
   [ZoomIntensity.Normal, 'Normal'],
   [BookDensity.Light, 'Leve'],
   [BookDensity.Dense, 'Densa'],
+  [BookFormat.Wide, 'Tela cheia (16:9)'],
+  [BookFormat.Classic, 'Clássico (4:3)'],
 ])
 
 // What each value does, under the list: "<setting name> <value>" for the choices and switches.
@@ -84,9 +88,17 @@ const OPTION_PREVIEWS: ReadonlyMap<string, string> = new Map([
     'De uma a seis fotos por página, alternando páginas de respiro e páginas cheias.',
   ],
   [`bookDensity ${BookDensity.Dense}`, 'Páginas cheias, de três a nove fotos.'],
+  [
+    `bookFormat ${BookFormat.Wide}`,
+    'As duas páginas ocupam a tela inteira, cada uma um pouco mais alta que larga.',
+  ],
+  [
+    `bookFormat ${BookFormat.Classic}`,
+    'O formato anterior: páginas mais largas que altas, com faixas acima e abaixo do livro.',
+  ],
   ['showBookCover true', 'O livro abre com uma capa: o nome do álbum e o período das fotos.'],
   ['showBookCover false', 'O livro abre direto nas páginas de fotos.'],
-  ['showPageNumbers true', 'O número de cada página aparece acima dela.'],
+  ['showPageNumbers true', 'O número de cada página aparece pequeno, no canto de baixo do papel.'],
   ['showPageNumbers false', 'As páginas aparecem sem número.'],
 ])
 
