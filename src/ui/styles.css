@@ -1147,8 +1147,9 @@ body {
 }
 
 /* A book: the numbers of the pages above the spread, the spread on its paper, the caption of the
-   photo in focus, the bar of the buttons and the strip of the spreads. The spread is 72vw wide and
-   two 4:3 pages high (the TVs are 16:9). */
+   photo in focus, the bar of the buttons and the strip of the spreads. The spread is two 4:3 pages
+   (the TVs are 16:9), 72vw wide less 96px: the type, the bar and the strip keep their size in
+   pixels, and at 1280x720 they need that room for the keys to stay inside the safe area. */
 .book {
   position: relative;
   display: flex;
@@ -1162,7 +1163,7 @@ body {
 .book-numbers {
   display: flex;
   flex: none;
-  width: 72vw;
+  width: calc(72vw - 96px);
   height: 4vh;
 }
 
@@ -1177,8 +1178,8 @@ body {
 .book-stage {
   position: relative;
   flex: none;
-  width: 72vw;
-  height: 27vw;
+  width: calc(72vw - 96px);
+  height: calc(27vw - 36px);
 }
 
 /* A page turns by a short slide and a crossfade: the spread leaving goes the way of the move, the
@@ -1305,7 +1306,7 @@ body {
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 72vw;
+  width: calc(72vw - 96px);
   height: 6vh;
 }
 
@@ -1455,9 +1456,10 @@ body {
   background: var(--surface);
 }
 
+/* In the width of the screen (320x120 at 1920x1080), to fit its cell at 1280x720 too. */
 .grid-spreads .mini-spread {
-  width: 320px;
-  height: 120px;
+  width: 16.667vw;
+  height: 6.25vw;
   margin-bottom: 14px;
 }
 
