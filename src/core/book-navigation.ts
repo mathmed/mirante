@@ -172,7 +172,7 @@ const WHILE_PLAYING: ReadonlyMap<RemoteKey, Press> = new Map<RemoteKey, Press>([
 // A key that does nothing there leaves the focus where it is.
 export function pressInBook(focus: BookFocus, key: RemoteKey, place: BookPlace): BookAction {
   const at = placeOf(focus, place)
-  const photo = focus.zone === BookZone.Page ? at : lastAtMost(focus.frame, place)
+  const photo = lastAtMost(focus.frame, place)
   const presses = place.isPlaying ? WHILE_PLAYING : pressesOf(focus)
   return presses.get(key)?.({ at, photo, place }) ?? focusOn(focus)
 }

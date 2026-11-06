@@ -6,12 +6,20 @@ import { RemoteKey } from './remote-key.ts'
 // read left to right and top to bottom) and every photo can be reached; else the next photo in
 // that order, or the one before.
 
+// A photo of the spread, and its place there.
+interface Placed {
+  readonly from: Rect
+  readonly index: number
+}
+
 // How far ahead a box is that way (negative when it is not ahead at all), how far off to the side
-// of the way, and which way the order of the spread goes.
+// of the way, which way the order of the spread goes, and the photos on that side of a photo in
+// that order.
 interface Way {
   readonly ahead: (from: Rect, to: Rect) => number
   readonly aside: (from: Rect, to: Rect) => number
   readonly step: number
+  readonly onward: (placed: readonly Placed[], frame: number) => readonly Placed[]
 }
 
 const HALF = 0.5
@@ -19,11 +27,21 @@ const HALF = 0.5
 const WAYS: ReadonlyMap<RemoteKey, Way> = new Map([
   [
     RemoteKey.Down,
-    { ahead: (from: Rect, to: Rect) => to.y - bottom(from), aside: offAcross, step: 1 },
+    {
+      ahead: (from: Rect, to: Rect) => to.y - bottom(from),
+      aside: offAcross,
+      step: 1,
+      onward: (placed: readonly Placed[], frame: number) => placed.slice(frame + 1),
+    },
   ],
   [
     RemoteKey.Up,
-    { ahead: (from: Rect, to: Rect) => from.y - bottom(to), aside: offAcross, step: -1 },
+    {
+      ahead: (from: Rect, to: Rect) => from.y - bottom(to),
+      aside: offAcross,
+      step: -1,
+      onward: (placed: readonly Placed[], frame: number) => placed.slice(0, frame),
+    },
   ],
 ])
 
@@ -52,12 +70,6 @@ export function frameToward(
     : nextInOrder(frames, frame + way.step)
 }
 
-// A photo of the spread, and its place there.
-interface Placed {
-  readonly from: Rect
-  readonly index: number
-}
-
 interface Candidate {
   readonly index: number
   readonly distance: number
@@ -69,16 +81,21 @@ interface Candidate {
 
 function nearestToward(frames: readonly Rect[], placed: Placed, way: Way): number | undefined {
   const { from, index: frame } = placed
-  const ahead = frames
-    .map((to, index): Candidate => ({
+  const ahead = way
+    .onward(placedOf(frames), frame)
+    .map(({ from: to, index }): Candidate => ({
       index,
       distance: way.ahead(from, to),
       offset: way.aside(from, to),
       centering: Math.abs(middleAcross(to) - middleAcross(from)),
     }))
-    .filter(({ index, distance }) => way.step * (index - frame) > 0 && distance >= TOUCHING)
+    .filter(({ distance }) => distance >= TOUCHING)
   ahead.sort(compared)
   return ahead[0]?.index ?? nextInOrder(frames, frame + way.step)
+}
+
+function placedOf(frames: readonly Rect[]): readonly Placed[] {
+  return frames.map((from, index) => ({ from, index }))
 }
 
 function compared(first: Candidate, second: Candidate): number {
@@ -96,8 +113,7 @@ function isEveryFrameReached(frames: readonly Rect[]): boolean {
   const reached = new Set([0])
   for (let size = 0; size !== reached.size;) {
     size = reached.size
-    frames
-      .map((from, index): Placed => ({ from, index }))
+    placedOf(frames)
       .filter(({ index }) => reached.has(index))
       .forEach((placed) => {
         stepsFrom(frames, placed).forEach((next) => reached.add(next))
