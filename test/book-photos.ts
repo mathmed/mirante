@@ -1,4 +1,6 @@
 import type { Rect } from '../src/core/book-geometry.ts'
+import { BookDensity } from '../src/core/book-pagination.ts'
+import { type Book, bookLayouts, type BookOptions, type PageLayout } from '../src/core/book.ts'
 import type { Photo } from '../src/core/photo-library.ts'
 
 // Photos of every shape a book meets, for the tests of the book: width over height.
@@ -91,4 +93,19 @@ export function defined<T>(value: T | undefined): T {
 export function lastOf<T>(items: readonly T[]): T | undefined {
   const [last] = items.slice(-1)
   return last
+}
+
+// The options of the books of the tests: a cover, the normal density, a seed, every weight 1.
+export const BOOK_OPTIONS: BookOptions = {
+  title: 'Viagem a Lisboa',
+  seed: 42,
+  density: BookDensity.Normal,
+  hasCover: true,
+  weights: new Map(),
+}
+
+// Every page of the book, laid out in its order.
+export function allLayouts(book: Book): readonly PageLayout[] {
+  const layouts = bookLayouts(book)
+  return book.pages.map((page) => layouts.layoutOf(page))
 }

@@ -86,6 +86,25 @@ describe('nearestFrame', () => {
     expect(nearestFrame(frames, 0, Right)).toBe(2)
   })
 
+  it('should prefer the photo in line wherever it comes on the spread', () => {
+    const frames: readonly Rect[] = [
+      { x: 0, y: 0.4, width: 0.2, height: 0.2 },
+      { x: 0.6, y: 0.45, width: 0.2, height: 0.1 },
+      { x: 0.3, y: 0, width: 0.1, height: 0.1 },
+    ]
+
+    expect(nearestFrame(frames, 0, Right)).toBe(1)
+  })
+
+  it('should take a photo that overlaps this one by a rounding error as ahead', () => {
+    const frames: readonly Rect[] = [
+      { x: -0.5, y: 0, width: 0.5, height: 1 },
+      { x: -1e-9, y: 0, width: 0.5, height: 1 },
+    ]
+
+    expect(nearestFrame(frames, 0, Right)).toBe(1)
+  })
+
   it('should take a photo that starts where this one ends as ahead', () => {
     const frames: readonly Rect[] = [
       { x: 0, y: 0, width: 0.5, height: 1 },

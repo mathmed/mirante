@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { defined, EPSILON, isApart, isInside, mixedAspects } from '../../test/book-photos.ts'
+import {
+  defined,
+  EPSILON,
+  isApart,
+  isInside,
+  lastOf,
+  mixedAspects,
+} from '../../test/book-photos.ts'
 import { areaOf } from './book-geometry.ts'
 import { zipWith } from './lists.ts'
 import {
@@ -65,6 +72,18 @@ describe('arrangementsOf', () => {
     )
 
     expect(shared.length).toBeGreaterThan(0)
+  })
+
+  it('should arrange the same photos once, whichever cuts lead to them', () => {
+    const sut = arrangementsOf([1, 1, 1, 1], GAP)
+    const [threeRuns, twoRuns] = ['row(1,1,column(1,1))', 'row(column(1,1),column(1,1))'].map(
+      (signature) => defined(sut.find((arrangement) => signatureOf(arrangement) === signature)),
+    )
+    const lastPart = (arrangement: Arrangement | undefined): Arrangement | undefined =>
+      arrangement === undefined || isLeaf(arrangement) ? undefined : lastOf(arrangement.parts)
+
+    expect(lastPart(threeRuns)).toBeDefined()
+    expect(lastPart(threeRuns)).toBe(lastPart(twoRuns))
   })
 
   it('should alternate the cuts: no row in a row, no column in a column', () => {

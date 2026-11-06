@@ -268,6 +268,13 @@ describe('searchPage', () => {
     }
   })
 
+  it('should pair only the arrangements of a half that give each of its photos room', () => {
+    const extremes = [0.7, 0.3, 20, 1.5, 0.3, 3, 1.5]
+    const squares = extremes.map(() => SQUARE)
+
+    expect(searchPage(page(extremes), 1).tried).toBeLessThan(searchPage(page(squares), 1).tried)
+  })
+
   it('should give room to every photo of a page of panoramas and narrow photos', () => {
     const aspects = [PANORAMA, NARROW, NARROW, PANORAMA, PANORAMA, NARROW, NARROW, PANORAMA]
     const { best } = searchPage(page(aspects), 1)
