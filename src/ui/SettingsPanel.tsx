@@ -1,19 +1,12 @@
 import type { JSX } from 'preact'
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks'
+import { useCallback, useState } from 'preact/hooks'
 
 import type { PresentationSettings } from '../core/presentation-settings.ts'
 import { type KeySource, RemoteKey } from '../core/remote-key.ts'
-import {
-  openSettings,
-  pressInSettings,
-  RESTORE_ROW,
-  rowOf,
-  SETTINGS_ROWS,
-  type SettingsForm,
-  type SettingsRow,
-} from '../core/settings-form.ts'
+import { openSettings, pressInSettings, rowOf, type SettingsForm } from '../core/settings-form.ts'
 import { MESSAGES } from './messages.ts'
-import { settingLabel, settingPreview, settingValueText } from './settings-messages.ts'
+import { settingPreview } from './settings-messages.ts'
+import { SettingsList } from './SettingsList.tsx'
 import { useRemoteKeys } from './use-remote-keys.ts'
 
 export interface SettingsPanelProps {
@@ -32,11 +25,7 @@ export function SettingsPanel(props: SettingsPanelProps): JSX.Element {
   const focused = rowOf(form)
   return (
     <section class="settings" aria-label={MESSAGES.settings}>
-      <ul class="settings-list">
-        {SETTINGS_ROWS.map((row, index) => (
-          <SettingRow key={keyOf(row)} row={row} form={form} isFocused={index === form.row} />
-        ))}
-      </ul>
+      <SettingsList form={form} />
       <div class="settings-side">
         <p class="settings-preview" aria-live="polite">
           {settingPreview(focused, form.settings)}
@@ -62,38 +51,4 @@ function useSettingsKeys(props: SettingsPanelProps, form: SettingsForm, setForm:
     [form.settings, onClose, setForm],
   )
   useRemoteKeys(props.keys, onKey)
-}
-
-interface SettingRowProps {
-  readonly row: SettingsRow
-  readonly form: SettingsForm
-  readonly isFocused: boolean
-}
-
-// The focused row holds the browser's focus, so that :focus shows where the remote control is.
-function SettingRow({ row, form, isFocused }: SettingRowProps): JSX.Element {
-  const rowRef = useRef<HTMLLIElement>(null)
-  useEffect(() => {
-    if (isFocused) {
-      rowRef.current?.focus({ preventScroll: true })
-    }
-  }, [isFocused])
-  const isRestore = row.kind === RESTORE_ROW.kind
-  return (
-    <li
-      ref={rowRef}
-      class={isRestore ? 'setting setting-restore' : 'setting'}
-      tabIndex={-1}
-      aria-current={isFocused}
-    >
-      <span class="setting-label">{settingLabel(row)}</span>
-      {row.kind !== RESTORE_ROW.kind && (
-        <span class="setting-value">{settingValueText(row, form.settings)}</span>
-      )}
-    </li>
-  )
-}
-
-function keyOf(row: SettingsRow): string {
-  return row.kind === RESTORE_ROW.kind ? RESTORE_ROW.kind : row.name
 }

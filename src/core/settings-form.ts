@@ -4,6 +4,7 @@ import {
   type SecondsSetting,
   type Setting,
   SettingKind,
+  SettingName,
   SETTINGS,
 } from './presentation-settings.ts'
 import { RemoteKey } from './remote-key.ts'
@@ -16,7 +17,59 @@ export const RESTORE_ROW = { kind: 'restore' } as const
 
 export type SettingsRow = Setting | typeof RESTORE_ROW
 
-export const SETTINGS_ROWS: readonly SettingsRow[] = [...SETTINGS, RESTORE_ROW]
+// The rows are grouped under small titles, for a long list to read well: the presentations, the
+// photo book, and what holds for both, which ends on the row that restores the defaults.
+export const SettingsSection = {
+  Presentation: 'presentation',
+  Book: 'book',
+  General: 'general',
+} as const
+
+export type SettingsSection = (typeof SettingsSection)[keyof typeof SettingsSection]
+
+export interface SettingsGroup {
+  readonly section: SettingsSection
+  readonly rows: readonly SettingsRow[]
+}
+
+export const SETTINGS_GROUPS: readonly SettingsGroup[] = [
+  group(SettingsSection.Presentation, [
+    SettingName.Interval,
+    SettingName.Order,
+    SettingName.Transition,
+    SettingName.Zoom,
+    SettingName.ShowDate,
+    SettingName.ShowCaption,
+    SettingName.ShowCounter,
+    SettingName.Loop,
+  ]),
+  group(SettingsSection.Book, [
+    SettingName.BookDensity,
+    SettingName.ShowBookCover,
+    SettingName.ShowPageNumbers,
+    SettingName.BookSpread,
+  ]),
+  group(
+    SettingsSection.General,
+    [SettingName.HideInterface, SettingName.ReduceEffects],
+    RESTORE_ROW,
+  ),
+]
+
+// The rows in the order the remote control walks them.
+export const SETTINGS_ROWS: readonly SettingsRow[] = SETTINGS_GROUPS.reduce<readonly SettingsRow[]>(
+  (rows, { rows: more }) => [...rows, ...more],
+  [],
+)
+
+function group(
+  section: SettingsSection,
+  names: readonly SettingName[],
+  ...extra: readonly SettingsRow[]
+): SettingsGroup {
+  const settings = names.map((name) => SETTINGS.find((setting) => setting.name === name))
+  return { section, rows: [...settings.filter((setting) => setting !== undefined), ...extra] }
+}
 
 export interface SettingsForm {
   readonly settings: PresentationSettings

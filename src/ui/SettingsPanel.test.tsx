@@ -58,14 +58,17 @@ describe('SettingsPanel', () => {
       'Mostrar a legendaSim',
       'Mostrar o contadorSim',
       'Repetir em laçoSim',
-      'Esconder a interface após4 s',
-      'Reduzir efeitosNão',
       'Densidade do livroNormal',
       'Mostrar a capa do livroSim',
       'Mostrar os números das páginasSim',
       'Tempo de cada página dupla10 s',
+      'Esconder a interface após4 s',
+      'Reduzir efeitosNão',
       MESSAGES.restoreDefaults,
     ])
+    expect(
+      screen.getAllByRole('heading', { level: 2 }).map((title) => title.textContent),
+    ).toStrictEqual(['Apresentação', 'Livro', 'Geral'])
     expect(screen.getByRole('region', { name: MESSAGES.settings })).toBeTruthy()
     expect(screen.getByText(MESSAGES.settingsKeys)).toBeTruthy()
   })
@@ -118,7 +121,7 @@ describe('SettingsPanel', () => {
   it('should say when the interface hides', () => {
     const sut = show()
 
-    sut.remote.press(...Array<RemoteKey>(8).fill(Down))
+    sut.remote.press(...Array<RemoteKey>(12).fill(Down))
 
     expect(preview()).toBe('A data, o contador e as dicas somem 4 segundos depois de cada troca.')
   })
@@ -126,7 +129,7 @@ describe('SettingsPanel', () => {
   it('should say how a book is laid out and played', () => {
     const sut = show()
 
-    sut.remote.press(...Array<RemoteKey>(10).fill(Down))
+    sut.remote.press(...Array<RemoteKey>(8).fill(Down))
     expect(preview()).toBe(
       'De uma a seis fotos por página, alternando páginas de respiro e páginas cheias. A quantidade varia com as fotos de cada página.',
     )
