@@ -131,7 +131,9 @@ writes is out of scope.
   300 KB) from the build, against a fake Immich whose photos are landscapes drawn from their ids
   (`e2e/screenshots.test.ts`; the photos of the book, `Cachoeiras de Minas`, come in every shape),
   the settings scrolled to their end at 1920x1080 and 1280x720 (checking the last row stays inside
-  the safe area), and the icon beside its two alternatives
+  the safe area), the book full screen with its controls hidden and shown, in both formats, at
+  1920x1080 and 1280x720 (its settings set in `localStorage` before the app starts), and the icon
+  beside its two alternatives
   (`icone-alternativas.webp`). Run it after a visual change and commit the images with it.
 
 ## The pipeline

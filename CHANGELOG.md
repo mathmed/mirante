@@ -8,6 +8,21 @@ All notable changes to Mirante are documented in this file. The format is based 
 
 ### Changed
 
+- **The book fills the screen.** The spread takes the whole safe area (3.5% of each edge for the
+  paper alone; the margins of the pages keep the photos inside the 5% of the other screens), in
+  pages of 8:9 that make a 16:9 spread, the shape of the TV. The title, the logo, the labels
+  "Página N", the bar of buttons, the strip of spreads and the keys no longer take room under the
+  spread: they are a layer over the book, shown by ↓ from the last photo of the spread or by Info,
+  hidden by Back or after the time of **Esconder a interface após**. The number of each page is now
+  small, in the outer lower corner of its paper (still behind **Mostrar os números das páginas**).
+  ← and → turn the page from any photo; ↑ and ↓ go from photo to photo, the nearest one that way,
+  under a thin amber ring. **Reproduzir livro** shows the pages alone with a thin amber line at the
+  bottom, and any arrow or OK pauses it and shows the controls. The layout engine takes the shape
+  of the page as a parameter, and its margin goes from 6% to 4% of the width of the page and its gap
+  from 2% to 1.5%, for larger photos: the books laid out before look different, with the same seeds.
+  A photo whose shorter side takes under 30% of the height of its page loads the thumbnail (40%
+  before), a larger one the preview. The screenshots of the book are taken again, with the controls
+  shown and hidden, in both formats, at 1920x1080 and 1280x720.
 - **A modern identity: graphite with a soft amber accent.** The warm near-black and golds give way
   to neutral graphite (background `#0C0C0E`, surfaces `#17171B` and `#222228`) with one amber
   (`#F0B65A`), every color set once in `src/ui/styles.css`, and every text at a contrast of 4.5:1 or
@@ -56,10 +71,9 @@ All notable changes to Mirante are documented in this file. The format is based 
   in view hide, and a thin bar beside the list shows where you are. The rows are grouped under
   small titles, **Apresentação**, **Livro** and **Geral**, which ends on **Restaurar padrões**:
   **Esconder a interface após** and **Reduzir efeitos** moved to **Geral**, after the book's.
-- **The book fits a 1280x720 screen.** The spread is a little smaller (72vw less 96 px), so that
-  the keys under the strip stay inside the safe area at 1280x720, and the miniatures of
-  **Visão geral** are sized by the width of the screen, so that they no longer overflow their cards
-  there.
+- **The book fits a 1280x720 screen.** The keys under the strip stay inside the safe area at
+  1280x720, and the miniatures of **Visão geral** are sized by the height of the screen, whatever
+  the shape of the book, so that they no longer overflow their cards there.
 
 - **The webOS app opened to a grey screen on the owner's LG (Chromium 68).** webOS refused the
   bundle, a module script, from the TV's file system ("non-JavaScript MIME type of ''"), and once
@@ -108,6 +122,10 @@ All notable changes to Mirante are documented in this file. The format is based 
 - **Four settings for the book**, on **Ajustes** and in the `presentation` block of `config.json`:
   `bookDensity` (`"light"`, `"normal"` or `"dense"`), `showBookCover`, `showPageNumbers` and
   `bookSpreadSeconds` (3 to 60, 10 by default).
+- **Formato do livro**, a setting on **Ajustes** and `bookFormat` in the `presentation` block of
+  `config.json`: `"wide"` (**Tela cheia (16:9)**, the default) or `"classic"` (**Clássico (4:3)**,
+  the pages of 4:3 the book had first). A new field: no `config.json` needs editing, and settings
+  stored by an older version keep the default.
 - **Three more screenshots**: a book on its cover, two pages laid out differently, and its overview.
 - **Presentations.** The start screen gets **Apresentar**: the whole library, at random, 200 photos
   a round drawn by Immich and a new draw for each round; or an album, a year or a month, chosen on
