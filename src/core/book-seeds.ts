@@ -60,7 +60,10 @@ export function seedsFromText(text: string | undefined): BookSeeds {
 }
 
 function isSeedPair(entry: unknown): entry is readonly [string, number] {
-  const pair: readonly unknown[] = Array.isArray(entry) ? entry : []
+  if (!Array.isArray(entry)) {
+    return false
+  }
+  const pair: readonly unknown[] = entry
   const [key, seed, ...rest] = pair
   return typeof key === 'string' && Number.isInteger(seed) && rest.length === 0
 }

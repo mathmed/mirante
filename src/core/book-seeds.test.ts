@@ -110,7 +110,7 @@ describe('seedsFromText', () => {
   it('should leave out what is not a key and a whole seed', () => {
     const text = JSON.stringify({
       version: 1,
-      books: [['a', 1], ['b', 1.5], [2, 3], ['c'], ['d', 4, 5], 'e', ['f', 6]],
+      books: [['a', 1], ['b', 1.5], [2, 3], ['c'], ['d', 4, 5], 'e', null, { g: 7 }, ['f', 6]],
     })
 
     expect([...seedsFromText(text)]).toStrictEqual([

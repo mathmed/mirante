@@ -138,7 +138,7 @@ export function openingOf(
   book: Book,
   photoId: string | undefined,
 ): { readonly spread: number; readonly frame: number } {
-  const spread = spreadOfPhoto(book, photoId ?? '')
+  const spread = photoId === undefined ? 0 : spreadOfPhoto(book, photoId)
   const [photos = []] = book.spreads.slice(spread, spread + 1).map((opened) => opened.photos)
   return {
     spread,
