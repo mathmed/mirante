@@ -60,6 +60,10 @@ describe('SettingsPanel', () => {
       'Repetir em laçoSim',
       'Esconder a interface após4 s',
       'Reduzir efeitosNão',
+      'Densidade do livroNormal',
+      'Mostrar a capa do livroSim',
+      'Mostrar os números das páginasSim',
+      'Tempo de cada página dupla10 s',
       MESSAGES.restoreDefaults,
     ])
     expect(screen.getByRole('region', { name: MESSAGES.settings })).toBeTruthy()
@@ -119,9 +123,32 @@ describe('SettingsPanel', () => {
     expect(preview()).toBe('A data, o contador e as dicas somem 4 segundos depois de cada troca.')
   })
 
+  it('should say how a book is laid out and played', () => {
+    const sut = show()
+
+    sut.remote.press(...Array<RemoteKey>(10).fill(Down))
+    expect(preview()).toBe(
+      'De uma a seis fotos por página, alternando páginas de respiro e páginas cheias. A quantidade varia com as fotos de cada página.',
+    )
+    sut.remote.press(Left)
+    expect(focused()).toBe('Densidade do livroLeve')
+    expect(preview()).toBe(
+      'Poucas fotos por página, de uma a três, com muito respiro. A quantidade varia com as fotos de cada página.',
+    )
+    sut.remote.press(Right, Right)
+    expect(focused()).toBe('Densidade do livroDensa')
+    sut.remote.press(Down, Enter)
+    expect(preview()).toBe('O livro abre direto nas páginas de fotos.')
+    sut.remote.press(Down, Enter)
+    expect(preview()).toBe('As páginas aparecem sem número.')
+    sut.remote.press(Down, Right)
+    expect(focused()).toBe('Tempo de cada página dupla15 s')
+    expect(preview()).toBe('Ao reproduzir um livro, cada página dupla fica 15 segundos na tela.')
+  })
+
   it('should restore the defaults on Enter on the last row', () => {
     const sut = show({ ...DEFAULT_PRESENTATION, order: PlaybackOrder.Random })
-    sut.remote.press(...Array<RemoteKey>(12).fill(Down))
+    sut.remote.press(...Array<RemoteKey>(16).fill(Down))
     expect(focused()).toBe(MESSAGES.restoreDefaults)
     expect(preview()).toBe('OK volta todos os ajustes aos valores padrão.')
 

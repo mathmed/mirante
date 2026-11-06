@@ -6,7 +6,7 @@ import { ImageSize, type PhotoLibrary } from '../core/photo-library.ts'
 import type { PresentationSettings } from '../core/presentation-settings.ts'
 import { currentSlide, decodedSlides, type Slide, slidesAhead } from '../core/presentation.ts'
 import { type KeySource, RemoteKey } from '../core/remote-key.ts'
-import { Caption } from './Caption.tsx'
+import { Caption, CaptionPlace } from './Caption.tsx'
 import { KeyListener } from './KeyListener.tsx'
 import { counterText, MESSAGES } from './messages.ts'
 import type { PresentationControls } from './screen-props.ts'
@@ -76,7 +76,12 @@ interface ViewerCaptionProps extends ViewerProps {
 function ViewerCaption({ library, reportError, current, next }: ViewerCaptionProps): JSX.Element {
   const [captions] = useState(() => createCaptionCache(library.readCaption, reportError))
   return (
-    <Caption captions={captions} photoId={current?.photos[0].id} nextPhotoId={next?.photos[0].id} />
+    <Caption
+      place={CaptionPlace.Viewer}
+      captions={captions}
+      photoId={current?.photos[0].id}
+      nextPhotoId={next?.photos[0].id}
+    />
   )
 }
 

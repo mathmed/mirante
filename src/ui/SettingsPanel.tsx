@@ -12,7 +12,8 @@ import {
   type SettingsForm,
   type SettingsRow,
 } from '../core/settings-form.ts'
-import { MESSAGES, settingLabel, settingPreview, settingValueText } from './messages.ts'
+import { MESSAGES } from './messages.ts'
+import { settingLabel, settingPreview, settingValueText } from './settings-messages.ts'
 import { useRemoteKeys } from './use-remote-keys.ts'
 
 export interface SettingsPanelProps {

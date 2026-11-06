@@ -104,6 +104,10 @@ describe('the palette of styles.css', () => {
     ['gold-dark', 'background'],
     ['background', 'gold'],
     ['danger', 'background'],
+    ['gold-light', 'background'],
+    ['ink', 'paper'],
+    ['ink-soft', 'paper'],
+    ['ink-soft', 'paper-shade'],
   ])('should keep --%s readable on --%s', (text, behind) => {
     expect(contrast(text, behind)).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
   })

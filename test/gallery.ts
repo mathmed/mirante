@@ -64,8 +64,9 @@ export interface ShownGallery {
   readonly remote: FakeRemote
   readonly reported: unknown[]
   readonly leave: Mock<() => void>
-  // What the TV kept of its settings.
+  // What the TV kept of its settings, and of the seeds of its books.
   readonly written: string[]
+  readonly booksWritten: string[]
 }
 
 export interface GalleryOptions {
@@ -73,6 +74,8 @@ export interface GalleryOptions {
   readonly defaults?: PresentationSettings
   // The settings the TV kept before, as stored.
   readonly stored?: string
+  // The seeds of the books the TV kept before, as stored.
+  readonly storedBooks?: string
 }
 
 export function showGallery(options: GalleryOptions = {}): ShownGallery {
@@ -80,6 +83,7 @@ export function showGallery(options: GalleryOptions = {}): ShownGallery {
   const reported: unknown[] = []
   const leave = vi.fn<() => void>()
   const { storage, written } = memoryStorage(options.stored)
+  const books = memoryStorage(options.storedBooks)
   const library = options.library ?? memoryLibrary(DATA)
   const presentationDefaults = options.defaults ?? DEFAULT_PRESENTATION
   render(
@@ -89,10 +93,11 @@ export function showGallery(options: GalleryOptions = {}): ShownGallery {
       reportError: (error) => reported.push(error),
       leave,
       storage,
+      bookStorage: books.storage,
       newSeed: () => 1,
     }),
   )
-  return { remote, reported, leave, written }
+  return { remote, reported, leave, written, booksWritten: books.written }
 }
 
 export async function title(text: string): Promise<void> {

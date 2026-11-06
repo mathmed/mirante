@@ -3,6 +3,8 @@ import type { TextStorage } from '../core/settings-storage.ts'
 // The settings of the presentation stay on each TV, in the localStorage of the app (its own folder
 // in the packaged apps, the origin of the page in a browser).
 export const SETTINGS_KEY = 'mirante.presentation'
+// The seed of each book the TV reorganized.
+export const BOOK_SEEDS_KEY = 'mirante.books'
 
 export interface StorageHost {
   // Read on each call: reading it can throw where the browser forbids storage.

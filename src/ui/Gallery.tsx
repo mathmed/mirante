@@ -1,6 +1,7 @@
 import type { JSX } from 'preact'
 import { useCallback, useState } from 'preact/hooks'
 
+import { bookSeedOf, persistBookSeeds, restoreBookSeeds, withBookSeed } from '../core/book-seeds.ts'
 import type { GridPosition } from '../core/grid.ts'
 import {
   depthOf,
@@ -17,11 +18,12 @@ import { persistSettings, restoreSettings, type TextStorage } from '../core/sett
 import type { Session } from '../core/startup.ts'
 import { AlbumsScreen } from './AlbumsScreen.tsx'
 import { AllPhotosScreen } from './AllPhotosScreen.tsx'
+import { BookScreen } from './BookScreen.tsx'
 import { HomeScreen } from './HomeScreen.tsx'
 import { AlbumScreen, MonthScreen } from './PhotosScreen.tsx'
 import { PresentationScreen } from './PresentationScreen.tsx'
 import { PresentScreen } from './PresentScreen.tsx'
-import type { PresentationControls, ScreenProps } from './screen-props.ts'
+import type { BookControls, PresentationControls, ScreenProps } from './screen-props.ts'
 import { SettingsScreen } from './SettingsScreen.tsx'
 import { MonthsScreen, YearsScreen } from './TimelineScreens.tsx'
 import { useBackdrop } from './use-backdrop.ts'
@@ -35,6 +37,8 @@ export interface GalleryProps {
   readonly leave: () => void
   // Where the TV keeps its settings of the presentations.
   readonly storage: TextStorage
+  // Where the TV keeps the seed of each book it reorganized.
+  readonly bookStorage: TextStorage
   // A new seed for each random order.
   readonly newSeed: () => number
 }
@@ -46,6 +50,7 @@ export function Gallery(props: GalleryProps): JSX.Element {
   const { navigation, depth, open, back } = useNavigation()
   const backdropUrl = useBackdrop(session.library, reportError)
   const summary = useSummary(session.library, reportError)
+  const books = useBookControls(props)
   const screenProps: ScreenProps = {
     library: session.library,
     keys,
@@ -68,7 +73,7 @@ export function Gallery(props: GalleryProps): JSX.Element {
       />
     )
   }
-  return <ScreenView key={depth} screen={screen} props={screenProps} />
+  return <ScreenView key={depth} screen={screen} props={screenProps} books={books} />
 }
 
 // The settings of this TV over the defaults of config.json, kept on the TV at each change.
@@ -84,6 +89,22 @@ function usePresentationControls(props: GalleryProps): PresentationControls {
     [storage, reportError],
   )
   return { settings, defaults, saveSettings, newSeed }
+}
+
+// The seed of each book: the one the TV kept, or the book's own; a new one, kept, to reorganize it.
+function useBookControls(props: GalleryProps): BookControls {
+  const { bookStorage, reportError, newSeed } = props
+  const [seeds, setSeeds] = useState(() => restoreBookSeeds(bookStorage, reportError))
+  const seedOf = useCallback((key: string) => bookSeedOf(seeds, key), [seeds])
+  const reorganize = useCallback(
+    (key: string) => {
+      const changed = withBookSeed(seeds, key, newSeed())
+      setSeeds(changed)
+      persistBookSeeds(bookStorage, changed, reportError)
+    },
+    [seeds, bookStorage, reportError, newSeed],
+  )
+  return { seedOf, reorganize }
 }
 
 interface NavigationControls {
@@ -114,13 +135,29 @@ type DeeperScreen = Exclude<Screen, { readonly kind: typeof ScreenKind.Home }>
 interface ScreenViewProps {
   readonly screen: DeeperScreen
   readonly props: ScreenProps
+  readonly books: BookControls
 }
 
 // The screens of the library itself.
-function ScreenView({ screen, props }: ScreenViewProps): JSX.Element {
+function ScreenView({ screen, props, books }: ScreenViewProps): JSX.Element {
   switch (screen.kind) {
     case ScreenKind.AllPhotos:
       return <AllPhotosScreen {...props} />
+    case ScreenKind.Book:
+      return <BookScreen {...props} source={screen.source} books={books} />
+    default:
+      return <ListView screen={screen} props={props} />
+  }
+}
+
+interface ListViewProps {
+  readonly screen: Exclude<DeeperScreen, { readonly kind: 'all-photos' | 'book' }>
+  readonly props: ScreenProps
+}
+
+// The lists of the library: its albums, its years and their months.
+function ListView({ screen, props }: ListViewProps): JSX.Element {
+  switch (screen.kind) {
     case ScreenKind.Albums:
       return <AlbumsScreen {...props} intent={screen.intent} />
     case ScreenKind.Years:
@@ -135,7 +172,7 @@ function ScreenView({ screen, props }: ScreenViewProps): JSX.Element {
 interface PhotosOrPresentationViewProps {
   readonly screen: Exclude<
     DeeperScreen,
-    { readonly kind: 'albums' | 'all-photos' | 'months' | 'years' }
+    { readonly kind: 'albums' | 'all-photos' | 'book' | 'months' | 'years' }
   >
   readonly props: ScreenProps
 }

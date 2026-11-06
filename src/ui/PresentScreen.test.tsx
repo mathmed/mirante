@@ -25,7 +25,7 @@ function current(): string | null | undefined {
 }
 
 describe('PresentScreen', () => {
-  it('should offer the whole library, an album, a year or a month', async () => {
+  it('should offer the whole library, an album, a year or a month, and an album or a month as a book', async () => {
     await presentScreen()
 
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toStrictEqual([
@@ -33,6 +33,8 @@ describe('PresentScreen', () => {
       'Um álbumEscolha o álbum',
       'Um anoEscolha o ano',
       'Um mêsEscolha o ano e o mês',
+      'Livro de um álbumEscolha o álbum',
+      'Livro de um mêsEscolha o ano e o mês',
     ])
     await focusedOn('Toda a biblioteca')
   })
@@ -82,7 +84,7 @@ describe('PresentScreen', () => {
   it('should choose a year, then a month to present', async () => {
     const sut = await presentScreen()
 
-    sut.remote.press(Right, Right, Right, Enter)
+    sut.remote.press(Down, Enter)
     await title(MESSAGES.presentMonth)
     await focusedOn('2024')
     sut.remote.press(Enter)

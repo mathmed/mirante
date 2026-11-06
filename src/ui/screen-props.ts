@@ -26,3 +26,11 @@ export interface ScreenProps {
   readonly back: () => void
   readonly presentation: PresentationControls
 }
+
+// The seed of each book, kept by the gallery for the whole visit and on the TV.
+export interface BookControls {
+  // The seed of the book of an album or a month, by its key: the same book on every visit.
+  readonly seedOf: (key: string) => number
+  // A new seed for the book, kept on the TV.
+  readonly reorganize: (key: string) => void
+}

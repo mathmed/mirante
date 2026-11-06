@@ -65,6 +65,7 @@ function renderApp(
       reportError={() => undefined}
       leave={leave}
       storage={memoryStorage().storage}
+      bookStorage={memoryStorage().storage}
       newSeed={() => 1}
     />,
   )
@@ -160,6 +161,7 @@ describe('App', () => {
         reportError={() => undefined}
         leave={() => undefined}
         storage={memoryStorage().storage}
+        bookStorage={memoryStorage().storage}
         newSeed={() => 1}
       />,
     )
@@ -170,6 +172,7 @@ describe('App', () => {
         reportError={() => undefined}
         leave={() => undefined}
         storage={memoryStorage().storage}
+        bookStorage={memoryStorage().storage}
         newSeed={() => 1}
       />,
     )

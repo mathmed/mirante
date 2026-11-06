@@ -7,9 +7,10 @@ import { Grid } from './Grid.tsx'
 import { choiceText, MESSAGES } from './messages.ts'
 import type { ScreenProps } from './screen-props.ts'
 
-const SHAPE = { columns: 4, visibleRows: 1 }
+const SHAPE = { columns: 3, visibleRows: 2 }
 
-// What to present: the whole library at once, or an album, a year or a month, chosen next.
+// What to present: the whole library at once, or an album, a year or a month, chosen next; or an
+// album or a month as a book.
 export function PresentScreen({ keys, position, open, back }: ScreenProps): JSX.Element {
   const [current, setCurrent] = useState(position)
   return (
