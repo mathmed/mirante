@@ -51,12 +51,17 @@ src/core/      pure logic: the startup flow, the runtime configuration, the phot
                the logo (library-summary), the stack of screens, the remote control keys, and the presentations:
                their settings (presentation-settings, settings-input, settings-storage,
                settings-form), the engine (presentation: playlists, rounds, what loads ahead), the
-               seeded shuffle, their sources, the transitions (presentation-effects) and the captions
+               seeded shuffle, their sources, the transitions (presentation-effects) and the captions;
+               and the photo book: how many photos each page takes (book-pagination), the layout of
+               a page as an optimization over guillotine cuts (page-arrangement, page-layout,
+               book-geometry), the book and its spreads (book), its remote control
+               (book-navigation), its sources and the seeds it keeps (book-source, book-seeds)
 src/immich/    the photo library implemented with @immich/sdk, read only
 src/platform/  what differs between TVs and browsers: config.json, polyfills, the console, the key
                codes of the remote controls of Tizen and webOS (and the Info key Tizen registers),
-               the localStorage of the settings, the random seeds
-src/ui/        Preact components, src/ui/messages.ts (every text people read), styles.css, the
+               the localStorage of the settings and of the seeds of the books, the random seeds
+src/ui/        Preact components, src/ui/messages.ts (every text people read, with its companions
+               settings-messages.ts and book-messages.ts, split for the size of a file), styles.css, the
                fonts it ships (src/ui/fonts) and the mark and the icon of the logo (src/ui/assets,
                written by make logo)
 src/main.tsx   composition root: wires the adapters into the UI
@@ -167,7 +172,7 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   color is written: shades with transparency are `rgb(var(--name-rgb) / alpha)` of the channels
   declared there, never a loose value in a rule. Manrope 400, 600 and 700 for the whole interface,
   titles included, tabular figures where numbers count, and the italic of Playfair Display only for
-  the captions (the photo book, when it comes, keeps it for the title of its cover), Latin-subset
+  the captions and the title on the cover of the photo book, Latin-subset
   WOFF2 shipped in `src/ui/fonts`, OFL, `font-display: swap`; never a font or an image from the
   network but Immich's. Focus: an amber ring, one short glow and `scale(1.04)`. Only `opacity` and `transform` animate; glows stay on the
   focused element; darken with gradients, never `filter: blur` or `backdrop-filter` (Stylelint bans
@@ -201,6 +206,16 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   start and never committed (`.gitignore`); `public/config.example.json` documents it. Its fields,
   and the names of the settings in the `presentation` block, are the public contract of every
   installation.
+- **The photo book** is laid out by an algorithm, never from a fixed list of templates: the number
+  of photos of each page (`src/core/book-pagination.ts`) and the arrangement of a page, an
+  optimization over guillotine cuts scored by `src/core/page-layout.ts` (every photo whole, never
+  cut nor stretched, a constant gap, a margin of 6% of the page, a bounded search: past six photos,
+  halves paired, at most `MAX_TRIED` arrangements a page). Pages are laid out when first shown,
+  never the whole book at once. What it makes is plain data (pages, rectangles, weights, seed); the
+  seed of a reorganized book stays on the TV (`mirante.books`, `STORED_SEEDS_VERSION` in
+  `src/core/book-seeds.ts`). The paper of its pages (`--paper`, `--ink`) stays neutral and warm,
+  apart from the graphite and the amber. Its images are Immich's thumbnails and previews, at most
+  two spreads decoded.
 - **The settings of the presentations** stay on each TV in `localStorage` (`mirante.presentation`),
   with the version of their shape (`STORED_SETTINGS_VERSION` in `src/core/settings-storage.ts`):
   raise it when a reader of the old shape would misread the new one; anything unreadable falls back
@@ -359,7 +374,8 @@ directory is gitignored) after pushing. `pr-writer` checks them against the diff
 - **Identifiers**: every identifier in English. Booleans start with `is`, `has`, `should` or `can`
   (enforced). Never prefix a class name with `_`.
 - **Language**: code, comments, logs, docs and CI reports in English. The text people read on the screen
-  is Brazilian Portuguese and lives only in `src/ui/messages.ts`.
+  is Brazilian Portuguese and lives only in `src/ui/messages.ts` (and its companions
+  `settings-messages.ts` and `book-messages.ts`).
 - **Typing**: every function declares its return type (enforced). No `any`: use `unknown` and narrow
   it. Values from outside (`config.json`, server responses, `JSON.parse`) are validated where they
   enter the code.

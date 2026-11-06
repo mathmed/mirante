@@ -9,8 +9,9 @@ reads the photos of your [Immich](https://immich.app/) server and is driven by t
 alone: arrows, Enter and Back (and Info, optional).
 
 > **Status: version 1 in progress.** The gallery works in the browser of the TV: every photo in one
-> grid, albums, the timeline by year and month, the full-screen viewer, and presentations of an album, a month, a
-> year or the whole library, with their settings and the captions written in Immich. It also
+> grid, albums, the timeline by year and month, the full-screen viewer, presentations of an album,
+> a month, a year or the whole library, with their settings and the captions written in Immich, and
+> an album or a month seen as a photo book, its pages laid out by an algorithm. It also
 > packages as an LG webOS app (`.ipk`, see [docs/webos.md](docs/webos.md)) and as a Samsung Tizen
 > app (an unsigned `.wgt` you sign with your own certificates, see [docs/tizen.md](docs/tizen.md)),
 > neither tried on a real TV yet.
@@ -24,11 +25,15 @@ Version 1 shows photos, read only:
 - presentations of an album, a month, a year or the whole library (at random), with the captions
   written in Immich and settings each TV keeps: the interval, the order, the transition (cut, fade,
   slide or a slow "Ken Burns" zoom), what shows over the photo, and a lighter mode for slow TVs;
+- an album or a month as a photo book, in spreads of two pages with several photos on each, laid
+  out from the real shapes of the photos (never cut, never stretched), different from page to page,
+  played a spread at a time if wanted, and reorganized at will;
 - navigation with the remote control only, with the focus always visible;
 - a runtime configuration file, so that the same build serves any Immich server.
 
 Out of scope on purpose: video, people, search, upload, editing and anything else that writes to
-Immich. Mirante never changes your library.
+Immich, and, for the book, editing its pages by hand, printing or exporting it. Mirante never
+changes your library.
 
 ## Supported TVs
 
@@ -70,12 +75,13 @@ in focus in **Todas**, which OK in the viewer does too, for remote controls with
 | Start    | the logo, the count of the library and five cards         | opens the one in focus         | leaves the app (TV apps)           |
 | All      | every photo, the most recent first, under each month      | opens the photo in the viewer  | start                              |
 | Albums   | the covers, with each album's name and number of photos   | opens the album                | start, focus where it was          |
-| Album    | the album's photos, in the order chosen for it in Immich  | opens the photo in the viewer  | albums, on the album that was open |
+| Album    | **Ver como livro**, then the album's photos, in its order | opens the book, or the photo   | albums, on the album that was open |
 | Timeline | the years with photos, the most recent first              | opens the year's months        | start                              |
 | Year     | the months with photos, in calendar order                 | opens the month's photos       | years, on the year that was open   |
-| Month    | the month's photos, from the first to the last            | opens the photo in the viewer  | months, on the month that was open |
+| Month    | **Ver como livro**, then the photos, first to last        | opens the book, or the photo   | months, on the month that was open |
 | Viewer   | one photo, full screen; ← and → for the previous and next | starts or pauses the slideshow | the grid, on the photo shown last  |
-| Present  | the whole library, an album, a year or a month            | presents it, or opens the list | start                              |
+| Book     | two pages of photos, a bar of buttons, a strip of spreads | opens the photo, or the button | the photos, on the book's tile     |
+| Present  | the library, an album, a year, a month; or a book         | presents it, or opens the list | start                              |
 | Settings | the settings of the presentations, with their values      | flips a switch                 | keeps them, start                  |
 
 The app opens on its logo while it connects to Immich, and moves on to the start screen as soon as
@@ -123,6 +129,34 @@ The **caption** of a photo is its description in Immich (written in the info pan
 shown under the photo in an italic serif. It is read for the photo on the screen and the next one only,
 with a small cache; a photo without one shows nothing, and nothing on the screen moves.
 
+### The book
+
+**Ver como livro**, the first tile of an album or a month (or **Livro de um álbum** and **Livro de
+um mês** on **Apresentar**), opens its photos as a photo book: two facing pages of white paper, the
+fold shaded between them, **Página N** above each one, and, if wanted, a cover with the name of the
+album and the period of its photos. Under the spread, a bar of buttons (‹, **Reproduzir livro**,
+**Visão geral**, **Reorganizar**, ›) and a strip of the spreads in miniature, the one on the screen
+marked. The arrows go from photo to photo; past the edge of the spread ← and → turn the page (a
+short slide and a crossfade), and ↓ reaches the bar, then the strip. OK on a photo opens it full
+screen, and Back returns to the spread of the photo shown last; OK on a spread of the strip, or of
+the **Visão geral** (every spread at once), opens it. **Reproduzir livro** turns a spread every few
+seconds (10 by default), looping or not like the presentations.
+
+Nothing is laid out from a fixed list of templates. How many photos each page takes (one, two side
+by side or one above the other, three, four, five, six or more) follows the shapes and the number
+of the photos and the rhythm of the book: in each spread a page breathes with few photos and the
+other is full, two portraits stand side by side, a panorama counts double. Where they go is an
+optimization, page by page: every way to cut the page across and down, again and again (a
+guillotine), with the sizes of the cuts drawn from the shapes of the photos, is scored, and the one
+that fills the page best wins, every photo whole in its frame, the gap between them constant, a
+margin of 6% of the page around them, no photo too small, and never the same arrangement on two
+pages in a row. A seed makes the same book every time; **Reorganizar** draws a new one, which the TV
+keeps for that album or month (`localStorage`, `mirante.books`). The pages are laid out as they are
+first shown, a few at a time, so an album of thousands of photos opens at once. Small photos load
+Immich's thumbnails and large ones its previews, never the original; the next spread is loaded
+ahead and at most two are kept decoded. The caption of the photo in focus shows under the spread,
+in the italic serif, when **Mostrar a legenda** is on.
+
 ### Settings
 
 **Ajustes**, from the start screen, or Info (or Down) over the viewer, lists the settings with their
@@ -131,7 +165,9 @@ list says what the value does. **Restaurar padrões** goes back to the defaults 
 `config.json`, else the app's). Back keeps the settings on the TV (its `localStorage`, under
 `mirante.presentation`, with the version of their shape: settings an older or newer version wrote,
 or anything unreadable, are dropped for the defaults) and they apply at once; the order applies to
-the next presentation.
+the next presentation. Four settings shape the book: **Densidade do livro** (leve, normal or densa:
+fewer or more photos a page, never a fixed number), **Mostrar a capa do livro**, **Mostrar os
+números das páginas** and **Tempo de cada página dupla**.
 
 Loading, empty and error states are explained in Portuguese; on an error the **Tentar novamente**
 button already has the focus.
@@ -144,7 +180,8 @@ files, and keeps at most three photos decoded. Every screen stays inside the TVs
 ## Look
 
 Graphite with one soft amber accent, and one modern sans-serif for the whole interface (Manrope,
-shipped with the app); an italic serif only for the captions of the photos. The icon is a rounded
+shipped with the app); an italic serif only for the captions of the photos and the title on the
+cover of a book. The paper of the book stays a neutral, warm white, whatever the palette. The icon is a rounded
 graphite square with an amber mark: two rounded peaks that make an M, and the sun just above the
 right one, the view from a _mirante_. Cards have round corners on two levels of graphite, the focus
 is an amber ring that grows a little, screens fade in, and the viewer crossfades between photos.
@@ -158,6 +195,10 @@ Captured by `make screenshots` at 1920x1080, against a fake library:
 | ---------------------------------------------- | ---------------------------------------- |
 | ![Every photo](docs/screenshots/15-todas.webp) | ![Viewer](docs/screenshots/05-foto.webp) |
 
+| A book, its cover and first page                   | Two pages laid out differently                |
+| -------------------------------------------------- | --------------------------------------------- |
+| ![Book cover](docs/screenshots/16-livro-capa.webp) | ![Book pages](docs/screenshots/17-livro.webp) |
+
 Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screenshots/02-inicio.webp),
 [albums](docs/screenshots/03-albuns.webp), [album](docs/screenshots/04-album.webp),
 [photo](docs/screenshots/05-foto.webp), [slideshow](docs/screenshots/06-apresentacao.webp),
@@ -165,9 +206,11 @@ Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screens
 [empty album](docs/screenshots/09-album-vazio.webp), [loading](docs/screenshots/10-carregando.webp),
 [error](docs/screenshots/11-erro.webp), [presentations](docs/screenshots/12-apresentar.webp),
 [settings](docs/screenshots/13-ajustes.webp),
-[settings over a photo](docs/screenshots/14-ajustes-na-foto.webp) and
-[every photo](docs/screenshots/15-todas.webp). The icon was chosen over two alternatives, compared in
-[docs/screenshots/icone-alternativas.webp](docs/screenshots/icone-alternativas.webp).
+[settings over a photo](docs/screenshots/14-ajustes-na-foto.webp),
+[every photo](docs/screenshots/15-todas.webp), [a book](docs/screenshots/16-livro-capa.webp),
+[its pages](docs/screenshots/17-livro.webp) and
+[its overview](docs/screenshots/18-livro-visao-geral.webp). The icon was chosen over two
+alternatives, compared in [docs/screenshots/icone-alternativas.webp](docs/screenshots/icone-alternativas.webp).
 
 ## Configuration
 
@@ -206,6 +249,10 @@ Mirante reads `config.json` from the folder of its `index.html` when it starts:
   | `loop`                 | `true`, `false`                                | `true`           |
   | `hideInterfaceSeconds` | 3 to 20                                        | 4                |
   | `reduceEffects`        | `true`, `false`                                | `false`          |
+  | `bookDensity`          | `"light"`, `"normal"`, `"dense"`               | `"normal"`       |
+  | `showBookCover`        | `true`, `false`                                | `true`           |
+  | `showPageNumbers`      | `true`, `false`                                | `true`           |
+  | `bookSpreadSeconds`    | 3 to 60, each spread while a book plays        | 10               |
 
   A value of the wrong type, an unknown option or a number out of its limits is reported on the
   screen (**Ajustes da apresentação inválidos**), like any other mistake in the file.
@@ -287,7 +334,7 @@ installing and opening the app with the Tizen CLI (`tizen package`, `sdb connect
 The TVs have little memory and old engines. Preact keeps React's component and hooks model at a
 fraction of its weight (about 5 kB gzipped against about 60 kB for React 19 with `react-dom`), has no
 dependency, and its output runs on engines much older than Chromium 68. The whole app, Immich SDK
-and every screen included, is about 30 kB of JavaScript gzipped today, plus its four font files
+and every screen included, is about 39 kB of JavaScript gzipped today, plus its four font files
 (about 64 kB: three weights of Manrope and the italic of Playfair Display).
 
 ## Architecture
@@ -296,9 +343,11 @@ and every screen included, is about 30 kB of JavaScript gzipped today, plus its 
 src/core/      pure logic, no DOM and no package: the startup flow, the runtime configuration, the
                photo library interface and its domain types, the focus navigation of the grids, the
                feed of every photo (its months read on demand and its grid with a heading per
-               month), the count of the library, the stack of screens, and the presentations: their settings and how they are kept, the
+               month), the count of the library, the stack of screens, the presentations: their
+               settings and how they are kept, the
                engine (playlists, rounds, seeded shuffles, what loads ahead), their sources, the
-               transitions and the captions
+               transitions and the captions; and the book: how many photos each page takes, the
+               layout of a page as an optimization, its spreads, its remote control and its seeds
 src/immich/    the photo library implemented with @immich/sdk, read only
 src/platform/  what differs between TVs and browsers: config.json, polyfills, the console, the keys
                of the remote controls (and the Info key Tizen registers), localStorage, the seeds

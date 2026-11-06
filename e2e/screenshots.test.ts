@@ -15,7 +15,13 @@ import { writeBytes, writeText } from '../scripts/shared/files.ts'
 import { type FakeImmich, startFakeImmich } from './fake-immich-server.ts'
 import { iconAlternativesPage } from './icon-alternatives.ts'
 import { launchBrowser } from './packaged-app.ts'
-import { EMPTY_ALBUM, SCREENSHOT_LIBRARY, screenshotImage } from './screenshot-library.ts'
+import {
+  BOOK_ALBUM,
+  BOOK_PHOTO_IDS,
+  EMPTY_ALBUM,
+  SCREENSHOT_LIBRARY,
+  screenshotImage,
+} from './screenshot-library.ts'
 
 const ROOT = join(import.meta.dirname, '..')
 const SCREENSHOTS = join(ROOT, 'docs', 'screenshots')
@@ -27,8 +33,11 @@ const SLOW_START_MS = 6000
 // How far the line of the slideshow has filled in its screenshot.
 const SLIDESHOW_SHARE = 0.3
 const BACK = 'Escape'
+const TO_THE_STRIP: readonly string[] = Array<string>(6).fill('ArrowDown')
 // The fake server draws each landscape when it is first asked for.
 const POLL_MS = 30_000
+// The photos of the book are drawn first, larger than the others.
+const BOOK_TIMEOUT_MS = 180_000
 
 let immich: FakeImmich
 let directory = ''
@@ -213,6 +222,49 @@ describe('the screenshots of the docs', () => {
     await shoot(page, '14-ajustes-na-foto')
     await page.close()
   })
+
+  it(
+    'should capture an album as a book, a spread of the strip and the overview',
+    async () => {
+      // Drawn before the book asks for them, the images never hold the captions behind them.
+      for (const id of BOOK_PHOTO_IDS) {
+        screenshotImage(id, 'thumbnail')
+        screenshotImage(id, 'preview')
+      }
+      const page = await open()
+      await focusedOn(page, 'Todas')
+      await press(page, 'ArrowRight', 'Enter')
+      await focusedOn(page, 'Viagem a Lisboa')
+      await press(page, 'ArrowDown', 'ArrowRight', 'ArrowRight')
+      await focusedOn(page, BOOK_ALBUM)
+      await press(page, 'Enter')
+      await page.getByRole('heading', { level: 1, name: BOOK_ALBUM }).waitFor()
+      await page.locator('.grid-photos').waitFor()
+      await press(page, 'ArrowLeft')
+      await focusedOn(page, 'Ver como livro')
+
+      await press(page, 'Enter')
+      await page.locator('.book-cover').waitFor()
+      await page.getByText('O vale ainda na neblina, antes da trilha').waitFor()
+      await settled(page)
+      await shoot(page, '16-livro-capa')
+
+      // Down reaches the bar, then the strip, whatever the layout of the page; Down there stays.
+      await press(page, ...TO_THE_STRIP, 'ArrowRight', 'Enter')
+      await page.getByText('Página 2', { exact: true }).waitFor()
+      await press(page, 'ArrowRight')
+      await settled(page)
+      await shoot(page, '17-livro')
+
+      await press(page, ...TO_THE_STRIP, 'ArrowUp', 'Enter')
+      await page.getByRole('dialog', { name: 'Visão geral' }).waitFor()
+      await press(page, 'ArrowRight')
+      await settled(page)
+      await shoot(page, '18-livro-visao-geral')
+      await page.close()
+    },
+    BOOK_TIMEOUT_MS,
+  )
 
   it('should capture the timeline by year and by month', async () => {
     const page = await open()

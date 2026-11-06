@@ -1,6 +1,7 @@
 // The library of the screenshots of the docs: albums of trips and family moments over three years,
 // one of them empty, and a few loose photos in the timeline, each photo a landscape drawn from its
-// id (scenes.ts) in the size asked for; a few photos of the trip to Lisbon have a caption.
+// id (scenes.ts) in the size asked for; a few photos of the trip to Lisbon have a caption. The photos
+// of the waterfalls of Minas, the book of the screenshots, come in every shape.
 import type { FakeAsset, FakeLibrary } from '../test/immich-answers.ts'
 import { scenePng } from './scenes.ts'
 
@@ -14,11 +15,37 @@ interface AlbumPlan {
 
 const HOUR_MS = 3_600_000
 const DAY_MS = 24 * HOUR_MS
-// Thumbnails as Immich serves them (small) and previews (the long side about 1440 pixels), 3:2.
-const SIZES: ReadonlyMap<string, readonly [number, number]> = new Map([
-  ['thumbnail', [360, 240]],
-  ['preview', [1440, 960]],
+// The long side of the thumbnails as Immich serves them (small) and of the previews.
+const LONG_SIDES: ReadonlyMap<string, number> = new Map([
+  ['thumbnail', 360],
+  ['preview', 1440],
 ])
+const LANDSCAPE = 3 / 2
+const BOOK_ALBUM_ID = 'minas'
+// The shapes of the photos of the book, width over height, in turn: portraits of the falls,
+// landscapes of the valleys, a square, a panorama of the ridge.
+const BOOK_RATIOS: readonly number[] = [
+  3 / 2,
+  2 / 3,
+  3 / 4,
+  3 / 2,
+  1,
+  3,
+  2 / 3,
+  2 / 3,
+  16 / 9,
+  3 / 2,
+  9 / 16,
+  4 / 3,
+  3 / 2,
+  2 / 3,
+  1,
+  16 / 9,
+  3 / 4,
+  3 / 2,
+  3,
+  2 / 3,
+]
 
 const ALBUMS: readonly AlbumPlan[] = [
   { id: 'lisboa', name: 'Viagem a Lisboa', photos: 24, start: '2024-09-12T10:00:00.000Z' },
@@ -41,13 +68,20 @@ const LOOSE_DAYS: readonly string[] = [
 ]
 
 export const EMPTY_ALBUM = 'Mudança de casa'
+export const BOOK_ALBUM = 'Cachoeiras de Minas'
 
 // The captions written in Immich for a few photos of the trip to Lisbon.
 const CAPTIONS: ReadonlyMap<string, string> = new Map([
   ['lisboa-9', 'O bonde 28 subindo para a Alfama'],
   ['lisboa-10', 'Fim de tarde no Miradouro de Santa Luzia'],
   ['lisboa-11', 'Pastéis de nata ainda quentes em Belém'],
+  ['minas-1', 'O vale ainda na neblina, antes da trilha'],
+  ['minas-2', 'A Cachoeira do Tabuleiro, do mirante'],
 ])
+
+export const BOOK_PHOTO_IDS: readonly string[] = [...BOOK_RATIOS.keys()].map(
+  (index) => `${BOOK_ALBUM_ID}-${String(index + 1)}`,
+)
 
 export const SCREENSHOT_LIBRARY: FakeLibrary = {
   albums: ALBUMS.map(({ id, name }) => ({ id, name, isOldestFirst: true })),
@@ -72,7 +106,7 @@ const drawn = new Map<string, Uint8Array>()
 // The same photo in the same size is drawn once.
 export function screenshotImage(photoId: string, size: string): Uint8Array {
   const key = `${photoId} ${size}`
-  const [width, height] = SIZES.get(size) ?? [1, 1]
+  const [width, height] = sizeOf(ratioOf(photoId), LONG_SIDES.get(size) ?? 1)
   const image = drawn.get(key) ?? scenePng(seedOf(photoId), width, height)
   drawn.set(key, image)
   return image
@@ -86,8 +120,22 @@ function photo(id: string, takenAtMs: number, albumIds: readonly string[]): Fake
     offsetHours: -3,
     isImage: true,
     albumIds,
+    ratio: ratioOf(id),
     ...(description === undefined ? {} : { description }),
   }
+}
+
+// The photos of the book in every shape; the others, 3:2.
+function ratioOf(photoId: string): number {
+  const [album, number] = photoId.split('-')
+  const ratio = album === BOOK_ALBUM_ID ? BOOK_RATIOS[Number(number) - 1] : undefined
+  return ratio ?? LANDSCAPE
+}
+
+function sizeOf(ratio: number, longSide: number): readonly [number, number] {
+  return ratio >= 1
+    ? [longSide, Math.round(longSide / ratio)]
+    : [Math.round(longSide * ratio), longSide]
 }
 
 // FNV-1a over the code units of the id.
