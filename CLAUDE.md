@@ -46,7 +46,7 @@ Always use `npm ci` / `npm install` (never another package manager) and commit `
 ```
 src/core/      pure logic: the startup flow, the runtime configuration, the photo library interface and
                its domain types, the order of albums, photos and months, the spatial focus navigation
-               of the grids, the feed of every photo ("Todas": photo-feed, its months read on demand,
+               of the grids, the scroll that keeps the focus of a long list in view (list-scroll), the feed of every photo ("Todas": photo-feed, its months read on demand,
                and feed-layout, its grid with a heading per month), the count of the library under
                the logo (library-summary), the stack of screens, the remote control keys, and the presentations:
                their settings (presentation-settings, settings-input, settings-storage,

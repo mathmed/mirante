@@ -7,7 +7,7 @@ import {
   Transition,
   ZoomIntensity,
 } from '../core/presentation-settings.ts'
-import { RESTORE_ROW, type SettingsRow } from '../core/settings-form.ts'
+import { RESTORE_ROW, type SettingsRow, SettingsSection } from '../core/settings-form.ts'
 import { MESSAGES, textOf } from './messages.ts'
 
 // What the settings screen says, in Brazilian Portuguese: the name of each setting, its values, and
@@ -28,6 +28,12 @@ const SETTING_LABELS: ReadonlyMap<SettingName, string> = new Map([
   [SettingName.ShowBookCover, 'Mostrar a capa do livro'],
   [SettingName.ShowPageNumbers, 'Mostrar os números das páginas'],
   [SettingName.BookSpread, 'Tempo de cada página dupla'],
+])
+
+const SECTION_TITLES: ReadonlyMap<SettingsSection, string> = new Map([
+  [SettingsSection.Presentation, 'Apresentação'],
+  [SettingsSection.Book, 'Livro'],
+  [SettingsSection.General, 'Geral'],
 ])
 
 const OPTION_TEXTS: ReadonlyMap<string, string> = new Map([
@@ -105,6 +111,10 @@ const PREVIEW_NOTES: ReadonlyMap<SettingName, string> = new Map([
   [SettingName.Zoom, 'Vale para a transição Zoom lento.'],
   [SettingName.BookDensity, 'A quantidade varia com as fotos de cada página.'],
 ])
+
+export function sectionTitle(section: SettingsSection): string {
+  return textOf(SECTION_TITLES, section)
+}
 
 export function settingLabel(row: SettingsRow): string {
   return row.kind === RESTORE_ROW.kind ? MESSAGES.restoreDefaults : textOf(SETTING_LABELS, row.name)

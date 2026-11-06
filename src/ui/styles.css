@@ -639,21 +639,70 @@ body {
 }
 
 /* The settings: the list on the left, every value always on the screen, and what the focused one
-   does on the right. */
+   does on the right. The list may be taller than the room under the title: it moves with the focus
+   (transform alone), the items not whole in view hide, and a thin bar on its right tells where the
+   screen is in it. */
 .settings {
   display: flex;
   flex: 1 1 0;
-  align-items: flex-start;
   min-height: 0;
   animation: fade-in var(--enter);
 }
 
-.settings-list {
+.settings-viewport {
+  position: relative;
   flex: none;
   width: 58%;
+}
+
+/* The room under the last row, for its ring and its glow when it is in focus. */
+.settings-scroller {
+  position: relative;
+  padding-bottom: 24px;
+  transition: transform 220ms ease-out;
+}
+
+.settings-section-title {
+  margin: 0;
+  padding: 6px 30px 12px;
+  color: var(--text-secondary);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  transition: opacity 220ms ease-out;
+}
+
+.settings-section + .settings-section .settings-section-title {
+  padding-top: 22px;
+}
+
+.settings-list {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.settings-section-title.is-outside,
+.setting.is-outside {
+  opacity: 0;
+}
+
+.settings-track {
+  position: absolute;
+  top: 0;
+  right: -36px;
+  width: 4px;
+  height: 100%;
+  border-radius: 2px;
+  background: rgb(var(--text-rgb) / 8%);
+}
+
+.settings-thumb {
+  border-radius: 2px;
+  background: rgb(var(--text-rgb) / 40%);
+  transition: transform 220ms ease-out;
 }
 
 .setting {
@@ -667,7 +716,9 @@ body {
   border-radius: 18px;
   background: var(--surface);
   outline: none;
-  transition: transform 180ms ease-out;
+  transition:
+    transform 180ms ease-out,
+    opacity 220ms ease-out;
 }
 
 .setting-label {
@@ -694,6 +745,7 @@ body {
 
 .settings-side {
   flex: 1 1 0;
+  align-self: flex-start;
   margin-left: 4vw;
 }
 
@@ -1095,8 +1147,9 @@ body {
 }
 
 /* A book: the numbers of the pages above the spread, the spread on its paper, the caption of the
-   photo in focus, the bar of the buttons and the strip of the spreads. The spread is 72vw wide and
-   two 4:3 pages high (the TVs are 16:9). */
+   photo in focus, the bar of the buttons and the strip of the spreads. The spread is two 4:3 pages
+   (the TVs are 16:9), 72vw wide less 96px: the type, the bar and the strip keep their size in
+   pixels, and at 1280x720 they need that room for the keys to stay inside the safe area. */
 .book {
   position: relative;
   display: flex;
@@ -1110,7 +1163,7 @@ body {
 .book-numbers {
   display: flex;
   flex: none;
-  width: 72vw;
+  width: calc(72vw - 96px);
   height: 4vh;
 }
 
@@ -1125,8 +1178,8 @@ body {
 .book-stage {
   position: relative;
   flex: none;
-  width: 72vw;
-  height: 27vw;
+  width: calc(72vw - 96px);
+  height: calc(27vw - 36px);
 }
 
 /* A page turns by a short slide and a crossfade: the spread leaving goes the way of the move, the
@@ -1253,7 +1306,7 @@ body {
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 72vw;
+  width: calc(72vw - 96px);
   height: 6vh;
 }
 
@@ -1403,9 +1456,10 @@ body {
   background: var(--surface);
 }
 
+/* In the width of the screen (320x120 at 1920x1080), to fit its cell at 1280x720 too. */
 .grid-spreads .mini-spread {
-  width: 320px;
-  height: 120px;
+  width: 16.667vw;
+  height: 6.25vw;
   margin-bottom: 14px;
 }
 

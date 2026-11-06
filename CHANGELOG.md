@@ -49,6 +49,18 @@ All notable changes to Mirante are documented in this file. The format is based 
 
 ### Fixed
 
+- **The settings no longer run off the screen.** The list of **Ajustes** was taller than the screen,
+  and its last rows (the book's and **Restaurar padrões**) could be neither seen nor reached. The
+  list now moves with the focus, by `transform` alone with a short transition, so that the row in
+  focus is always whole inside the safe area, under the title, which stays put; the rows not whole
+  in view hide, and a thin bar beside the list shows where you are. The rows are grouped under
+  small titles, **Apresentação**, **Livro** and **Geral**, which ends on **Restaurar padrões**:
+  **Esconder a interface após** and **Reduzir efeitos** moved to **Geral**, after the book's.
+- **The book fits a 1280x720 screen.** The spread is a little smaller (72vw less 96 px), so that
+  the keys under the strip stay inside the safe area at 1280x720, and the miniatures of
+  **Visão geral** are sized by the width of the screen, so that they no longer overflow their cards
+  there.
+
 - **The webOS app opened to a grey screen on the owner's LG (Chromium 68).** webOS refused the
   bundle, a module script, from the TV's file system ("non-JavaScript MIME type of ''"), and once
   loaded the bundle stopped on `queueMicrotask`, which Preact calls and Chromium only has since 71.

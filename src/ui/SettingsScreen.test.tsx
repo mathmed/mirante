@@ -1,14 +1,16 @@
-import { screen } from '@testing-library/preact'
+import { screen, waitFor } from '@testing-library/preact'
 import { describe, expect, it } from 'vitest'
 
 import { focused, focusedOn, showGallery, title } from '../../test/gallery.ts'
+import { focusedRowOnScreen, layOutSettings } from '../../test/settings-layout.ts'
 import { ScreenKind } from '../core/navigation.ts'
 import { DEFAULT_PRESENTATION, PlaybackOrder } from '../core/presentation-settings.ts'
 import { RemoteKey } from '../core/remote-key.ts'
 import { storedText } from '../core/settings-storage.ts'
 import { homeTitle, MESSAGES } from './messages.ts'
 
-const { Right, Down, Enter, Back } = RemoteKey
+const { Right, Up, Down, Enter, Back } = RemoteKey
+const SCREEN_HEIGHTS: readonly number[] = [720, 1080]
 
 async function settingsScreen(
   options: Parameters<typeof showGallery>[0] = {},
@@ -18,6 +20,10 @@ async function settingsScreen(
   sut.remote.press(Right, Right, Right, Right, Enter)
   await title(MESSAGES.settings)
   return sut
+}
+
+function isOutside(text: string): boolean {
+  return screen.getByText(text).classList.contains('is-outside')
 }
 
 describe('SettingsScreen', () => {
@@ -63,4 +69,38 @@ describe('SettingsScreen', () => {
     expect(sut.written).toStrictEqual([storedText(defaults)])
     expect(focused()).toBe(MESSAGES.settings)
   })
+
+  it.each(SCREEN_HEIGHTS)(
+    'should scroll the list for the last row to show whole and focused at a height of %i',
+    async (height) => {
+      const { viewport } = layOutSettings(height)
+      const sut = await settingsScreen()
+      await focusedOn('Tempo de cada foto8 s')
+
+      sut.remote.press(...Array<RemoteKey>(14).fill(Down))
+
+      await focusedOn(MESSAGES.restoreDefaults)
+      await waitFor(() => {
+        expect(isOutside('Apresentação')).toBe(true)
+      })
+      const row = focusedRowOnScreen()
+      expect(row.top).toBeGreaterThanOrEqual(0)
+      expect(row.top + row.height).toBeLessThanOrEqual(viewport)
+      expect(row.isHidden).toBe(false)
+      expect(document.querySelector('.settings-thumb')).not.toBeNull()
+      expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(MESSAGES.settings)
+
+      sut.remote.press(...Array<RemoteKey>(14).fill(Up))
+
+      await focusedOn('Tempo de cada foto8 s')
+      await waitFor(() => {
+        expect(isOutside('Apresentação')).toBe(false)
+      })
+      expect(document.querySelector<HTMLElement>('.settings-scroller')?.style.transform).toBe(
+        'translateY(0px)',
+      )
+      sut.remote.press(Back)
+      await focusedOn(MESSAGES.settings)
+    },
+  )
 })

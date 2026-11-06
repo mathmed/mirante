@@ -1,5 +1,5 @@
 // The screenshots of the docs (make screenshots): the build, opened from file:// in a headless
-// Chromium at 1920x1080 like the TV packages, against a fake Immich with a library of landscapes,
+// Chromium at 1920x1080 (and the settings at 1280x720 too) like the TV packages, against a fake Immich with a library of landscapes,
 // walked with the remote control. Each screen is written to docs/screenshots/ as a WebP the page
 // itself encodes, under 300 KB, for the owner to review the look of the app; and the icon of the
 // app beside the two alternatives it was chosen against.
@@ -11,7 +11,7 @@ import { pathToFileURL } from 'node:url'
 import type { Browser, Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { writeBytes, writeText } from '../scripts/shared/files.ts'
+import { writeText } from '../scripts/shared/files.ts'
 import { type FakeImmich, startFakeImmich } from './fake-immich-server.ts'
 import { iconAlternativesPage } from './icon-alternatives.ts'
 import { launchBrowser } from './packaged-app.ts'
@@ -22,20 +22,20 @@ import {
   SCREENSHOT_LIBRARY,
   screenshotImage,
 } from './screenshot-library.ts'
+import { focusedBox, focusedOn, press, progressed, settled, shoot } from './screenshot-page.ts'
 
 const ROOT = join(import.meta.dirname, '..')
-const SCREENSHOTS = join(ROOT, 'docs', 'screenshots')
 const VIEWPORT = { width: 1920, height: 1080 }
-const MAX_BYTES = 300_000
-const WEBP_QUALITY = 0.8
+const SMALL_VIEWPORT = { width: 1280, height: 720 }
+// The share of each edge a TV may hide.
+const OVERSCAN = 0.05
+const TO_THE_LAST_SETTING: readonly string[] = Array<string>(14).fill('ArrowDown')
 // The opening shows the status under the logo after 1.2 s; the slow server answers after this.
 const SLOW_START_MS = 6000
 // How far the line of the slideshow has filled in its screenshot.
 const SLIDESHOW_SHARE = 0.3
 const BACK = 'Escape'
 const TO_THE_STRIP: readonly string[] = Array<string>(6).fill('ArrowDown')
-// The fake server draws each landscape when it is first asked for.
-const POLL_MS = 30_000
 // The photos of the book are drawn first, larger than the others.
 const BOOK_TIMEOUT_MS = 180_000
 
@@ -59,82 +59,10 @@ afterAll(async () => {
   await rm(directory, { recursive: true, force: true })
 })
 
-async function open(): Promise<Page> {
-  const page = await browser.newPage({ viewport: VIEWPORT })
+async function open(viewport = VIEWPORT): Promise<Page> {
+  const page = await browser.newPage({ viewport })
   await page.goto(indexUrl)
   return page
-}
-
-async function press(page: Page, ...keys: readonly string[]): Promise<void> {
-  for (const key of keys) {
-    await page.keyboard.press(key)
-  }
-}
-
-// Every image on the page loaded, and every fade and growth over (the endless breathing of the
-// mark while a screen waits aside).
-async function settled(page: Page): Promise<void> {
-  await expect
-    .poll(
-      async () =>
-        page.evaluate(() => {
-          const isLoaded = [...document.images].every((image) => image.complete)
-          const isStill = document
-            .getAnimations()
-            .every(
-              (animation) =>
-                animation.playState !== 'running' ||
-                animation.effect?.getComputedTiming().iterations === Infinity,
-            )
-          return isLoaded && isStill
-        }),
-      { timeout: POLL_MS },
-    )
-    .toBe(true)
-}
-
-// The line of the slideshow filled this far.
-async function progressed(page: Page, share: number): Promise<void> {
-  await expect
-    .poll(
-      async () =>
-        page.evaluate(() => {
-          const bar = document.querySelector('.viewer-progress-bar')
-          return bar === null ? 0 : new DOMMatrix(getComputedStyle(bar).transform).a
-        }),
-      { timeout: POLL_MS },
-    )
-    .toBeGreaterThan(share)
-}
-
-async function focusedOn(page: Page, text: string): Promise<void> {
-  await expect
-    .poll(async () => page.evaluate(() => document.activeElement?.textContent ?? ''), {
-      timeout: POLL_MS,
-    })
-    .toContain(text)
-}
-
-// Playwright only writes PNG or JPEG: the page draws the PNG on a canvas and encodes it as WebP.
-async function shoot(page: Page, name: string): Promise<void> {
-  const png = await page.screenshot()
-  const dataUrl = await page.evaluate(
-    async ({ base64, quality }) => {
-      const image = new Image()
-      image.src = `data:image/png;base64,${base64}`
-      await image.decode()
-      const canvas = document.createElement('canvas')
-      canvas.width = image.naturalWidth
-      canvas.height = image.naturalHeight
-      canvas.getContext('2d')?.drawImage(image, 0, 0)
-      return canvas.toDataURL('image/webp', quality)
-    },
-    { base64: png.toString('base64'), quality: WEBP_QUALITY },
-  )
-  expect(dataUrl.startsWith('data:image/webp;base64,')).toBe(true)
-  const webp = Buffer.from(dataUrl.slice(dataUrl.indexOf(',') + 1), 'base64')
-  expect(webp.length).toBeLessThan(MAX_BYTES)
-  await writeBytes(join(SCREENSHOTS, `${name}.webp`), webp)
 }
 
 describe('the screenshots of the docs', () => {
@@ -202,6 +130,26 @@ describe('the screenshots of the docs', () => {
     await focusedOn(page, 'Zoom lento')
     await settled(page)
     await shoot(page, '13-ajustes')
+    await page.close()
+  })
+
+  it.each([
+    ['19-ajustes-fim', VIEWPORT],
+    ['20-ajustes-fim-720p', SMALL_VIEWPORT],
+  ])('should capture the settings scrolled to their end (%s)', async (name, viewport) => {
+    const page = await open(viewport)
+    await focusedOn(page, 'Todas')
+    await press(page, 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'Enter')
+    await focusedOn(page, 'Tempo de cada foto')
+
+    await press(page, ...TO_THE_LAST_SETTING)
+    await focusedOn(page, 'Restaurar padrões')
+    await settled(page)
+
+    const row = await focusedBox(page)
+    expect(row.top).toBeGreaterThanOrEqual(viewport.height * OVERSCAN)
+    expect(row.bottom).toBeLessThanOrEqual(viewport.height * (1 - OVERSCAN))
+    await shoot(page, name)
     await page.close()
   })
 

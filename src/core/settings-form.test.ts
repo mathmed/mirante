@@ -5,6 +5,7 @@ import {
   PlaybackOrder,
   type PresentationSettings,
   SettingName,
+  SETTINGS,
   Transition,
   ZoomIntensity,
 } from './presentation-settings.ts'
@@ -14,8 +15,10 @@ import {
   pressInSettings,
   RESTORE_ROW,
   rowOf,
+  SETTINGS_GROUPS,
   SETTINGS_ROWS,
   type SettingsForm,
+  SettingsSection,
 } from './settings-form.ts'
 
 const { Up, Down, Left, Right, Enter, Back } = RemoteKey
@@ -138,5 +141,38 @@ describe('rowOf', () => {
 
   it('should give the last row for a row past the end', () => {
     expect(rowOf({ ...openSettings(DEFAULTS, DEFAULTS), row: 99 })).toBe(RESTORE_ROW)
+  })
+})
+
+describe('SETTINGS_GROUPS', () => {
+  it('should group every setting once under the presentations, the book and the rest', () => {
+    const sut = SETTINGS_GROUPS.map(({ section, rows }) => [
+      section,
+      rows.map((row) => (row.kind === RESTORE_ROW.kind ? row.kind : row.name)),
+    ])
+
+    expect(sut).toStrictEqual([
+      [
+        SettingsSection.Presentation,
+        [
+          'intervalSeconds',
+          'order',
+          'transition',
+          'zoom',
+          'showDate',
+          'showCaption',
+          'showCounter',
+          'loop',
+        ],
+      ],
+      [
+        SettingsSection.Book,
+        ['bookDensity', 'showBookCover', 'showPageNumbers', 'bookSpreadSeconds'],
+      ],
+      [SettingsSection.General, ['hideInterfaceSeconds', 'reduceEffects', 'restore']],
+    ])
+    expect(SETTINGS_ROWS.filter((row) => row.kind !== RESTORE_ROW.kind)).toHaveLength(
+      SETTINGS.length,
+    )
   })
 })

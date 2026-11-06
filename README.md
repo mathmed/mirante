@@ -160,7 +160,8 @@ in the italic serif, when **Mostrar a legenda** is on.
 ### Settings
 
 **Ajustes**, from the start screen, or Info (or Down) over the viewer, lists the settings with their
-values: ↑ and ↓ choose a row, ← and → change its value, OK flips a switch, and a sentence beside the
+values, grouped under **Apresentação**, **Livro** and **Geral**: ↑ and ↓ choose a row (the list
+moves with them when it is taller than the screen, and a thin bar beside it shows where you are), ← and → change its value, OK flips a switch, and a sentence beside the
 list says what the value does. **Restaurar padrões** goes back to the defaults (those of
 `config.json`, else the app's). Back keeps the settings on the TV (its `localStorage`, under
 `mirante.presentation`, with the version of their shape: settings an older or newer version wrote,
@@ -185,7 +186,7 @@ cover of a book. The paper of the book stays a neutral, warm white, whatever the
 graphite square with an amber mark: two rounded peaks that make an M, and the sun just above the
 right one, the view from a _mirante_. Cards have round corners on two levels of graphite, the focus
 is an amber ring that grows a little, screens fade in, and the viewer crossfades between photos.
-Captured by `make screenshots` at 1920x1080, against a fake library:
+Captured by `make screenshots` at 1920x1080 (the settings at 1280x720 too), against a fake library:
 
 | Start screen                                     | Albums                                     |
 | ------------------------------------------------ | ------------------------------------------ |
@@ -207,6 +208,8 @@ Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screens
 [error](docs/screenshots/11-erro.webp), [presentations](docs/screenshots/12-apresentar.webp),
 [settings](docs/screenshots/13-ajustes.webp),
 [settings over a photo](docs/screenshots/14-ajustes-na-foto.webp),
+[the settings scrolled to their end](docs/screenshots/19-ajustes-fim.webp) (and
+[at 1280x720](docs/screenshots/20-ajustes-fim-720p.webp)),
 [every photo](docs/screenshots/15-todas.webp), [a book](docs/screenshots/16-livro-capa.webp),
 [its pages](docs/screenshots/17-livro.webp) and
 [its overview](docs/screenshots/18-livro-visao-geral.webp). The icon was chosen over two
