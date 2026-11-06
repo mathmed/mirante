@@ -297,6 +297,12 @@ describe('spreadsKept', () => {
 
     expect(keys(state)).toStrictEqual([`spread-${String(last)}`])
   })
+
+  it('should keep no slide that is not a spread of the book', () => {
+    const elsewhere = { key: 'elsewhere', photos: defined(book.spreads[0]).photos }
+
+    expect(keys(startPresentation([elsewhere], 0, false))).toStrictEqual([])
+  })
 })
 
 describe('photoPagesOf', () => {

@@ -20,7 +20,9 @@ describe('pageAspectOf', () => {
   })
 
   it('should refuse a format it does not know', () => {
-    expect(() => pageAspectOf('round' as BookFormat)).toThrow(RangeError)
+    expect(() => pageAspectOf('round' as BookFormat)).toThrow(
+      new RangeError('No book format "round"'),
+    )
   })
 })
 
@@ -50,7 +52,9 @@ describe('pageGeometry', () => {
   it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
     'should refuse a page of aspect %d',
     (aspect) => {
-      expect(() => pageGeometry(aspect)).toThrow(RangeError)
+      expect(() => pageGeometry(aspect)).toThrow(
+        new RangeError(`No page of aspect ${String(aspect)}`),
+      )
     },
   )
 

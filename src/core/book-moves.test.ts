@@ -93,6 +93,44 @@ describe('frameToward', () => {
     expect(frameToward(frames, 2, Up)).toBe(0)
   })
 
+  it('should take a photo touching this one by a rounding error as below, before the next one', () => {
+    // Two photos side by side, and a wide one under them that starts a rounding error too high.
+    const frames: readonly Rect[] = [
+      { x: 0, y: -0.5, width: 0.4, height: 0.5 },
+      { x: 0.5, y: -0.5, width: 0.5, height: 0.5 },
+      { x: 0, y: -1e-9, width: 1, height: 0.5 },
+    ]
+
+    expect(frameToward(frames, 0, Down)).toBe(2)
+    expect(frameToward(frames, 2, Up)).toBe(1)
+  })
+
+  it('should take the nearest photo below before the one more in line', () => {
+    // A wide photo, a small one just under its left end, and another further down in its middle.
+    const frames: readonly Rect[] = [
+      { x: 0, y: 0, width: 1, height: 0.2 },
+      { x: 0, y: 0.3, width: 0.2, height: 0.2 },
+      { x: 0.4, y: 0.6, width: 0.2, height: 0.2 },
+    ]
+
+    expect(frameToward(frames, 0, Down)).toBe(1)
+    expect(frameToward(frames, 1, Down)).toBe(2)
+    expect(frameToward(frames, 2, Up)).toBe(0)
+  })
+
+  it('should measure how far in line two photos are from their middles', () => {
+    // Under the photo in focus, at the same distance, a photo whose middle is nearer to its middle
+    // and a wider one whose left edge is nearer; a third under the first, back up to it.
+    const frames: readonly Rect[] = [
+      { x: 0.5, y: 0, width: 0.2, height: 0.2 },
+      { x: 0, y: 0.3, width: 0.6, height: 0.2 },
+      { x: 0.62, y: 0.3, width: 0.98, height: 0.2 },
+      { x: 0, y: 0.6, width: 0.6, height: 0.2 },
+    ]
+
+    expect(frameToward(frames, 0, Down)).toBe(1)
+  })
+
   it('should never go back in the order of the spread', () => {
     const frames: readonly Rect[] = [
       { x: 0, y: 0.7, width: 1, height: 0.2 },
@@ -125,7 +163,7 @@ describe('frameToward', () => {
 
   it('should find nothing from a photo that is not there, or for a key that does not move', () => {
     expect(frameToward(FRAMES, 9, Down)).toBeUndefined()
-    expect(frameToward(FRAMES, -2, Down)).toBeUndefined()
+    expect(frameToward(FRAMES, -5, Down)).toBeUndefined()
     expect(frameToward(FRAMES, 0, Right)).toBeUndefined()
     expect(frameToward(FRAMES, 0, Enter)).toBeUndefined()
   })
