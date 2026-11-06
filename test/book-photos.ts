@@ -1,4 +1,4 @@
-import type { Rect } from '../src/core/book-geometry.ts'
+import { BookFormat, pageAspectOf, type Rect } from '../src/core/book-geometry.ts'
 import { BookDensity } from '../src/core/book-pagination.ts'
 import { type Book, bookLayouts, type BookOptions, type PageLayout } from '../src/core/book.ts'
 import type { Photo } from '../src/core/photo-library.ts'
@@ -95,12 +95,21 @@ export function lastOf<T>(items: readonly T[]): T | undefined {
   return last
 }
 
-// The options of the books of the tests: a cover, the normal density, a seed, every weight 1.
+// The shapes of page the tests lay out: full screen (8:9), classic (4:3), and a square one, which
+// no setting offers, for the layout holds whatever the shape.
+export const WIDE_PAGE = pageAspectOf(BookFormat.Wide)
+export const CLASSIC_PAGE = pageAspectOf(BookFormat.Classic)
+const SQUARE_PAGE = 1
+export const PAGE_SHAPES: readonly number[] = [WIDE_PAGE, CLASSIC_PAGE, SQUARE_PAGE]
+
+// The options of the books of the tests: a cover, the normal density, full screen pages, a seed,
+// every weight 1.
 export const BOOK_OPTIONS: BookOptions = {
   title: 'Viagem a Lisboa',
   seed: 42,
   density: BookDensity.Normal,
   hasCover: true,
+  pageAspect: WIDE_PAGE,
   weights: new Map(),
 }
 

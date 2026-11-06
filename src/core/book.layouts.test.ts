@@ -3,14 +3,17 @@ import { describe, expect, it } from 'vitest'
 import {
   allLayouts,
   BOOK_OPTIONS,
+  CLASSIC_PAGE,
   defined,
   EPSILON,
   isInside,
   mixedPhotos,
+  PAGE_SHAPES,
   PANORAMA,
   SQUARE,
+  WIDE_PAGE,
 } from '../../test/book-photos.ts'
-import { GAP, MARGIN, PAGE_ASPECT } from './book-geometry.ts'
+import { type PageGeometry, pageGeometry } from './book-geometry.ts'
 import { BookDensity } from './book-pagination.ts'
 import {
   type Book,
@@ -26,34 +29,47 @@ import { searchPage } from './page-layout.ts'
 import { roundSeed } from './shuffle.ts'
 
 const PAGE = { x: 0, y: 0, width: 1, height: 1 }
-// The margin across, in fractions of the width of the page.
-const MARGIN_ACROSS = MARGIN / PAGE_ASPECT
 
 // How far two boxes of a page stand apart, in page heights: across or down, whichever is more.
-function distance(first: Frame, second: Frame): number {
+function distance(first: Frame, second: Frame, aspect: number): number {
   const { cell: one } = first
   const { cell: other } = second
   const across = Math.max(other.x - one.x - one.width, one.x - other.x - other.width)
   const down = Math.max(other.y - one.y - one.height, one.y - other.y - other.height)
-  return Math.max(across * PAGE_ASPECT, down)
+  return Math.max(across * aspect, down)
 }
 
-function expectLaidOut(page: PhotoPage, layout: PageLayout): void {
+// Inside the margins of the page on its four sides, in fractions of the page.
+function expectInsideMargins(frame: Frame, geometry: PageGeometry): void {
+  const across = geometry.margin / geometry.aspect
+  expect(isInside(frame.cell, PAGE)).toBe(true)
+  expect(frame.cell.x).toBeGreaterThanOrEqual(across - EPSILON)
+  expect(frame.cell.y).toBeGreaterThanOrEqual(geometry.margin - EPSILON)
+  expect(frame.cell.x + frame.cell.width).toBeLessThanOrEqual(1 - across + EPSILON)
+  expect(frame.cell.y + frame.cell.height).toBeLessThanOrEqual(1 - geometry.margin + EPSILON)
+}
+
+// Every photo of the page, in its order, whole (inside its box, of its own shape: never cut nor
+// stretched), inside the margins, and apart from every other by the gap at least: none overlaps.
+function expectLaidOut(page: PhotoPage, layout: PageLayout, geometry: PageGeometry): void {
   expect(layout.number).toBe(page.number)
   expect(layout.frames.map(({ photoId }) => photoId)).toStrictEqual(page.photos.map(({ id }) => id))
   zipWith(layout.frames, page.photos, (frame, photo) => {
-    expect(isInside(frame.cell, PAGE)).toBe(true)
-    expect(frame.cell.x).toBeGreaterThanOrEqual(MARGIN_ACROSS - EPSILON)
-    expect(frame.cell.y).toBeGreaterThanOrEqual(MARGIN - EPSILON)
+    expectInsideMargins(frame, geometry)
     expect(isInside(frame.photo, frame.cell)).toBe(true)
-    expect((frame.photo.width * PAGE_ASPECT) / frame.photo.height).toBeCloseTo(photo.aspectRatio, 9)
+    expect((frame.photo.width * geometry.aspect) / frame.photo.height).toBeCloseTo(
+      photo.aspectRatio,
+      9,
+    )
   })
   layout.frames.forEach((frame, index) => {
     for (const other of layout.frames.slice(index + 1)) {
-      expect(distance(frame, other)).toBeGreaterThanOrEqual(GAP - EPSILON)
+      expect(distance(frame, other, geometry.aspect)).toBeGreaterThanOrEqual(geometry.gap - EPSILON)
     }
   })
 }
+
+const DENSITIES = [BookDensity.Light, BookDensity.Normal, BookDensity.Dense]
 
 // Whether the page had another arrangement to take than the page before it: a page of one photo
 // has none, a page of two only one, and every few pages one avoids two.
@@ -63,17 +79,39 @@ function hasChoice(layout: PageLayout): boolean {
 }
 
 describe('bookLayouts', () => {
-  it.each([BookDensity.Light, BookDensity.Normal, BookDensity.Dense])(
-    'should lay each photo out on its page, whole, apart, inside the margins (%s)',
-    (density) => {
-      const book = planBook(mixedPhotos(120, 'p', 3), { ...BOOK_OPTIONS, density })
+  it.each(
+    DENSITIES.flatMap((density) => PAGE_SHAPES.map((pageAspect) => ({ density, pageAspect }))),
+  )(
+    'should lay each photo out on its page, in order, whole, apart, inside the margins ($density, pages of aspect $pageAspect)',
+    ({ density, pageAspect }) => {
+      const book = planBook(mixedPhotos(120, 'p', 3), { ...BOOK_OPTIONS, density, pageAspect })
       const layouts = bookLayouts(book)
 
+      expect(layouts.pageAspect).toBe(pageAspect)
       for (const page of book.pages) {
-        expectLaidOut(page, layouts.layoutOf(page))
+        expectLaidOut(page, layouts.layoutOf(page), pageGeometry(pageAspect))
       }
     },
   )
+
+  it.each(PAGE_SHAPES)(
+    'should lay the same book out the same way every time on pages of aspect %d',
+    (pageAspect) => {
+      const book = (): Book => planBook(mixedPhotos(60), { ...BOOK_OPTIONS, seed: 5, pageAspect })
+
+      expect(allLayouts(book())).toStrictEqual(allLayouts(book()))
+    },
+  )
+
+  it('should lay the pages out by their shape', () => {
+    const photos = mixedPhotos(60)
+    const arrangements = (pageAspect: number): readonly string[] =>
+      allLayouts(planBook(photos, { ...BOOK_OPTIONS, pageAspect })).map(
+        ({ arrangement }) => arrangement,
+      )
+
+    expect(arrangements(WIDE_PAGE)).not.toStrictEqual(arrangements(CLASSIC_PAGE))
+  })
 
   it('should carry the weight of each photo', () => {
     const book = planBook(mixedPhotos(3), { ...BOOK_OPTIONS, weights: new Map([['b-1', 3]]) })
@@ -105,7 +143,11 @@ describe('bookLayouts', () => {
       return { kind: PageKind.Photos, number, photos: [defined(first), ...rest] }
     })
     const book: Book = { ...planBook([], BOOK_OPTIONS), pages }
-    const before = searchPage(defined(pages[3]).photos, roundSeed(book.seed, 4))
+    const before = searchPage(
+      defined(pages[3]).photos,
+      roundSeed(book.seed, 4),
+      pageGeometry(book.pageAspect),
+    )
     const ranked = [before.best, ...before.others].map(({ signature }) => signature)
 
     const sut = bookLayouts(book).layoutOf(defined(pages[4]))
@@ -122,20 +164,20 @@ describe('bookLayouts', () => {
         .slice(0, 14)
         .map(({ arrangement }) => arrangement),
     ).toStrictEqual([
-      'row(column(1,row(1,1)),column(1,1))',
+      'column(row(1,1),row(1,1),1)',
       'row(1,1)',
-      'row(column(1,row(1,1)),column(1,1))',
-      'column(row(1,1),row(1,1))',
-      '1',
-      '1',
-      'column(row(1,1,1),row(1,1))',
-      'column(row(1,1),row(1,1))',
-      '1',
-      'row(1,1)',
-      'row(column(1,row(1,1)),column(1,1))',
-      'row(1,1)',
-      'row(column(row(1,1),row(column(1,1),1)),1)',
+      'column(1,row(1,column(row(1,1),1)))',
       'row(column(1,1),column(1,1))',
+      '1',
+      '1',
+      'column(row(1,1),row(1,1,1))',
+      'row(column(1,1),column(1,1))',
+      '1',
+      'row(1,1)',
+      'column(1,row(1,column(1,row(1,1))))',
+      'column(1,1)',
+      'row(column(row(1,1),1,1),column(1,1))',
+      'column(row(1,column(1,1)),1)',
     ])
   })
 

@@ -1,4 +1,4 @@
-import { normalized, PAGE_ASPECT, type Rect } from './book-geometry.ts'
+import { normalized, type PageGeometry, pageGeometry, type Rect } from './book-geometry.ts'
 import { type BookDensity, paginate } from './book-pagination.ts'
 import { sortPhotos } from './gallery.ts'
 import { firstOr, zipWith } from './lists.ts'
@@ -64,6 +64,8 @@ export interface BookOptions {
   readonly seed: number
   readonly density: BookDensity
   readonly hasCover: boolean
+  // The width of a page over its height (book-geometry.ts, pageAspectOf).
+  readonly pageAspect: number
   // How much of its page a photo asks for, by its id; 1 for a photo left out.
   readonly weights: ReadonlyMap<string, number>
 }
@@ -88,12 +90,15 @@ export interface PageLayout {
 export interface BookLayouts {
   readonly layoutOf: (page: PhotoPage) => PageLayout
   readonly isLaidOut: (page: PhotoPage) => boolean
+  // The width of a page over its height.
+  readonly pageAspect: number
 }
 
 const DEFAULT_WEIGHT = 1
 // A photo whose shorter side takes less of the height of the page than this loads its thumbnail
-// (Immich's are 250 pixels on their shorter side; a page is about 550 pixels high on a TV).
-const THUMBNAIL_SIDE = 0.4
+// (Immich's are 250 pixels on their shorter side; a page of the full screen book is about 1000
+// pixels high on a TV, one of the classic book about 670): the others, the preview.
+const THUMBNAIL_SIDE = 0.3
 // Every few pages, a page avoids the two best arrangements of the page before it instead of the
 // one that page took: it then needs no page further back, so that any page is laid out after a
 // few others at most.
@@ -114,7 +119,7 @@ export function planBook(photos: readonly Photo[], options: BookOptions): Book {
   return {
     seed: options.seed,
     density: options.density,
-    pageAspect: PAGE_ASPECT,
+    pageAspect: pageGeometry(options.pageAspect).aspect,
     cover,
     pages,
     spreads: spreadsOf(pages, cover),
@@ -122,8 +127,8 @@ export function planBook(photos: readonly Photo[], options: BookOptions): Book {
 }
 
 // The small image for a small photo on its page, the preview for a large one; never the original.
-export function imageSizeOf(frame: Frame): ImageSize {
-  const shorterSide = Math.min(frame.photo.width * PAGE_ASPECT, frame.photo.height)
+export function imageSizeOf(frame: Frame, pageAspect: number): ImageSize {
+  const shorterSide = Math.min(frame.photo.width * pageAspect, frame.photo.height)
   return shorterSide < THUMBNAIL_SIDE ? ImageSize.Thumbnail : ImageSize.Preview
 }
 
@@ -170,11 +175,12 @@ export function spreadOfPhoto(book: Book, photoId: string): number {
 }
 
 export function bookLayouts(book: Book): BookLayouts {
+  const geometry = pageGeometry(book.pageAspect)
   const searches = new Map<number, PageSearch>()
   const chosen = new Map<number, PageLayout>()
   const searchOf = (page: PhotoPage): PageSearch =>
     remembered(searches, page.number, () =>
-      searchPage(page.photos, roundSeed(book.seed, page.number)),
+      searchPage(page.photos, roundSeed(book.seed, page.number), geometry),
     )
   const choose = (page: PhotoPage): PageLayout =>
     remembered(chosen, page.number, () => {
@@ -185,9 +191,13 @@ export function bookLayouts(book: Book): BookLayouts {
         previous === undefined
           ? search.best
           : avoiding(search, avoidedAfter(previous, { page, searchOf, choose }))
-      return layoutOf(page, candidate)
+      return layoutOf(page, candidate, geometry)
     })
-  return { layoutOf: choose, isLaidOut: (page) => chosen.has(page.number) }
+  return {
+    layoutOf: choose,
+    isLaidOut: (page) => chosen.has(page.number),
+    pageAspect: geometry.aspect,
+  }
 }
 
 interface Choosing {
@@ -216,15 +226,15 @@ function avoiding(search: PageSearch, avoided: readonly string[]): PageCandidate
   return firstOr(allowed, search.best)
 }
 
-function layoutOf(page: PhotoPage, candidate: PageCandidate): PageLayout {
+function layoutOf(page: PhotoPage, candidate: PageCandidate, geometry: PageGeometry): PageLayout {
   return {
     number: page.number,
     arrangement: candidate.signature,
     frames: zipWith(page.photos, candidate.placements, (photo, placement) => ({
       photoId: photo.id,
       weight: photo.weight,
-      cell: normalized(placement.cell),
-      photo: normalized(placement.photo),
+      cell: normalized(placement.cell, geometry.aspect),
+      photo: normalized(placement.photo, geometry.aspect),
     })),
   }
 }
