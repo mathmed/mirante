@@ -1,6 +1,7 @@
 import type { JSX } from 'preact'
 import { useCallback, useMemo, useState } from 'preact/hooks'
 
+import { pageAspectOf } from '../core/book-geometry.ts'
 import { bookKeyOf, type BookSource, loadBookPhotos } from '../core/book-source.ts'
 import {
   type Book,
@@ -74,6 +75,7 @@ function BookReader(props: BookReaderProps): JSX.Element {
     <BookView
       key={`${String(book.seed)} ${String(reader.opening.visit)}`}
       {...props}
+      title={sourceTitle(props.source)}
       {...{ book, layouts: reader.layouts }}
       start={openingOf(book, reader.opening.photoId)}
       onOpen={(photoId) => {
@@ -146,7 +148,7 @@ function useReader(props: BookReaderProps): Reader {
 
 function useBook(props: BookReaderProps, seed: number): Book {
   const { photos, source, presentation } = props
-  const { bookDensity: density, shouldShowBookCover: hasCover } = presentation.settings
+  const { bookDensity: density, shouldShowBookCover: hasCover, bookFormat } = presentation.settings
   return useMemo(
     () =>
       planBook(photos, {
@@ -154,8 +156,9 @@ function useBook(props: BookReaderProps, seed: number): Book {
         seed,
         density,
         hasCover,
+        pageAspect: pageAspectOf(bookFormat),
         weights: SAME_WEIGHTS,
       }),
-    [photos, source, seed, density, hasCover],
+    [photos, source, seed, density, hasCover, bookFormat],
   )
 }

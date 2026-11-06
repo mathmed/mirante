@@ -1146,40 +1146,37 @@ body {
   line-height: 1.2;
 }
 
-/* A book: the numbers of the pages above the spread, the spread on its paper, the caption of the
-   photo in focus, the bar of the buttons and the strip of the spreads. The spread is two 4:3 pages
-   (the TVs are 16:9), 72vw wide less 96px: the type, the bar and the strip keep their size in
-   pixels, and at 1280x720 they need that room for the keys to stay inside the safe area. */
+/* A book fills the screen: the spread as large as the safe area of the book allows in the shape of
+   its pages (a full screen spread is 16:9, the shape of the TV, a classic one as wide), over the
+   rest of the screen. Its safe area is 3.5% of each edge, for the paper alone: the margins of the
+   pages keep the photos inside the 5% of the other screens. The width comes from here, the most
+   the height allows from the shape of the book (--book-height, in an inline max-width), and the
+   height from the width, a padding: Chromium 68 has no aspect-ratio and no min(). */
 .book {
-  position: relative;
+  --book-height: 93vh;
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
   display: flex;
-  flex: 1 1 0;
-  flex-direction: column;
   align-items: center;
-  min-height: 0;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: var(--background);
   animation: fade-in var(--enter);
-}
-
-.book-numbers {
-  display: flex;
-  flex: none;
-  width: calc(72vw - 96px);
-  height: 4vh;
-}
-
-.book-number {
-  flex: 1 1 0;
-  color: var(--text-secondary);
-  font-size: 22px;
-  letter-spacing: 0.04em;
-  text-align: center;
 }
 
 .book-stage {
   position: relative;
   flex: none;
-  width: calc(72vw - 96px);
-  height: calc(27vw - 36px);
+  width: 93vw;
+}
+
+.book-sheet {
+  position: relative;
+  height: 0;
 }
 
 /* A page turns by a short slide and a crossfade: the spread leaving goes the way of the move, the
@@ -1192,7 +1189,7 @@ body {
   display: flex;
   width: 100%;
   height: 100%;
-  box-shadow: 0 18px 40px rgb(var(--shade-rgb) / 50%);
+  box-shadow: 0 1.6vh 4vh rgb(var(--shade-rgb) / 50%);
   opacity: 0;
   transition:
     opacity 600ms ease-in-out,
@@ -1205,11 +1202,11 @@ body {
 }
 
 .spread.is-before {
-  transform: translateX(-5%);
+  transform: translateX(-4%);
 }
 
 .spread.is-after {
-  transform: translateX(5%);
+  transform: translateX(4%);
 }
 
 .book.is-calm .spread {
@@ -1221,15 +1218,15 @@ body {
   content: '';
   position: absolute;
   top: 0;
-  left: 46%;
+  left: 47%;
   z-index: 1;
-  width: 8%;
+  width: 6%;
   height: 100%;
   background: linear-gradient(
     90deg,
     rgb(var(--shade-rgb) / 0%) 0%,
     rgb(var(--shade-rgb) / 7%) 35%,
-    rgb(var(--shade-rgb) / 22%) 50%,
+    rgb(var(--shade-rgb) / 20%) 50%,
     rgb(var(--shade-rgb) / 7%) 65%,
     rgb(var(--shade-rgb) / 0%) 100%
   );
@@ -1249,7 +1246,6 @@ body {
   position: absolute;
   background: var(--paper-shade);
   outline: none;
-  transition: transform 180ms ease-out;
 }
 
 .book-page .book-frame .picture {
@@ -1261,13 +1257,41 @@ body {
   color: var(--ink-soft);
 }
 
+/* The photo in focus: a thin amber ring and a faint glow, discreet on the paper; none while the
+   book plays. */
 .book-frame:focus {
   z-index: 2;
-  box-shadow: var(--focus-glow);
-  transform: scale(var(--focus-scale));
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 0 14px rgb(var(--gold-rgb) / 35%);
 }
 
-/* The cover: the mark, the title in the italic serif and the period, printed on the paper. */
+.book.is-playing .book-frame:focus {
+  box-shadow: none;
+}
+
+/* The number of the page, small, in its outer lower corner, inside the margin of the paper. */
+.book-folio {
+  position: absolute;
+  bottom: 1%;
+  color: var(--ink-soft);
+  font-size: 1.6vh;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.book-page.is-left .book-folio {
+  left: 4%;
+}
+
+.book-page.is-right .book-folio {
+  right: 4%;
+}
+
+/* The cover: the mark, the title in the italic serif and the period, printed on the paper, in the
+   middle of the page. */
 .book-cover {
   display: flex;
   flex-direction: column;
@@ -1280,14 +1304,14 @@ body {
 }
 
 .book-cover-mark {
-  height: 72px;
-  margin-bottom: 32px;
+  height: 8vh;
+  margin-bottom: 4vh;
 }
 
 .book-cover-title {
-  margin: 0 0 18px;
+  margin: 0 0 2vh;
   font-family: var(--serif);
-  font-size: 46px;
+  font-size: 5.6vh;
   font-style: italic;
   font-weight: 400;
   line-height: 1.2;
@@ -1296,28 +1320,122 @@ body {
 .book-cover-period {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 26px;
+  font-size: 2.6vh;
   font-weight: 600;
   letter-spacing: 0.04em;
 }
 
+/* The caption of the photo in focus, over the bottom of the book, on a dark band. */
 .book-caption {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: calc(72vw - 96px);
-  height: 6vh;
+  position: absolute;
+  bottom: 9vh;
+  left: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 12vw;
+  text-align: center;
+  pointer-events: none;
 }
 
 .book-caption-text {
+  display: inline-block;
   margin: 0;
-  color: var(--gold-light);
+  padding: 10px 32px 12px;
+  border-radius: 18px;
+  background: rgb(var(--background-rgb) / 80%);
+  color: var(--text);
   font-family: var(--serif);
-  font-size: 28px;
+  font-size: 32px;
   font-style: italic;
-  white-space: nowrap;
+  line-height: 1.3;
   animation: fade-in 600ms ease-out both;
+}
+
+/* While the book plays: a thin amber line that fills up in the time of a spread, at the bottom of
+   its safe area. */
+.book-progress {
+  position: absolute;
+  bottom: 3.5vh;
+  left: 3.5vw;
+  z-index: 2;
+  width: 93vw;
+  height: 3px;
+  background: rgb(var(--shade-rgb) / 18%);
+}
+
+.book-progress-bar {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+  transform-origin: left center;
+  animation: fill linear both;
+}
+
+/* The layer of the controls, over the book, inside the safe area of the screens: the title, the
+   pages and the mark at the top, the bar, the strip and the keys at the bottom, each over a
+   gradient that darkens the book. It fades in and out; hidden, nothing in it holds the focus. */
+.book-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  padding: 5vh 5vw;
+  background: linear-gradient(
+    180deg,
+    rgb(var(--shade-rgb) / 92%) 0%,
+    rgb(var(--shade-rgb) / 84%) 12%,
+    rgb(var(--shade-rgb) / 0%) 24%,
+    rgb(var(--shade-rgb) / 0%) 52%,
+    rgb(var(--shade-rgb) / 88%) 76%,
+    rgb(var(--shade-rgb) / 92%) 100%
+  );
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+  pointer-events: none;
+}
+
+.book-layer.is-shown {
+  opacity: 1;
+}
+
+.book-layer-top {
+  display: flex;
+  align-items: center;
+}
+
+.book-layer-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.book-layer-pages {
+  margin: 0 36px 0 auto;
+  color: var(--text-secondary);
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.book-layer-mark {
+  height: 40px;
+}
+
+.book-layer-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* The buttons under the spread: the arrows at the sides, the overview in the middle. */
@@ -1390,16 +1508,28 @@ body {
   transform: scale(var(--focus-scale));
 }
 
+/* 60px high, as wide as the shape of the book makes it (--spread-aspect, inline). */
 .mini-spread {
-  display: flex;
-  width: 160px;
-  height: 60px;
+  width: calc(60px * var(--spread-aspect));
+}
+
+/* As high as the shape of the book makes it: an inline padding. */
+.mini-sheet {
+  position: relative;
+  height: 0;
 }
 
 .mini-page {
-  position: relative;
-  flex: 1 1 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
   background: var(--paper);
+}
+
+.mini-page + .mini-page {
+  left: 50%;
 }
 
 /* The title of the cover, in miniature. */
@@ -1456,10 +1586,10 @@ body {
   background: var(--surface);
 }
 
-/* In the width of the screen (320x120 at 1920x1080), to fit its cell at 1280x720 too. */
+/* In the height of the screen (120px at 1920x1080), to fit its cell at 1280x720 too, whatever the
+   shape of the book. */
 .grid-spreads .mini-spread {
-  width: 16.667vw;
-  height: 6.25vw;
+  width: calc(6.25vw * var(--spread-aspect));
   margin-bottom: 14px;
 }
 
@@ -1469,4 +1599,14 @@ body {
 
 .grid-spreads .cell:focus .tile-detail {
   color: var(--gold-light);
+}
+
+/* Over the book, the bar and the strip take the height of what they hold, whatever the screen. */
+.book-layer .book-bar,
+.book-layer .book-strip {
+  height: auto;
+}
+
+.book-layer .book-bar {
+  margin-bottom: 2vh;
 }

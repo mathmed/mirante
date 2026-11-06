@@ -1,5 +1,5 @@
 import type { JSX } from 'preact'
-import { useCallback, useMemo, useState } from 'preact/hooks'
+import { useCallback, useEffect, useMemo, useState } from 'preact/hooks'
 
 import {
   type BookAction,
@@ -7,26 +7,30 @@ import {
   BookControl,
   type BookFocus,
   BookZone,
+  isLayerShown,
   OVERVIEW_CONTROL,
   pressInBook,
   spreadRects,
+  withoutLayer,
 } from '../core/book-navigation.ts'
 import { type Book, type BookLayouts, type Spread, spreadAt } from '../core/book.ts'
 import { createCaptionCache } from '../core/captions.ts'
 import type { PhotoLibrary } from '../core/photo-library.ts'
+import { interfaceMs } from '../core/presentation-effects.ts'
 import type { PresentationSettings } from '../core/presentation-settings.ts'
 import { type KeySource, RemoteKey } from '../core/remote-key.ts'
-import { BookBar } from './BookBar.tsx'
+import { BookLayer } from './BookLayer.tsx'
 import { BookOverview } from './BookOverview.tsx'
-import { BookStage, PageNumbers } from './BookSpread.tsx'
-import { BookStrip } from './BookStrip.tsx'
+import { BookStage } from './BookSpread.tsx'
 import { Caption, CaptionPlace } from './Caption.tsx'
 import { KeyListener } from './KeyListener.tsx'
-import { MESSAGES } from './messages.ts'
+import { Progress } from './Progress.tsx'
 import type { PresentationControls } from './screen-props.ts'
 import { type PresentationControl, SAME_SLIDES, usePresentation } from './use-presentation.ts'
 
 export interface BookViewProps {
+  // The name of the album or of the month.
+  readonly title: string
   readonly book: Book
   readonly layouts: BookLayouts
   // The spread it opens on, and the photo in focus there.
@@ -50,13 +54,16 @@ const PRESSES: ReadonlyMap<BookControl, RemoteKey> = new Map([
   [BookControl.Play, RemoteKey.Enter],
 ])
 
-// The book, a spread at a time, with the bar of its buttons and the strip of its spreads under it.
-// The presentation engine turns the pages: left and right, and, while the book plays, its clock,
-// with the time of a spread of the settings; the overview holds it.
+// The book, a spread at a time, filling the screen; the layer of its controls shows over it when
+// asked for, and hides by itself after the time of the settings. The presentation engine turns the
+// pages: left and right, and, while the book plays, its clock, with the time of a spread of the
+// settings; the overview holds it.
 export function BookView(props: BookViewProps): JSX.Element {
   const { book, presentation } = props
   const [isOverviewOpen, setIsOverviewOpen] = useState(false)
   const [focus, setFocus] = useState<BookFocus>({ zone: BookZone.Page, frame: props.start.frame })
+  // Every key pressed counts: the layer stays while the remote control is in use.
+  const [presses, setPresses] = useState(0)
   const settings = useBookSettings(presentation.settings)
   const control = usePresentation({
     slides: book.spreads,
@@ -67,7 +74,11 @@ export function BookView(props: BookViewProps): JSX.Element {
     isHeld: isOverviewOpen,
   })
   const spread = spreadAt(book, control.state.index)
-  const view = { ...props, settings, control, focus, setFocus, isOverviewOpen, setIsOverviewOpen }
+  const view = {
+    ...props,
+    ...{ settings, control, focus, setFocus, isOverviewOpen, setIsOverviewOpen },
+    ...{ presses, setPresses },
+  }
   return spread === undefined ? <div class="book" /> : <OpenBook {...view} spread={spread} />
 }
 
@@ -79,30 +90,55 @@ interface OpenBookProps extends BookViewProps {
   readonly setFocus: (focus: BookFocus) => void
   readonly isOverviewOpen: boolean
   readonly setIsOverviewOpen: (isOpen: boolean) => void
+  readonly presses: number
+  readonly setPresses: (count: (previous: number) => number) => void
 }
 
 function OpenBook(props: OpenBookProps): JSX.Element {
-  const { book, layouts, spread, settings, control, focus } = props
+  const { book, layouts, spread, settings, control, focus, isOverviewOpen } = props
   const onKey = useBookKeys(props)
+  useLayerTimeout(props)
+  const { isPlaying } = control.state
   const frame = focus.zone === BookZone.Page ? Math.min(focus.frame, spread.photos.length - 1) : -1
+  const stage = { state: control.state, upcoming: control.upcoming, frame }
   return (
-    <div class={settings.shouldReduceEffects ? 'book is-calm' : 'book'}>
-      <PageNumbers spread={spread} isShown={settings.shouldShowPageNumbers} />
-      <BookStage {...props} state={control.state} upcoming={control.upcoming} frame={frame} />
-      {settings.shouldShowCaption && <BookCaption {...props} frame={frame} />}
-      <BookBar focus={focus} isPlaying={control.state.isPlaying} isCovered={props.isOverviewOpen} />
-      <BookStrip book={book} layouts={layouts} current={control.state.index} focus={focus} />
+    <div class={bookClass(settings, isPlaying)}>
+      <BookStage {...props} {...stage} shouldShowNumbers={settings.shouldShowPageNumbers} />
+      {settings.shouldShowCaption && !isPlaying && <BookCaption {...props} frame={frame} />}
+      <Progress
+        place={CaptionPlace.Book}
+        state={control.state}
+        settings={settings}
+        isHeld={isOverviewOpen}
+      />
+      <BookLayer
+        {...{ book, layouts, spread, focus, isPlaying }}
+        title={props.title}
+        current={control.state.index}
+        isShown={isLayerShown(focus)}
+        isCovered={isOverviewOpen}
+      />
       <BookKeys {...props} onKey={onKey} />
-      <p class="book-keys">{MESSAGES.bookKeys}</p>
     </div>
   )
+}
+
+// Playing, only the pages show, without the ring of the focus; reducing the effects leaves the
+// crossfade of the pages alone.
+function bookClass(settings: PresentationSettings, isPlaying: boolean): string {
+  const classes = [
+    'book',
+    ...(settings.shouldReduceEffects ? ['is-calm'] : []),
+    ...(isPlaying ? ['is-playing'] : []),
+  ]
+  return classes.join(' ')
 }
 
 // The keys go to the book, or to its overview while it is open: Back closes it, on its button.
 function BookKeys(
   props: OpenBookProps & { readonly onKey: (key: RemoteKey) => void },
 ): JSX.Element {
-  const { book, layouts, keys, control, setFocus, setIsOverviewOpen } = props
+  const { book, layouts, keys, control, focus, setFocus, setIsOverviewOpen } = props
   if (!props.isOverviewOpen) {
     return <KeyListener keys={keys} onKey={props.onKey} />
   }
@@ -113,10 +149,29 @@ function BookKeys(
       onJump={props.onJump}
       onClose={() => {
         setIsOverviewOpen(false)
-        setFocus({ zone: BookZone.Controls, control: OVERVIEW_CONTROL })
+        setFocus({ zone: BookZone.Controls, control: OVERVIEW_CONTROL, frame: focus.frame })
       }}
     />
   )
+}
+
+// The layer hides by itself the time of the settings after the last key, unless the overview
+// covers it; the focus goes back to its photo.
+function useLayerTimeout(props: OpenBookProps): void {
+  const { focus, setFocus, settings, isOverviewOpen, presses } = props
+  const isWaiting = isLayerShown(focus) && !isOverviewOpen
+  const hideMs = interfaceMs(settings)
+  useEffect(() => {
+    if (!isWaiting) {
+      return undefined
+    }
+    const timer = setTimeout(() => {
+      setFocus(withoutLayer(focus))
+    }, hideMs)
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [focus, setFocus, isWaiting, hideMs, presses])
 }
 
 // The caption of the photo in focus, and the next one read ahead; none away from the photos.
@@ -134,16 +189,17 @@ function useBookSettings(settings: PresentationSettings): PresentationSettings {
 }
 
 function useBookKeys(props: OpenBookProps): (key: RemoteKey) => void {
-  const { book, layouts, spread, control, focus } = props
+  const { book, layouts, spread, control, focus, setPresses } = props
   const frames = useMemo(() => spreadRects(spread, layouts), [spread, layouts])
   const apply = useBookActions(props)
-  const index = control.state.index
+  const { index, isPlaying } = control.state
   const spreadCount = book.spreads.length
   return useCallback(
     (key: RemoteKey) => {
-      apply(pressInBook(focus, key, { frames, spread: index, spreadCount }))
+      setPresses((count) => count + 1)
+      apply(pressInBook(focus, key, { frames, spread: index, spreadCount, isPlaying }))
     },
-    [apply, focus, frames, index, spreadCount],
+    [apply, focus, frames, index, spreadCount, isPlaying, setPresses],
   )
 }
 
@@ -152,17 +208,10 @@ function useBookActions(props: OpenBookProps): (action: BookAction) => void {
   const pressControl = useControlPress(props)
   return useCallback(
     (action: BookAction) => {
-      switch (action.kind) {
-        case BookActionKind.Turn:
-          control.press(action.key)
-          setFocus(action.focus)
-          return
-        case BookActionKind.Focus:
-          setFocus(action.focus)
-          return
-        default:
-          act(action, { spread, pressControl, back, onOpen, onJump })
+      if ('focus' in action) {
+        setFocus(action.focus)
       }
+      act(action, { spread, press: control.press, pressControl, back, onOpen, onJump })
     },
     [spread, control, setFocus, back, onOpen, onJump, pressControl],
   )
@@ -170,6 +219,8 @@ function useBookActions(props: OpenBookProps): (action: BookAction) => void {
 
 interface Acting {
   readonly spread: Spread
+  // A key of the presentation engine, which turns the pages and plays the book.
+  readonly press: (key: RemoteKey) => void
   readonly pressControl: (control: BookControl) => void
   readonly back: () => void
   readonly onOpen: (photoId: string) => void
@@ -189,8 +240,20 @@ function act(action: BookAction, acting: Acting): void {
     case BookActionKind.Jump:
       acting.onJump(action.spread)
       return
-    default:
+    case BookActionKind.Leave:
       acting.back()
+      return
+    default:
+      pressPresentation(action, acting)
+  }
+}
+
+// A page turns; a pause stops the book as its button would.
+function pressPresentation(action: BookAction, acting: Acting): void {
+  if (action.kind === BookActionKind.Turn) {
+    acting.press(action.key)
+  } else if (action.kind === BookActionKind.Pause) {
+    acting.press(RemoteKey.Enter)
   }
 }
 

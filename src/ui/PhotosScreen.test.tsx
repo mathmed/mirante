@@ -7,7 +7,7 @@ import { ScreenKind } from '../core/navigation.ts'
 import { RemoteKey } from '../core/remote-key.ts'
 import { homeTitle, MESSAGES } from './messages.ts'
 
-const { Up, Down, Left, Right, Enter, Back } = RemoteKey
+const { Left, Right, Enter, Back, Info } = RemoteKey
 const ALL_PHOTOS = homeTitle(ScreenKind.AllPhotos)
 
 function shownPhotos(): readonly string[] {
@@ -49,7 +49,7 @@ describe('the photos of an album or a month', () => {
     await photoInFocus('trip-1')
     sut.remote.press(Left, Enter)
 
-    expect(await screen.findByText('Página 1')).toBeTruthy()
+    expect(await screen.findByText('Capa e página 1')).toBeTruthy()
     expect(document.querySelector('.book-cover-title')?.textContent).toBe(TRIP.name)
     expect(shownPhotos()[0]).toBe('trip-1')
     sut.remote.press(Back)
@@ -75,7 +75,7 @@ describe('the photos of an album or a month', () => {
 
     sut.remote.press(Left, Enter)
 
-    expect(await screen.findByText('Página 1')).toBeTruthy()
+    expect(await screen.findByText('Capa e página 1')).toBeTruthy()
     expect(document.querySelector('.book-cover-title')?.textContent).toBe('Março de 2024')
     expect(shownPhotos()[0]).toBe('march-1')
   })
@@ -89,11 +89,11 @@ describe('the photos of an album or a month', () => {
     await title(TRIP.name)
     await photoInFocus('trip-1')
     sut.remote.press(Left, Enter)
-    await screen.findByText('Página 1')
+    await screen.findByText('Capa e página 1')
     const before = shownPhotos()
 
-    // Down reaches the bar, then the strip, and stays there; Up comes back to the overview.
-    sut.remote.press(...Array<RemoteKey>(6).fill(Down), Up, Right)
+    // Info shows the controls over the book, on the overview button.
+    sut.remote.press(Info, Right)
     expect(focused()).toBe(MESSAGES.reorganizeBook)
     sut.remote.press(Enter)
 
@@ -105,7 +105,7 @@ describe('the photos of an album or a month', () => {
     sut.remote.press(Back)
     await focusedOn(MESSAGES.seeAsBook)
     sut.remote.press(Enter)
-    await screen.findByText('Página 1')
+    await screen.findByText('Capa e página 1')
     expect(shownPhotos()).toStrictEqual(after)
   })
 })

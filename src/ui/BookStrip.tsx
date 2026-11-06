@@ -9,6 +9,8 @@ import { useWarmLayouts } from './use-warm-layouts.ts'
 // The spreads the strip shows at once.
 const SHOWN = 7
 const PERCENT = 100
+// The pages of a spread.
+const SIDES = 2
 
 export interface BookStripProps {
   readonly book: Book
@@ -71,12 +73,16 @@ export interface MiniSpreadProps {
   readonly layouts: BookLayouts
 }
 
-// A spread in miniature: the paper of its pages and a block where each photo is, once laid out.
+// A spread in miniature, in the shape of the book: the paper of its pages and a block where each
+// photo is, once laid out.
 export function MiniSpread({ spread, layouts }: MiniSpreadProps): JSX.Element {
+  const spreadAspect = SIDES * layouts.pageAspect
   return (
-    <div class="mini-spread">
-      <MiniPage page={spread.left} layouts={layouts} />
-      <MiniPage page={spread.right} layouts={layouts} />
+    <div class="mini-spread" style={{ '--spread-aspect': String(spreadAspect) }}>
+      <div class="mini-sheet" style={{ paddingTop: `${String(PERCENT / spreadAspect)}%` }}>
+        <MiniPage page={spread.left} layouts={layouts} />
+        <MiniPage page={spread.right} layouts={layouts} />
+      </div>
     </div>
   )
 }

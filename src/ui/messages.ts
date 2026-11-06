@@ -41,7 +41,7 @@ const FAILURES: Readonly<Record<StartupFailure, PanelText>> = {
   },
   [StartupFailure.InvalidPresentation]: {
     title: 'Ajustes da apresentação inválidos',
-    hint: 'No bloco presentation do config.json, confira os nomes e os valores (intervalSeconds e bookSpreadSeconds de 3 a 60, hideInterfaceSeconds de 3 a 20, order "oldest-first", "newest-first" ou "random", bookDensity "light", "normal" ou "dense"), ou retire o bloco para usar os padrões.',
+    hint: 'No bloco presentation do config.json, confira os nomes e os valores (intervalSeconds e bookSpreadSeconds de 3 a 60, hideInterfaceSeconds de 3 a 20, order "oldest-first", "newest-first" ou "random", bookDensity "light", "normal" ou "dense", bookFormat "wide" ou "classic"), ou retire o bloco para usar os padrões.',
   },
   [StartupFailure.Unreachable]: {
     title: 'O Immich não respondeu',
@@ -115,7 +115,8 @@ export const MESSAGES = {
   seeAsBook: 'Ver como livro',
   bookAlbum: 'Ver um álbum como livro',
   bookMonth: 'Ver um mês como livro',
-  bookKeys: '← → viram a página · OK abre a foto · ↓ controles',
+  bookKeys:
+    'Nas fotos: ← → viram a página · ↑ ↓ escolhem a foto · OK abre · Voltar esconde os controles',
   bookOverview: 'Visão geral',
   bookCover: 'Capa',
   previousSpread: 'Página anterior',

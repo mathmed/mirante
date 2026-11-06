@@ -1,5 +1,5 @@
 import { BookControl } from '../core/book-navigation.ts'
-import { type BookPage, PageKind, type PhotoPage, type Spread } from '../core/book.ts'
+import { PageKind, type PhotoPage, type Spread } from '../core/book.ts'
 import type { PhotoDate } from '../core/photo-library.ts'
 import { capitalized, MESSAGES, monthOf, textOf } from './messages.ts'
 
@@ -22,11 +22,6 @@ const PAUSE: ControlText = { text: MESSAGES.pauseBook, label: MESSAGES.pauseBook
 // What the book says, in Brazilian Portuguese, beyond the short texts of MESSAGES. A companion of
 // messages.ts.
 
-// "Página 12".
-function pageNumberText(number: number): string {
-  return `Página ${String(number)}`
-}
-
 // The days of the photos of a book, on its cover: "Março de 2024", "Março a abril de 2024",
 // "Dezembro de 2023 a janeiro de 2024".
 export function periodText(first: PhotoDate, last: PhotoDate): string {
@@ -42,11 +37,6 @@ export function controlText(control: BookControl, isPlaying: boolean): ControlTe
     return isPlaying ? PAUSE : PLAY
   }
   return textOf(CONTROLS, control)
-}
-
-// Above a page: its number; nothing above the cover or a blank page.
-export function pageLabel(page: BookPage | undefined): string {
-  return page?.kind === PageKind.Photos ? pageNumberText(page.number) : ''
 }
 
 // "Capa e página 1", "Páginas 2 e 3", "Página 7".
