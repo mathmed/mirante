@@ -26,7 +26,10 @@ All notable changes to Mirante are documented in this file. The format is based 
   TV packages need building again (`make package-webos`, `make package-tizen`; a signed Tizen
   package needs signing again). `docs/screenshots/icone-alternativas.webp` compares the icon with
   the two alternatives it was chosen against, which nothing ships.
-
+- **The start screen has five cards**: **Todas**, **Álbuns**, **Linha do tempo**, **Apresentar** and
+  **Ajustes**, and opens on **Todas**. The line "Suas memórias, vistas do alto" is gone, for the
+  count of the library. The card **Linha do tempo** gets a clearer icon, a page of the calendar.
+- **Counts of photos group their thousands with a dot** ("1.234 fotos"), on the albums too.
 - **The proxy needs two more routes, and one more CORS header for the TV apps.** The presentation
   of the whole library draws its photos with `POST /api/search/random` (a read, with a JSON body)
   and the captions come from `GET /api/assets/{id}`. A proxy that only lets through the routes the
@@ -59,6 +62,17 @@ All notable changes to Mirante are documented in this file. The format is based 
 
 ### Added
 
+- **Todas**, every photo of the library, the most recent first, like the "Recents" of a phone: one
+  continuous grid with the name of each month and its count above its photos ("Novembro de 2026 ·
+  312 fotos"). It reads the months from the most recent one, one at a time, as the focus nears the
+  end of what is read, and only renders the rows on the screen and one around them. The viewer goes
+  through the whole library in the same order, reading the next month ahead of it; Back returns to
+  the photo it showed last. Info, or a second OK in the viewer, presents from the photo in focus,
+  in the order of the screen. It reads the routes the timeline already uses
+  (`GET /api/timeline/buckets` and `GET /api/timeline/bucket`): the proxy needs no change.
+- **What the library holds, under the logo**, counted from the months of the timeline: "12.340
+  fotos · de 2019 a 2026", "1 foto · de 2026". Nothing shows while it loads, for an empty library or
+  when the read fails. Like Immich, the count of a month includes its videos.
 - **Presentations.** The start screen gets **Apresentar**: the whole library, at random, 200 photos
   a round drawn by Immich and a new draw for each round; or an album, a year or a month, chosen on
   the screens of the gallery. A presentation plays at once, in the order and with the transition of

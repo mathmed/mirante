@@ -1,27 +1,31 @@
 import type { JSX } from 'preact'
 import { useState } from 'preact/hooks'
 
+import type { LibrarySummary } from '../core/library-summary.ts'
 import { HOME_ENTRIES } from '../core/navigation.ts'
 import type { ServerInfo } from '../core/photo-library.ts'
 import { Backdrop } from './Backdrop.tsx'
 import { Grid } from './Grid.tsx'
 import { HomeIcon } from './HomeIcon.tsx'
 import { Logo, LogoLayout } from './Logo.tsx'
-import { homeTitle, MESSAGES, serverText } from './messages.ts'
+import { homeTitle, MESSAGES, serverText, summaryText } from './messages.ts'
 import type { ScreenProps } from './screen-props.ts'
 
-const SHAPE = { columns: 4, visibleRows: 1 }
+const SHAPE = { columns: 5, visibleRows: 1 }
 
 export interface HomeScreenProps extends ScreenProps {
   readonly server: ServerInfo
   // A photo of the library behind the screen; none while it loads, or when there is none.
   readonly backdropUrl: string | undefined
+  // How many photos the library holds, over which years; none while it loads, when it fails or
+  // for an empty library.
+  readonly summary: LibrarySummary | undefined
 }
 
-// The ways into the library, its albums and its timeline, its presentations and their settings,
-// under the logo.
+// The ways into the library, every photo, its albums and its timeline, its presentations and their
+// settings, under the logo and what the library holds.
 export function HomeScreen(props: HomeScreenProps): JSX.Element {
-  const { server, backdropUrl } = props
+  const { server, backdropUrl, summary } = props
   return (
     <main class="screen home">
       {backdropUrl !== undefined && <Backdrop key={backdropUrl} url={backdropUrl} />}
@@ -29,7 +33,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
         <h1 class="home-logo">
           <Logo layout={LogoLayout.Inline} />
         </h1>
-        <p class="home-tagline">{MESSAGES.tagline}</p>
+        {summary !== undefined && <p class="home-summary">{summaryText(summary)}</p>}
       </header>
       <HomeGrid {...props} />
       <p class="footnote">{serverText(server)}</p>

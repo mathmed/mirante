@@ -2,15 +2,16 @@ import { screen, waitFor } from '@testing-library/preact'
 import { describe, expect, it } from 'vitest'
 
 import { focusedOn, showGallery, title, TRIP } from '../../test/gallery.ts'
+import { ScreenKind } from '../core/navigation.ts'
 import { RemoteKey } from '../core/remote-key.ts'
-import { MESSAGES } from './messages.ts'
+import { homeTitle, MESSAGES } from './messages.ts'
 
 const { Right, Down, Enter, Back } = RemoteKey
 
 async function presentScreen(): Promise<ReturnType<typeof showGallery>> {
   const sut = showGallery()
-  await focusedOn(MESSAGES.albums)
-  sut.remote.press(Right, Right, Enter)
+  await focusedOn(homeTitle(ScreenKind.AllPhotos))
+  sut.remote.press(Right, Right, Right, Enter)
   await title(MESSAGES.present)
   return sut
 }

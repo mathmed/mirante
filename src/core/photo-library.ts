@@ -46,6 +46,8 @@ export interface TimelineMonth {
   readonly year: number
   // 1 to 12.
   readonly month: number
+  // As the server counts them.
+  readonly photoCount: number
 }
 
 // Never the original file: a TV only needs the small image of the grids and the larger preview.

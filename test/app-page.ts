@@ -31,6 +31,13 @@ export async function focusedOn(text: string): Promise<void> {
   })
 }
 
+// The start screen opens on its first card, every photo; the albums are the next one.
+export async function onAlbumsCard(): Promise<void> {
+  await focusedOn('Todas')
+  press(KEY.right)
+  await focusedOn('Álbuns')
+}
+
 export async function title(text: string): Promise<void> {
   await screen.findByRole('heading', { level: 1, name: text })
 }

@@ -12,6 +12,7 @@ import {
   TRIP,
 } from '../../test/gallery.ts'
 import { memoryLibrary, stubLibrary } from '../../test/library-stub.ts'
+import { ScreenKind } from '../core/navigation.ts'
 import {
   type Album,
   LibraryFailure,
@@ -19,9 +20,10 @@ import {
   PhotoLibraryError,
 } from '../core/photo-library.ts'
 import { RemoteKey } from '../core/remote-key.ts'
-import { failureText, MESSAGES } from './messages.ts'
+import { failureText, homeTitle, MESSAGES } from './messages.ts'
 
 const { Up, Down, Left, Right, Enter, Back } = RemoteKey
+const ALL_PHOTOS = homeTitle(ScreenKind.AllPhotos)
 
 const show = (library?: PhotoLibrary): ShownGallery =>
   showGallery(library === undefined ? {} : { library })
@@ -32,18 +34,31 @@ describe('Gallery', () => {
 
     await title(MESSAGES.appName)
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toStrictEqual([
+      ALL_PHOTOS,
       MESSAGES.albums,
       MESSAGES.timeline,
       MESSAGES.present,
       MESSAGES.settings,
     ])
     expect(screen.getByText('Immich 3.3.6 em 192.168.0.10:2283')).toBeTruthy()
-    await focusedOn(MESSAGES.albums)
+    await focusedOn(ALL_PHOTOS)
+    // December 2023 counts its video, as Immich does.
+    expect(await screen.findByText('13 fotos · de 2023 a 2024')).toBeTruthy()
+  })
+
+  it('should leave the line of the library out when its months cannot be read', async () => {
+    const sut = show(stubLibrary({ listAlbums: async () => Promise.resolve([]) }))
+    await focusedOn(ALL_PHOTOS)
+
+    await waitFor(() => {
+      expect(sut.reported).toHaveLength(1)
+    })
+    expect(document.querySelector('.home-summary')).toBeNull()
   })
 
   it('should leave the app on Back from the start screen', async () => {
     const sut = show()
-    await focusedOn(MESSAGES.albums)
+    await focusedOn(ALL_PHOTOS)
 
     sut.remote.press(Back)
 
@@ -52,7 +67,7 @@ describe('Gallery', () => {
 
   it('should go back one screen, not leave the app, on Back from a deeper screen', async () => {
     const sut = show()
-    sut.remote.press(Enter)
+    sut.remote.press(Right, Enter)
     await title(MESSAGES.albums)
 
     sut.remote.press(Back)
@@ -63,7 +78,7 @@ describe('Gallery', () => {
 
   it('should not leave the app on a double Back that reaches the start screen', async () => {
     const sut = show()
-    sut.remote.press(Enter)
+    sut.remote.press(Right, Enter)
     await title(MESSAGES.albums)
 
     sut.remote.pressAtOnce(Back, Back)
@@ -75,7 +90,7 @@ describe('Gallery', () => {
   it('should list the albums with their covers and counts, the most recent first', async () => {
     const sut = show()
 
-    sut.remote.press(Enter)
+    sut.remote.press(Right, Enter)
 
     await title(MESSAGES.albums)
     await focusedOn(TRIP.name)
@@ -92,7 +107,7 @@ describe('Gallery', () => {
   it('should say it is loading while the albums come', async () => {
     const sut = show(stubLibrary({ listAlbums: async () => new Promise(() => undefined) }))
 
-    sut.remote.press(Enter)
+    sut.remote.press(Right, Enter)
 
     await title(MESSAGES.albums)
     expect(screen.getByRole('status').textContent).toBe(MESSAGES.loading)
@@ -100,7 +115,7 @@ describe('Gallery', () => {
 
   it('should open an album, a photo, and come back to where the focus was at each step', async () => {
     const sut = show()
-    sut.remote.press(Enter)
+    sut.remote.press(Right, Enter)
     await focusedOn(TRIP.name)
 
     sut.remote.press(Enter)
@@ -125,7 +140,7 @@ describe('Gallery', () => {
 
   it('should come back to the album that was opened', async () => {
     const sut = show()
-    sut.remote.press(Enter)
+    sut.remote.press(Right, Enter)
     await focusedOn(TRIP.name)
 
     sut.remote.press(Right, Enter)
@@ -137,7 +152,7 @@ describe('Gallery', () => {
 
   it('should say an album is empty and go back from it', async () => {
     const sut = show()
-    sut.remote.press(Enter)
+    sut.remote.press(Right, Enter)
     await focusedOn(TRIP.name)
 
     sut.remote.press(Right, Right, Enter)
@@ -152,9 +167,9 @@ describe('Gallery', () => {
 
   it('should walk the timeline by year and month, and back', async () => {
     const sut = show()
-    await focusedOn(MESSAGES.albums)
+    await focusedOn(ALL_PHOTOS)
 
-    sut.remote.press(Right, Enter)
+    sut.remote.press(Right, Right, Enter)
     await title(MESSAGES.timeline)
     await focusedOn('2024')
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toStrictEqual([
@@ -182,8 +197,8 @@ describe('Gallery', () => {
 
   it('should say a month has no photos', async () => {
     const sut = show()
-    await focusedOn(MESSAGES.albums)
-    sut.remote.press(Right, Enter)
+    await focusedOn(ALL_PHOTOS)
+    sut.remote.press(Right, Right, Enter)
     await focusedOn('2024')
 
     sut.remote.press(Enter, Right, Right, Enter)
@@ -193,9 +208,10 @@ describe('Gallery', () => {
   })
 
   it.each([
-    [Enter, MESSAGES.noAlbums],
-    [Right, MESSAGES.emptyTimeline],
-  ])('should say the library is empty (%s)', async (key, text) => {
+    { screen: MESSAGES.albums, keys: [Right], text: MESSAGES.noAlbums },
+    { screen: MESSAGES.timeline, keys: [Right, Right], text: MESSAGES.emptyTimeline },
+    { screen: ALL_PHOTOS, keys: [], text: MESSAGES.emptyTimeline },
+  ])('should say the library is empty ($screen)', async ({ keys, text }) => {
     const sut = show(
       memoryLibrary({
         ...DATA,
@@ -205,9 +221,10 @@ describe('Gallery', () => {
         monthPhotos: new Map(),
       }),
     )
-    await focusedOn(MESSAGES.albums)
+    await focusedOn(ALL_PHOTOS)
+    expect(document.querySelector('.home-summary')).toBeNull()
 
-    sut.remote.press(key, Enter)
+    sut.remote.press(...keys, Enter)
 
     expect(await screen.findByText(text.title)).toBeTruthy()
     expect(screen.getByText(text.hint)).toBeTruthy()
@@ -223,10 +240,11 @@ describe('Gallery', () => {
           attempts += 1
           return attempts === 2 ? Promise.reject(error) : Promise.resolve([FAMILY])
         },
+        listTimelineMonths: async () => Promise.resolve([]),
       }),
     )
-    await focusedOn(MESSAGES.albums)
-    sut.remote.press(Enter)
+    await focusedOn(ALL_PHOTOS)
+    sut.remote.press(Right, Enter)
 
     expect((await screen.findByRole('alert')).textContent).toContain(
       failureText(LibraryFailure.Unreachable).title,
@@ -248,7 +266,7 @@ describe('Gallery', () => {
           }),
       }),
     )
-    sut.remote.press(Enter)
+    sut.remote.press(Right, Enter)
     await title(MESSAGES.albums)
 
     sut.remote.press(Back)
@@ -263,6 +281,7 @@ describe('Gallery', () => {
 
   it('should open a screen once when Enter arrives twice before it shows', async () => {
     const sut = show()
+    sut.remote.press(Right)
     await focusedOn(MESSAGES.albums)
 
     sut.remote.pressAtOnce(Enter, Enter)
@@ -274,7 +293,7 @@ describe('Gallery', () => {
 
   it('should go back once when Back arrives twice before the screen changes', async () => {
     const sut = show()
-    sut.remote.press(Enter)
+    sut.remote.press(Right, Enter)
     await focusedOn(TRIP.name)
     sut.remote.press(Enter)
     await title(TRIP.name)
@@ -286,11 +305,11 @@ describe('Gallery', () => {
 
   it('should stay on the start screen on Back, Up and Left', async () => {
     const sut = show()
-    await focusedOn(MESSAGES.albums)
+    await focusedOn(ALL_PHOTOS)
 
     sut.remote.press(Back, Up, Left)
 
     await title(MESSAGES.appName)
-    await focusedOn(MESSAGES.albums)
+    await focusedOn(ALL_PHOTOS)
   })
 })

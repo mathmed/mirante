@@ -13,7 +13,8 @@ import { memoryStorage } from './memory-storage.ts'
 import { fakeRemote, type FakeRemote } from './remote.ts'
 
 // The gallery of the component tests: a library in memory with a trip of 30 photos, a family album
-// of 3 and an empty one, and a timeline from December 2023 to May 2024 (May empty).
+// of 3 and an empty one, and a timeline from December 2023 to May 2024 (December holds a video
+// only, May nothing).
 const SERVER = { address: '192.168.0.10:2283', version: '3.3.6' }
 
 export const TRIP = {
@@ -46,10 +47,11 @@ export const DATA: MemoryLibrary = {
     [FAMILY.id, photos('family', 3, { year: 2023, month: 12 })],
   ]),
   months: [
-    { key: 'm-2023-12', year: 2023, month: 12 },
-    { key: 'm-2024-04', year: 2024, month: 4 },
-    { key: 'm-2024-03', year: 2024, month: 3 },
-    { key: 'm-2024-05', year: 2024, month: 5 },
+    // A video only: Immich counts it, the gallery leaves it out.
+    { key: 'm-2023-12', year: 2023, month: 12, photoCount: 1 },
+    { key: 'm-2024-04', year: 2024, month: 4, photoCount: 2 },
+    { key: 'm-2024-03', year: 2024, month: 3, photoCount: 10 },
+    { key: 'm-2024-05', year: 2024, month: 5, photoCount: 0 },
   ],
   monthPhotos: new Map([
     ['m-2024-03', photos('march', 10)],

@@ -8,6 +8,7 @@ import {
   currentSlide,
   decodedSlides,
   Direction,
+  extendPresentation,
   nextRoundOf,
   placeOf,
   playlistOf,
@@ -25,8 +26,8 @@ import { RemoteKey } from './remote-key.ts'
 const PHOTOS = photos('p', 5)
 const SLIDES = PHOTOS.map(slideOf)
 const NEXT_ROUND = photos('n', 3).map(slideOf)
-const LOOPING: Upcoming = { shouldLoop: true, nextRound: NEXT_ROUND }
-const ONCE: Upcoming = { shouldLoop: false, nextRound: NEXT_ROUND }
+const LOOPING: Upcoming = { shouldLoop: true, nextRound: NEXT_ROUND, isRoundGrowing: false }
+const ONCE: Upcoming = { shouldLoop: false, nextRound: NEXT_ROUND, isRoundGrowing: false }
 
 function keysOf(slides: readonly Slide[]): readonly string[] {
   return slides.map((slide) => slide.key)
@@ -221,8 +222,16 @@ describe('advancePresentation', () => {
   it('should wait on the last slide while the next round loads', () => {
     const sut = at(4)
 
-    expect(advancePresentation(sut, { shouldLoop: true, nextRound: undefined })).toBe(sut)
-    expect(advancePresentation(sut, { shouldLoop: true, nextRound: [] })).toBe(sut)
+    expect(advancePresentation(sut, { ...LOOPING, nextRound: undefined })).toBe(sut)
+    expect(advancePresentation(sut, { ...LOOPING, nextRound: [] })).toBe(sut)
+  })
+
+  it('should wait on the last slide while more slides of the round come, in a loop or not', () => {
+    const sut = at(4)
+
+    expect(advancePresentation(sut, { ...LOOPING, isRoundGrowing: true })).toBe(sut)
+    expect(advancePresentation(sut, { ...ONCE, isRoundGrowing: true })).toBe(sut)
+    expect(advancePresentation(at(3), { ...ONCE, isRoundGrowing: true }).index).toBe(4)
   })
 
   it('should pause on the last slide without a loop', () => {
@@ -237,6 +246,26 @@ describe('advancePresentation', () => {
       direction: Direction.Forward,
       leaving: SLIDES[2],
     })
+  })
+})
+
+describe('extendPresentation', () => {
+  const more = photos('p', 7).map(slideOf)
+
+  it('should take the slides that came after those it has, on the same slide', () => {
+    const sut = pressInPresentation(at(4), RemoteKey.Left)
+
+    expect(extendPresentation(sut, more)).toStrictEqual({ ...sut, slides: more })
+  })
+
+  it.each([
+    { given: 'the same slides', slides: SLIDES },
+    { given: 'fewer slides', slides: SLIDES.slice(0, 3) },
+    { given: 'other slides', slides: photos('q', 7).map(slideOf) },
+  ])('should change nothing with $given', ({ slides }) => {
+    const sut = at(2)
+
+    expect(extendPresentation(sut, slides)).toBe(sut)
   })
 })
 
@@ -256,7 +285,11 @@ describe('slidesAhead', () => {
   })
 
   it('should give the slides there are while the next round loads', () => {
-    expect(keysOf(slidesAhead(at(4), { shouldLoop: true, nextRound: undefined }))).toStrictEqual([])
+    expect(keysOf(slidesAhead(at(4), { ...LOOPING, nextRound: undefined }))).toStrictEqual([])
+  })
+
+  it('should not go into the next round while more slides of this one come', () => {
+    expect(keysOf(slidesAhead(at(3), { ...LOOPING, isRoundGrowing: true }))).toStrictEqual(['p-5'])
   })
 })
 

@@ -144,12 +144,13 @@ describe('the screenshots of the docs', () => {
 
   it('should capture the start screen, the albums, an album and its photos', async () => {
     const page = await open()
-    await focusedOn(page, 'Álbuns')
+    await focusedOn(page, 'Todas')
     await page.locator('.backdrop.is-shown').waitFor()
+    await page.locator('.home-summary').waitFor()
     await settled(page)
     await shoot(page, '02-inicio')
 
-    await press(page, 'Enter')
+    await press(page, 'ArrowRight', 'Enter')
     await focusedOn(page, 'Viagem a Lisboa')
     await settled(page)
     await shoot(page, '03-albuns')
@@ -178,10 +179,10 @@ describe('the screenshots of the docs', () => {
 
   it('should capture the choices of a presentation and its settings', async () => {
     const page = await open()
-    await focusedOn(page, 'Álbuns')
+    await focusedOn(page, 'Todas')
     await page.locator('.backdrop.is-shown').waitFor()
 
-    await press(page, 'ArrowRight', 'ArrowRight', 'Enter')
+    await press(page, 'ArrowRight', 'ArrowRight', 'ArrowRight', 'Enter')
     await focusedOn(page, 'Toda a biblioteca')
     await settled(page)
     await shoot(page, '12-apresentar')
@@ -197,8 +198,8 @@ describe('the screenshots of the docs', () => {
 
   it('should capture the settings over a photo', async () => {
     const page = await open()
-    await focusedOn(page, 'Álbuns')
-    await press(page, 'Enter')
+    await focusedOn(page, 'Todas')
+    await press(page, 'ArrowRight', 'Enter')
     await focusedOn(page, 'Viagem a Lisboa')
     await press(page, 'Enter')
     await page.getByRole('heading', { level: 1, name: 'Viagem a Lisboa' }).waitFor()
@@ -215,9 +216,9 @@ describe('the screenshots of the docs', () => {
 
   it('should capture the timeline by year and by month', async () => {
     const page = await open()
-    await focusedOn(page, 'Álbuns')
+    await focusedOn(page, 'Todas')
 
-    await press(page, 'ArrowRight', 'Enter')
+    await press(page, 'ArrowRight', 'ArrowRight', 'Enter')
     await focusedOn(page, '2024')
     await settled(page)
     await shoot(page, '07-linha-do-tempo')
@@ -230,11 +231,24 @@ describe('the screenshots of the docs', () => {
     await page.close()
   })
 
-  it('should capture an empty album', async () => {
+  it('should capture every photo, a month under the other', async () => {
     const page = await open()
-    await focusedOn(page, 'Álbuns')
+    await focusedOn(page, 'Todas')
 
     await press(page, 'Enter')
+    await page.getByRole('heading', { level: 1, name: 'Todas as fotos' }).waitFor()
+    await page.locator('.feed-month').first().waitFor()
+    await press(page, 'ArrowDown', 'ArrowRight')
+    await settled(page)
+    await shoot(page, '15-todas')
+    await page.close()
+  })
+
+  it('should capture an empty album', async () => {
+    const page = await open()
+    await focusedOn(page, 'Todas')
+
+    await press(page, 'ArrowRight', 'Enter')
     await focusedOn(page, 'Viagem a Lisboa')
     await press(page, 'ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight')
     await focusedOn(page, EMPTY_ALBUM)
@@ -250,8 +264,8 @@ describe('the screenshots of the docs', () => {
     immich.delaysMs.set('GET /api/albums', SLOW_START_MS)
     try {
       const page = await open()
-      await focusedOn(page, 'Álbuns')
-      await press(page, 'Enter')
+      await focusedOn(page, 'Todas')
+      await press(page, 'ArrowRight', 'Enter')
       await page.getByRole('status').waitFor()
       await settled(page)
       await shoot(page, '10-carregando')

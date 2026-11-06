@@ -23,7 +23,7 @@ import { LIBRARY_SOURCE, SourceKind } from './presentation-source.ts'
 
 const ALBUMS: Screen = { kind: ScreenKind.Albums, intent: Intent.Browse }
 const TRIP = { id: 'trip', name: 'Trip', photoCount: 3, order: PhotoOrder.NewestFirst }
-const MARCH = { key: '2024-03-01', year: 2024, month: 3 }
+const MARCH = { key: '2024-03-01', year: 2024, month: 3, photoCount: 1 }
 const YEAR = { year: 2024, months: [MARCH] }
 const ALBUM: Screen = {
   kind: ScreenKind.Album,
@@ -98,8 +98,9 @@ describe('goBack', () => {
 })
 
 describe('HOME_ENTRIES', () => {
-  it('should open the albums, the timeline by year, the presentations and their settings', () => {
+  it('should open every photo, the albums, the timeline by year, the presentations and their settings', () => {
     expect(HOME_ENTRIES).toStrictEqual([
+      { kind: ScreenKind.AllPhotos },
       { kind: ScreenKind.Albums, intent: Intent.Browse },
       { kind: ScreenKind.Years, intent: Intent.Browse },
       { kind: ScreenKind.Present },

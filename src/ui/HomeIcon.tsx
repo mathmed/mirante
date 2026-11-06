@@ -28,6 +28,8 @@ export function HomeIcon({ kind }: HomeIconProps): JSX.Element {
 
 function Lines({ kind }: HomeIconProps): JSX.Element {
   switch (kind) {
+    case ScreenKind.AllPhotos:
+      return <AllPhotosLines />
     case ScreenKind.Albums:
       return <AlbumsLines />
     case ScreenKind.Years:
@@ -37,6 +39,18 @@ function Lines({ kind }: HomeIconProps): JSX.Element {
     default:
       return <SettingsLines />
   }
+}
+
+// A grid of photos, the first one lit.
+function AllPhotosLines(): JSX.Element {
+  return (
+    <>
+      <rect x="3" y="3" width="7.5" height="7.5" rx="2" fill="currentColor" />
+      <rect x="13.5" y="3" width="7.5" height="7.5" rx="2" />
+      <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" />
+      <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2" />
+    </>
+  )
 }
 
 // A photo, with a sun over a hill, and the edge of another one behind it.
@@ -51,14 +65,13 @@ function AlbumsLines(): JSX.Element {
   )
 }
 
-// A line through time, with three moments on it.
+// A page of the calendar, its rings on top and one day marked.
 function TimelineLines(): JSX.Element {
   return (
     <>
-      <path d="M2.5 12h19" />
-      <circle cx="6" cy="12" r="2" fill="currentColor" />
-      <circle cx="12" cy="12" r="2" fill="currentColor" />
-      <circle cx="18" cy="12" r="2" fill="currentColor" />
+      <rect x="3" y="5" width="18" height="16" rx="2.5" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+      <rect x="13.5" y="13.5" width="4" height="4" rx="1" fill="currentColor" />
     </>
   )
 }

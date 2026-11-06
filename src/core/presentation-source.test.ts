@@ -15,8 +15,8 @@ import {
 } from './presentation-source.ts'
 
 const ALBUM = { id: 'trip', name: 'Viagem', photoCount: 3, order: PhotoOrder.NewestFirst }
-const MARCH = { key: 'm-2024-03', year: 2024, month: 3 }
-const APRIL = { key: 'm-2024-04', year: 2024, month: 4 }
+const MARCH = { key: 'm-2024-03', year: 2024, month: 3, photoCount: 1 }
+const APRIL = { key: 'm-2024-04', year: 2024, month: 4, photoCount: 1 }
 const MARCH_PHOTOS = photos('march', 150)
 const APRIL_PHOTOS = photos('april', 100, { year: 2024, month: 4 })
 

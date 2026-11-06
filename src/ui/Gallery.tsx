@@ -16,6 +16,7 @@ import type { KeySource } from '../core/remote-key.ts'
 import { persistSettings, restoreSettings, type TextStorage } from '../core/settings-storage.ts'
 import type { Session } from '../core/startup.ts'
 import { AlbumsScreen } from './AlbumsScreen.tsx'
+import { AllPhotosScreen } from './AllPhotosScreen.tsx'
 import { HomeScreen } from './HomeScreen.tsx'
 import { AlbumScreen, MonthScreen } from './PhotosScreen.tsx'
 import { PresentationScreen } from './PresentationScreen.tsx'
@@ -24,6 +25,7 @@ import type { PresentationControls, ScreenProps } from './screen-props.ts'
 import { SettingsScreen } from './SettingsScreen.tsx'
 import { MonthsScreen, YearsScreen } from './TimelineScreens.tsx'
 import { useBackdrop } from './use-backdrop.ts'
+import { useSummary } from './use-summary.ts'
 
 export interface GalleryProps {
   readonly session: Session
@@ -43,6 +45,7 @@ export function Gallery(props: GalleryProps): JSX.Element {
   const { session, keys, reportError, leave } = props
   const { navigation, depth, open, back } = useNavigation()
   const backdropUrl = useBackdrop(session.library, reportError)
+  const summary = useSummary(session.library, reportError)
   const screenProps: ScreenProps = {
     library: session.library,
     keys,
@@ -61,6 +64,7 @@ export function Gallery(props: GalleryProps): JSX.Element {
         back={leave}
         server={session.server}
         backdropUrl={backdropUrl}
+        summary={summary}
       />
     )
   }
@@ -115,6 +119,8 @@ interface ScreenViewProps {
 // The screens of the library itself.
 function ScreenView({ screen, props }: ScreenViewProps): JSX.Element {
   switch (screen.kind) {
+    case ScreenKind.AllPhotos:
+      return <AllPhotosScreen {...props} />
     case ScreenKind.Albums:
       return <AlbumsScreen {...props} intent={screen.intent} />
     case ScreenKind.Years:
@@ -127,7 +133,10 @@ function ScreenView({ screen, props }: ScreenViewProps): JSX.Element {
 }
 
 interface PhotosOrPresentationViewProps {
-  readonly screen: Exclude<DeeperScreen, { readonly kind: 'albums' | 'months' | 'years' }>
+  readonly screen: Exclude<
+    DeeperScreen,
+    { readonly kind: 'albums' | 'all-photos' | 'months' | 'years' }
+  >
   readonly props: ScreenProps
 }
 

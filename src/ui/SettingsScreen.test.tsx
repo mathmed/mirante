@@ -2,10 +2,11 @@ import { screen } from '@testing-library/preact'
 import { describe, expect, it } from 'vitest'
 
 import { focused, focusedOn, showGallery, title } from '../../test/gallery.ts'
+import { ScreenKind } from '../core/navigation.ts'
 import { DEFAULT_PRESENTATION, PlaybackOrder } from '../core/presentation-settings.ts'
 import { RemoteKey } from '../core/remote-key.ts'
 import { storedText } from '../core/settings-storage.ts'
-import { MESSAGES } from './messages.ts'
+import { homeTitle, MESSAGES } from './messages.ts'
 
 const { Right, Down, Enter, Back } = RemoteKey
 
@@ -13,8 +14,8 @@ async function settingsScreen(
   options: Parameters<typeof showGallery>[0] = {},
 ): Promise<ReturnType<typeof showGallery>> {
   const sut = showGallery(options)
-  await focusedOn(MESSAGES.albums)
-  sut.remote.press(Right, Right, Right, Enter)
+  await focusedOn(homeTitle(ScreenKind.AllPhotos))
+  sut.remote.press(Right, Right, Right, Right, Enter)
   await title(MESSAGES.settings)
   return sut
 }

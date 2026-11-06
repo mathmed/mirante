@@ -14,7 +14,7 @@ Every route is under `/api` of the address in `immichUrl`. Nothing else reaches 
 | `GET`  | `/api/server/version`        | the version shown on the start screen; proves the address is Immich                              | none (public)     |
 | `POST` | `/api/auth/validateToken`    | proves the key works, at startup; no body, changes nothing                                       | none              |
 | `GET`  | `/api/albums`                | the albums, their covers and counts                                                              | `album.read`      |
-| `GET`  | `/api/timeline/buckets`      | the months of the timeline, or of an album (`albumId`)                                           | `asset.read`      |
+| `GET`  | `/api/timeline/buckets`      | the months of the timeline (with their counts, for the start screen), or of an album (`albumId`) | `asset.read`      |
 | `GET`  | `/api/timeline/bucket`       | the photos of a month (`timeBucket`), of the timeline or of an album (`albumId`)                 | `asset.read`      |
 | `POST` | `/api/search/random`         | **new**: a random draw of the library for its presentation, 200 photos a round (see below)       | `asset.read`      |
 | `GET`  | `/api/assets/{id}`           | **new**: the detail of one photo, for its caption (`exifInfo.description`)                       | `asset.read`      |
@@ -30,6 +30,9 @@ Details that matter for the allow list:
   one, only while a viewer or a presentation shows captions, and each photo once while it is near
   the screen. It never lists the library. Immich answers `PUT` on the same route (it edits the
   photo): allow `GET` only.
+- **`GET /api/timeline/bucket` is asked a month at a time** by **Todas**, every photo of the
+  library: the most recent month first, then the next one each time the focus nears the end of
+  what is read. It is the same route as the timeline's, so the proxy needs no change for it.
 - **`/api/assets/{id}/thumbnail` takes a `size`**: Mirante only asks for `thumbnail` and `preview`.
   Immich also answers `size=fullsize` and `size=original` there, which serve the full image: allow
   the two small sizes only.
