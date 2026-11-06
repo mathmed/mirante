@@ -1,6 +1,7 @@
 import { render } from '@testing-library/preact'
 import { describe, expect, it } from 'vitest'
 
+import { WIDE_PAGE } from '../../test/book-photos.ts'
 import { stubLibrary } from '../../test/library-stub.ts'
 import { presentationControls } from '../../test/presentation-controls.ts'
 import { fakeRemote } from '../../test/remote.ts'
@@ -15,11 +16,13 @@ describe('BookView', () => {
       seed: 1,
       density: BookDensity.Normal,
       hasCover: true,
+      pageAspect: WIDE_PAGE,
       weights: new Map(),
     })
 
     const { container } = render(
       <BookView
+        title="Vazio"
         book={book}
         layouts={bookLayouts(book)}
         start={{ spread: 0, frame: 0 }}

@@ -48,7 +48,7 @@ describe('openSettings', () => {
 
 describe('SETTINGS_ROWS', () => {
   it('should end on the row that restores the defaults', () => {
-    expect(SETTINGS_ROWS).toHaveLength(15)
+    expect(SETTINGS_ROWS).toHaveLength(16)
     expect(SETTINGS_ROWS[SETTINGS_ROWS.length - 1]).toBe(RESTORE_ROW)
   })
 })
@@ -167,7 +167,7 @@ describe('SETTINGS_GROUPS', () => {
       ],
       [
         SettingsSection.Book,
-        ['bookDensity', 'showBookCover', 'showPageNumbers', 'bookSpreadSeconds'],
+        ['bookDensity', 'bookFormat', 'showBookCover', 'showPageNumbers', 'bookSpreadSeconds'],
       ],
       [SettingsSection.General, ['hideInterfaceSeconds', 'reduceEffects', 'restore']],
     ])

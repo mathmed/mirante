@@ -2,28 +2,64 @@ import { describe, expect, it } from 'vitest'
 
 import {
   areaOf,
-  CONTENT,
+  BookFormat,
   fitInside,
-  GAP,
-  MARGIN,
   normalized,
-  PAGE_ASPECT,
+  pageAspectOf,
+  pageGeometry,
 } from './book-geometry.ts'
 
-describe('the page', () => {
-  it('should be 4:3, with a margin of 6% of its width and a gap of 2%', () => {
-    expect(PAGE_ASPECT).toBeCloseTo(4 / 3, 12)
-    expect(MARGIN / PAGE_ASPECT).toBeCloseTo(0.06, 12)
-    expect(GAP / PAGE_ASPECT).toBeCloseTo(0.02, 12)
+describe('pageAspectOf', () => {
+  it('should make a full screen page 8:9, two of them a 16:9 spread', () => {
+    expect(pageAspectOf(BookFormat.Wide)).toBeCloseTo(8 / 9, 12)
+    expect(2 * pageAspectOf(BookFormat.Wide)).toBeCloseTo(16 / 9, 12)
   })
 
-  it('should keep the photos inside its margins', () => {
-    expect(CONTENT).toStrictEqual({
-      x: MARGIN,
-      y: MARGIN,
-      width: PAGE_ASPECT - 2 * MARGIN,
-      height: 1 - 2 * MARGIN,
+  it('should keep the classic page 4:3, the shape the book had first', () => {
+    expect(pageAspectOf(BookFormat.Classic)).toBeCloseTo(4 / 3, 12)
+  })
+
+  it('should refuse a format it does not know', () => {
+    expect(() => pageAspectOf('round' as BookFormat)).toThrow(
+      new RangeError('No book format "round"'),
+    )
+  })
+})
+
+describe('pageGeometry', () => {
+  it.each([8 / 9, 4 / 3, 1])(
+    'should give a page of aspect %d a margin of 4%% of its width and a gap of 1.5%%',
+    (aspect) => {
+      const sut = pageGeometry(aspect)
+
+      expect(sut.aspect).toBe(aspect)
+      expect(sut.margin / aspect).toBeCloseTo(0.04, 12)
+      expect(sut.gap / aspect).toBeCloseTo(0.015, 12)
+    },
+  )
+
+  it('should keep the photos inside the margins of the page, in page heights', () => {
+    const sut = pageGeometry(8 / 9)
+
+    expect(sut.content).toStrictEqual({
+      x: sut.margin,
+      y: sut.margin,
+      width: 8 / 9 - 2 * sut.margin,
+      height: 1 - 2 * sut.margin,
     })
+  })
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'should refuse a page of aspect %d',
+    (aspect) => {
+      expect(() => pageGeometry(aspect)).toThrow(
+        new RangeError(`No page of aspect ${String(aspect)}`),
+      )
+    },
+  )
+
+  it('should take a page of any positive aspect', () => {
+    expect(pageGeometry(Number.MIN_VALUE).aspect).toBe(Number.MIN_VALUE)
   })
 })
 
@@ -50,12 +86,15 @@ describe('areaOf', () => {
 })
 
 describe('normalized', () => {
-  it('should give the box in fractions of the width and the height of the page', () => {
-    const sut = normalized({ x: PAGE_ASPECT / 4, y: 0.5, width: PAGE_ASPECT / 2, height: 0.25 })
+  it.each([8 / 9, 4 / 3, 1])(
+    'should give the box in fractions of the width and the height of a page of aspect %d',
+    (aspect) => {
+      const sut = normalized({ x: aspect / 4, y: 0.5, width: aspect / 2, height: 0.25 }, aspect)
 
-    expect(sut.x).toBeCloseTo(0.25, 12)
-    expect(sut.y).toBe(0.5)
-    expect(sut.width).toBeCloseTo(0.5, 12)
-    expect(sut.height).toBe(0.25)
-  })
+      expect(sut.x).toBeCloseTo(0.25, 12)
+      expect(sut.y).toBe(0.5)
+      expect(sut.width).toBeCloseTo(0.5, 12)
+      expect(sut.height).toBe(0.25)
+    },
+  )
 })

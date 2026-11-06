@@ -5,7 +5,9 @@ import type { Photo } from '../core/photo-library.ts'
 import { interfaceMs } from '../core/presentation-effects.ts'
 import type { PresentationSettings } from '../core/presentation-settings.ts'
 import type { PresentationState } from '../core/presentation.ts'
+import { CaptionPlace } from './Caption.tsx'
 import { counterText, MESSAGES, photoDateText } from './messages.ts'
+import { Progress } from './Progress.tsx'
 
 export interface ViewerInfoProps {
   readonly state: PresentationState
@@ -30,35 +32,13 @@ export function ViewerInfo({ state, photo, settings, isHeld }: ViewerInfoProps):
       {settings.shouldShowCounter && (
         <span class="viewer-counter">{counterText(state.index, state.slides.length)}</span>
       )}
-      <Progress state={state} settings={settings} isHeld={isHeld} />
+      <Progress place={CaptionPlace.Viewer} state={state} settings={settings} isHeld={isHeld} />
     </div>
   )
 }
 
 function dateOf(photo: Photo | undefined): string {
   return photo === undefined ? '' : photoDateText(photo.date)
-}
-
-interface ProgressProps {
-  readonly state: PresentationState
-  readonly settings: PresentationSettings
-  readonly isHeld: boolean
-}
-
-// A thin line that fills up in the interval of the slideshow, by a transform alone; each photo
-// draws a new one.
-function Progress({ state, settings, isHeld }: ProgressProps): JSX.Element | null {
-  if (!state.isPlaying || isHeld) {
-    return null
-  }
-  return (
-    <span key={`${String(state.round)}-${String(state.index)}`} class="viewer-progress">
-      <span
-        class="viewer-progress-bar"
-        style={{ animationDuration: `${String(settings.intervalSeconds)}s` }}
-      />
-    </span>
-  )
 }
 
 function useVisibleAfterChange(state: PresentationState, visibleMs: number): boolean {

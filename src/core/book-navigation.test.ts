@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { defined, mixedPhotos } from '../../test/book-photos.ts'
-import { PAGE_ASPECT, type Rect } from './book-geometry.ts'
+import { defined, mixedPhotos, WIDE_PAGE } from '../../test/book-photos.ts'
+import type { Rect } from './book-geometry.ts'
 import {
   BOOK_CONTROLS,
   type BookAction,
@@ -10,14 +10,15 @@ import {
   type BookFocus,
   type BookPlace,
   BookZone,
-  LAST_FRAME,
-  nearestFrame,
+  isLayerShown,
   OVERVIEW_CONTROL,
   photoPagesOf,
+  PLAY_CONTROL,
   pressInBook,
   spreadRects,
   spreadsKept,
   stripStart,
+  withoutLayer,
 } from './book-navigation.ts'
 import { BookDensity } from './book-pagination.ts'
 import { bookLayouts, planBook } from './book.ts'
@@ -40,122 +41,66 @@ const FRAMES: readonly Rect[] = [
   { x: 2.1, y: 0.2, width: 0.5, height: 0.6 },
 ]
 
-const MIDDLE: BookPlace = { frames: FRAMES, spread: 3, spreadCount: 8 }
+const MIDDLE: BookPlace = { frames: FRAMES, spread: 3, spreadCount: 8, isPlaying: false }
+const PLAYING: BookPlace = { ...MIDDLE, isPlaying: true }
+// A photo past the last one.
+const PAST_THE_LAST = Number.MAX_SAFE_INTEGER
 
 function photo(frame: number): BookFocus {
   return { zone: BookZone.Page, frame }
+}
+
+function controls(control: number, frame = 0): BookFocus {
+  return { zone: BookZone.Controls, control, frame }
+}
+
+function strip(spread: number, frame = 0): BookFocus {
+  return { zone: BookZone.Strip, spread, frame }
 }
 
 function focusOn(focus: BookFocus): BookAction {
   return { kind: BookActionKind.Focus, focus }
 }
 
-describe('nearestFrame', () => {
-  it.each([
-    [0, Right, 3],
-    [0, Down, 1],
-    [1, Right, 2],
-    [2, Right, 3],
-    [2, Up, 0],
-    [1, Up, 0],
-    [3, Right, 4],
-    [4, Left, 3],
-    [3, Left, 0],
-  ])('should go from photo %i, %s, to photo %i', (from, key, to) => {
-    expect(nearestFrame(FRAMES, from, key)).toBe(to)
-  })
-
-  it.each([
-    [0, Up],
-    [0, Left],
-    [1, Down],
-    [1, Left],
-    [4, Right],
-    [3, Down],
-  ])('should find no photo from photo %i, %s, at the edge of the spread', (from, key) => {
-    expect(nearestFrame(FRAMES, from, key)).toBeUndefined()
-  })
-
-  it('should prefer the photo in line to a nearer one off to the side', () => {
-    const frames: readonly Rect[] = [
-      { x: 0, y: 0.4, width: 0.2, height: 0.2 },
-      { x: 0.3, y: 0, width: 0.1, height: 0.1 },
-      { x: 0.6, y: 0.45, width: 0.2, height: 0.1 },
-    ]
-
-    expect(nearestFrame(frames, 0, Right)).toBe(2)
-  })
-
-  it('should prefer the photo in line wherever it comes on the spread', () => {
-    const frames: readonly Rect[] = [
-      { x: 0, y: 0.4, width: 0.2, height: 0.2 },
-      { x: 0.6, y: 0.45, width: 0.2, height: 0.1 },
-      { x: 0.3, y: 0, width: 0.1, height: 0.1 },
-    ]
-
-    expect(nearestFrame(frames, 0, Right)).toBe(1)
-  })
-
-  it('should take a photo that overlaps this one by a rounding error as ahead', () => {
-    const frames: readonly Rect[] = [
-      { x: -0.5, y: 0, width: 0.5, height: 1 },
-      { x: -1e-9, y: 0, width: 0.5, height: 1 },
-    ]
-
-    expect(nearestFrame(frames, 0, Right)).toBe(1)
-  })
-
-  it('should take a photo that starts where this one ends as ahead', () => {
-    const frames: readonly Rect[] = [
-      { x: 0, y: 0, width: 0.5, height: 1 },
-      { x: 0.5, y: 0, width: 0.5, height: 1 },
-    ]
-
-    expect(nearestFrame(frames, 0, Right)).toBe(1)
-    expect(nearestFrame(frames, 1, Left)).toBe(0)
-  })
-
-  it('should find nothing from a photo that is not there, or for a key that does not move', () => {
-    expect(nearestFrame(FRAMES, 9, Right)).toBeUndefined()
-    expect(nearestFrame(FRAMES, 0, Enter)).toBeUndefined()
-  })
-})
-
 describe('pressInBook', () => {
-  it('should move among the photos with the arrows', () => {
-    expect(pressInBook(photo(0), Down, MIDDLE)).toStrictEqual(focusOn(photo(1)))
-    expect(pressInBook(photo(2), Right, MIDDLE)).toStrictEqual(focusOn(photo(3)))
-  })
-
-  it('should turn to the next page past the right edge, on its first photo', () => {
-    expect(pressInBook(photo(4), Right, MIDDLE)).toStrictEqual({
-      kind: BookActionKind.Turn,
-      key: Right,
-      focus: photo(0),
-    })
-  })
-
-  it('should turn to the page before past the left edge, on its last photo', () => {
-    expect(pressInBook(photo(0), Left, MIDDLE)).toStrictEqual({
-      kind: BookActionKind.Turn,
-      key: Left,
-      focus: photo(LAST_FRAME),
-    })
+  it('should turn the page with left and right, on the first photo, from any photo', () => {
+    for (const from of [0, 2, 4]) {
+      expect(pressInBook(photo(from), Right, MIDDLE)).toStrictEqual({
+        kind: BookActionKind.Turn,
+        key: Right,
+        focus: photo(0),
+      })
+      expect(pressInBook(photo(from), Left, MIDDLE)).toStrictEqual({
+        kind: BookActionKind.Turn,
+        key: Left,
+        focus: photo(0),
+      })
+    }
   })
 
   it('should stay on the first and on the last spread', () => {
-    expect(pressInBook(photo(0), Left, { ...MIDDLE, spread: 0 })).toStrictEqual(focusOn(photo(0)))
+    expect(pressInBook(photo(2), Left, { ...MIDDLE, spread: 0 })).toStrictEqual(focusOn(photo(2)))
     expect(pressInBook(photo(4), Right, { ...MIDDLE, spread: 7 })).toStrictEqual(focusOn(photo(4)))
   })
 
-  it('should go down from the bottom of the spread to the overview button', () => {
-    expect(pressInBook(photo(3), Down, MIDDLE)).toStrictEqual(
-      focusOn({ zone: BookZone.Controls, control: OVERVIEW_CONTROL }),
-    )
+  it('should move among the photos with up and down', () => {
+    expect(pressInBook(photo(0), Down, MIDDLE)).toStrictEqual(focusOn(photo(1)))
+    expect(pressInBook(photo(2), Down, MIDDLE)).toStrictEqual(focusOn(photo(3)))
+    expect(pressInBook(photo(3), Up, MIDDLE)).toStrictEqual(focusOn(photo(2)))
+    expect(pressInBook(photo(1), Up, MIDDLE)).toStrictEqual(focusOn(photo(0)))
   })
 
-  it('should stay at the top of the spread', () => {
+  it('should stay on the first photo with up', () => {
     expect(pressInBook(photo(0), Up, MIDDLE)).toStrictEqual(focusOn(photo(0)))
+  })
+
+  it('should show the layer on the overview button, down from the last photo, or with Info', () => {
+    expect(pressInBook(photo(4), Down, MIDDLE)).toStrictEqual(
+      focusOn(controls(OVERVIEW_CONTROL, 4)),
+    )
+    expect(pressInBook(photo(1), Info, MIDDLE)).toStrictEqual(
+      focusOn(controls(OVERVIEW_CONTROL, 1)),
+    )
   })
 
   it('should open the photo in focus with Enter, and leave the book with Back', () => {
@@ -167,67 +112,89 @@ describe('pressInBook', () => {
   })
 
   it('should take a photo past the last one as the last one', () => {
-    expect(pressInBook(photo(LAST_FRAME), Enter, MIDDLE)).toStrictEqual({
+    expect(pressInBook(photo(PAST_THE_LAST), Enter, MIDDLE)).toStrictEqual({
       kind: BookActionKind.Open,
       frame: 4,
     })
-    expect(pressInBook(photo(LAST_FRAME), Info, MIDDLE)).toStrictEqual(focusOn(photo(4)))
+    expect(pressInBook(photo(PAST_THE_LAST), Up, MIDDLE)).toStrictEqual(focusOn(photo(3)))
+    expect(pressInBook(controls(1, PAST_THE_LAST), Back, MIDDLE)).toStrictEqual(focusOn(photo(4)))
   })
 
-  it('should move along the buttons, and stop at their ends', () => {
-    const controls = (control: number): BookFocus => ({ zone: BookZone.Controls, control })
+  it('should move along the buttons, and stop at their ends, keeping the photo', () => {
     const last = BOOK_CONTROLS.length - 1
 
-    expect(pressInBook(controls(1), Left, MIDDLE)).toStrictEqual(focusOn(controls(0)))
-    expect(pressInBook(controls(0), Left, MIDDLE)).toStrictEqual(focusOn(controls(0)))
-    expect(pressInBook(controls(1), Right, MIDDLE)).toStrictEqual(focusOn(controls(2)))
-    expect(pressInBook(controls(last), Right, MIDDLE)).toStrictEqual(focusOn(controls(last)))
-    expect(pressInBook(controls(2), Info, MIDDLE)).toStrictEqual(focusOn(controls(2)))
+    expect(pressInBook(controls(1, 3), Left, MIDDLE)).toStrictEqual(focusOn(controls(0, 3)))
+    expect(pressInBook(controls(0, 3), Left, MIDDLE)).toStrictEqual(focusOn(controls(0, 3)))
+    expect(pressInBook(controls(1, 3), Right, MIDDLE)).toStrictEqual(focusOn(controls(2, 3)))
+    expect(pressInBook(controls(last, 3), Right, MIDDLE)).toStrictEqual(focusOn(controls(last, 3)))
   })
 
   it.each(BOOK_CONTROLS.map((control, index) => [control, index] as const))(
     'should press %s with Enter',
     (control, index) => {
-      expect(pressInBook({ zone: BookZone.Controls, control: index }, Enter, MIDDLE)).toStrictEqual(
-        {
-          kind: BookActionKind.Press,
-          control,
-        },
-      )
+      const after = control === BookControl.Play ? photo(2) : controls(index, 2)
+
+      expect(pressInBook(controls(index, 2), Enter, MIDDLE)).toStrictEqual({
+        kind: BookActionKind.Press,
+        control,
+        focus: after,
+      })
     },
   )
 
-  it('should go back up to the photos, and down to the spread on the screen in the strip', () => {
-    const overview: BookFocus = { zone: BookZone.Controls, control: OVERVIEW_CONTROL }
+  it('should press the overview for a button that is not there', () => {
+    expect(pressInBook(controls(9, 2), Enter, MIDDLE)).toStrictEqual({
+      kind: BookActionKind.Press,
+      control: BookControl.Overview,
+      focus: controls(9, 2),
+    })
+  })
 
-    expect(pressInBook(overview, Up, MIDDLE)).toStrictEqual(focusOn(photo(0)))
-    expect(pressInBook(overview, Back, MIDDLE)).toStrictEqual(focusOn(photo(0)))
-    expect(pressInBook(overview, Down, MIDDLE)).toStrictEqual(
-      focusOn({ zone: BookZone.Strip, spread: 3 }),
-    )
+  it('should hide the layer from the bar, back on its photo, and go down to the strip', () => {
+    const overview = controls(OVERVIEW_CONTROL, 2)
+
+    expect(pressInBook(overview, Up, MIDDLE)).toStrictEqual(focusOn(photo(2)))
+    expect(pressInBook(overview, Back, MIDDLE)).toStrictEqual(focusOn(photo(2)))
+    expect(pressInBook(overview, Info, MIDDLE)).toStrictEqual(focusOn(photo(2)))
+    expect(pressInBook(overview, Down, MIDDLE)).toStrictEqual(focusOn(strip(3, 2)))
   })
 
   it('should move along the strip, stopping at its ends, and open a spread with Enter', () => {
-    const strip = (spread: number): BookFocus => ({ zone: BookZone.Strip, spread })
-
-    expect(pressInBook(strip(3), Left, MIDDLE)).toStrictEqual(focusOn(strip(2)))
-    expect(pressInBook(strip(0), Left, MIDDLE)).toStrictEqual(focusOn(strip(0)))
-    expect(pressInBook(strip(3), Right, MIDDLE)).toStrictEqual(focusOn(strip(4)))
-    expect(pressInBook(strip(7), Right, MIDDLE)).toStrictEqual(focusOn(strip(7)))
-    expect(pressInBook(strip(5), Enter, MIDDLE)).toStrictEqual({
+    expect(pressInBook(strip(3, 1), Left, MIDDLE)).toStrictEqual(focusOn(strip(2, 1)))
+    expect(pressInBook(strip(0, 1), Left, MIDDLE)).toStrictEqual(focusOn(strip(0, 1)))
+    expect(pressInBook(strip(3, 1), Right, MIDDLE)).toStrictEqual(focusOn(strip(4, 1)))
+    expect(pressInBook(strip(7, 1), Right, MIDDLE)).toStrictEqual(focusOn(strip(7, 1)))
+    expect(pressInBook(strip(5, 1), Enter, MIDDLE)).toStrictEqual({
       kind: BookActionKind.Jump,
       spread: 5,
     })
-    expect(pressInBook(strip(5), Down, MIDDLE)).toStrictEqual(focusOn(strip(5)))
+    expect(pressInBook(strip(5, 1), Down, MIDDLE)).toStrictEqual(focusOn(strip(5, 1)))
   })
 
-  it('should leave the strip for the overview button above it, or for the photos with Back', () => {
-    const strip: BookFocus = { zone: BookZone.Strip, spread: 5 }
-
-    expect(pressInBook(strip, Up, MIDDLE)).toStrictEqual(
-      focusOn({ zone: BookZone.Controls, control: OVERVIEW_CONTROL }),
+  it('should leave the strip for the overview button above it, or hide the layer', () => {
+    expect(pressInBook(strip(5, 3), Up, MIDDLE)).toStrictEqual(
+      focusOn(controls(OVERVIEW_CONTROL, 3)),
     )
-    expect(pressInBook(strip, Back, MIDDLE)).toStrictEqual(focusOn(photo(0)))
+    expect(pressInBook(strip(5, 3), Back, MIDDLE)).toStrictEqual(focusOn(photo(3)))
+    expect(pressInBook(strip(5, 3), Info, MIDDLE)).toStrictEqual(focusOn(photo(3)))
+  })
+
+  it.each([Left, Right, Up, Down, Enter, Info])(
+    'should pause the book playing with %s, on the play button of the layer',
+    (key) => {
+      expect(pressInBook(photo(1), key, PLAYING)).toStrictEqual({
+        kind: BookActionKind.Pause,
+        focus: controls(PLAY_CONTROL, 1),
+      })
+      expect(pressInBook(photo(PAST_THE_LAST), key, PLAYING)).toStrictEqual({
+        kind: BookActionKind.Pause,
+        focus: controls(PLAY_CONTROL, 4),
+      })
+    },
+  )
+
+  it('should leave the book playing with Back', () => {
+    expect(pressInBook(photo(1), Back, PLAYING)).toStrictEqual({ kind: BookActionKind.Leave })
   })
 
   it('should put the overview in the middle of the buttons, the arrows at the sides', () => {
@@ -239,6 +206,23 @@ describe('pressInBook', () => {
       BookControl.Next,
     ])
     expect(OVERVIEW_CONTROL).toBe(2)
+    expect(PLAY_CONTROL).toBe(1)
+  })
+})
+
+describe('the layer of the controls', () => {
+  it('should show while the focus is on the bar or the strip', () => {
+    expect(isLayerShown(photo(2))).toBe(false)
+    expect(isLayerShown(controls(1, 2))).toBe(true)
+    expect(isLayerShown(strip(1, 2))).toBe(true)
+  })
+
+  it('should give the focus back to its photo when it hides', () => {
+    const onPhoto = photo(2)
+
+    expect(withoutLayer(onPhoto)).toBe(onPhoto)
+    expect(withoutLayer(controls(1, 3))).toStrictEqual(photo(3))
+    expect(withoutLayer(strip(4, 0))).toStrictEqual(photo(0))
   })
 })
 
@@ -248,6 +232,7 @@ describe('spreadRects', () => {
     seed: 3,
     density: BookDensity.Normal,
     hasCover: true,
+    pageAspect: WIDE_PAGE,
     weights: new Map(),
   })
   const layouts = bookLayouts(book)
@@ -260,9 +245,9 @@ describe('spreadRects', () => {
     const [placed] = sut.slice(leftCount)
 
     expect(sut).toHaveLength(leftCount + defined(third).photos.length)
-    expect(defined(placed).x).toBeCloseTo((1 + first.x) * PAGE_ASPECT, 12)
+    expect(defined(placed).x).toBeCloseTo((1 + first.x) * WIDE_PAGE, 12)
     expect(defined(placed).y).toBe(first.y)
-    expect(defined(placed).width).toBeCloseTo(first.width * PAGE_ASPECT, 12)
+    expect(defined(placed).width).toBeCloseTo(first.width * WIDE_PAGE, 12)
     expect(defined(placed).height).toBe(first.height)
   })
 
@@ -274,6 +259,7 @@ describe('spreadRects', () => {
       seed: 3,
       density: BookDensity.Normal,
       hasCover: false,
+      pageAspect: WIDE_PAGE,
       weights: new Map(),
     })
 
@@ -288,6 +274,7 @@ describe('spreadsKept', () => {
     seed: 3,
     density: BookDensity.Normal,
     hasCover: false,
+    pageAspect: WIDE_PAGE,
     weights: new Map(),
   })
   const upcoming = { shouldLoop: false, nextRound: undefined, isRoundGrowing: false }
@@ -310,6 +297,12 @@ describe('spreadsKept', () => {
 
     expect(keys(state)).toStrictEqual([`spread-${String(last)}`])
   })
+
+  it('should keep no slide that is not a spread of the book', () => {
+    const elsewhere = { key: 'elsewhere', photos: defined(book.spreads[0]).photos }
+
+    expect(keys(startPresentation([elsewhere], 0, false))).toStrictEqual([])
+  })
 })
 
 describe('photoPagesOf', () => {
@@ -319,6 +312,7 @@ describe('photoPagesOf', () => {
       seed: 3,
       density: BookDensity.Normal,
       hasCover: true,
+      pageAspect: WIDE_PAGE,
       weights: new Map(),
     })
 

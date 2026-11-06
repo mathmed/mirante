@@ -2,6 +2,7 @@ import { act, render } from '@testing-library/preact'
 import { h } from 'preact'
 import { vi } from 'vitest'
 
+import { pageAspectOf } from '../src/core/book-geometry.ts'
 import { bookKeyOf, type BookSource } from '../src/core/book-source.ts'
 import { type Book, planBook } from '../src/core/book.ts'
 import { START_POSITION } from '../src/core/grid.ts'
@@ -88,6 +89,7 @@ export function showBook(options: Partial<BookOptions> = {}): ShownBook {
       seed: seeds.get(bookKeyOf(source)) ?? FIRST_SEED,
       density: controls.settings.bookDensity,
       hasCover: controls.settings.shouldShowBookCover,
+      pageAspect: pageAspectOf(controls.settings.bookFormat),
       weights: new Map(),
     })
   return { remote, reported, back, reorganized, book }
@@ -125,9 +127,21 @@ export async function elapse(ms: number): Promise<void> {
   await settled()
 }
 
-// "Página 12", "Página 13": what shows above the two pages.
-export function pageNumbers(): readonly (string | null)[] {
-  return [...document.querySelectorAll('.book-number')].map((number) => number.textContent)
+// "Capa e página 1", "Páginas 2 e 3": the pages on the screen, as the layer of the controls says.
+export function shownPages(): string | null | undefined {
+  return document.querySelector('.book-layer-pages')?.textContent
+}
+
+// "12", "13": the numbers printed in the corners of the pages on the screen.
+export function folios(): readonly (string | null)[] {
+  return [...document.querySelectorAll('.spread.is-current .book-folio')].map(
+    (folio) => folio.textContent,
+  )
+}
+
+// Whether the layer of the controls shows over the book.
+export function isLayerShown(): boolean {
+  return document.querySelector('.book-layer')?.classList.contains('is-shown') ?? false
 }
 
 // The photos of the spread on the screen, left page first, by id.

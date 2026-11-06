@@ -60,6 +60,7 @@ describe('storedText', () => {
         hideInterfaceSeconds: 4,
         reduceEffects: false,
         bookDensity: 'normal',
+        bookFormat: 'wide',
         showBookCover: true,
         showPageNumbers: true,
         bookSpreadSeconds: 10,

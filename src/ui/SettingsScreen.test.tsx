@@ -31,7 +31,7 @@ describe('SettingsScreen', () => {
     await settingsScreen()
 
     await focusedOn('Tempo de cada foto8 s')
-    expect(screen.getAllByRole('listitem')).toHaveLength(15)
+    expect(screen.getAllByRole('listitem')).toHaveLength(16)
   })
 
   it('should keep the settings on the TV on Back, and return to its card', async () => {
@@ -63,7 +63,7 @@ describe('SettingsScreen', () => {
     const sut = await settingsScreen({ defaults, stored })
     await focusedOn('Tempo de cada foto5 s')
 
-    sut.remote.press(...Array<RemoteKey>(14).fill(Down), Enter, Back)
+    sut.remote.press(...Array<RemoteKey>(15).fill(Down), Enter, Back)
 
     await focusedOn(MESSAGES.settings)
     expect(sut.written).toStrictEqual([storedText(defaults)])
@@ -77,7 +77,7 @@ describe('SettingsScreen', () => {
       const sut = await settingsScreen()
       await focusedOn('Tempo de cada foto8 s')
 
-      sut.remote.press(...Array<RemoteKey>(14).fill(Down))
+      sut.remote.press(...Array<RemoteKey>(15).fill(Down))
 
       await focusedOn(MESSAGES.restoreDefaults)
       await waitFor(() => {
@@ -90,7 +90,7 @@ describe('SettingsScreen', () => {
       expect(document.querySelector('.settings-thumb')).not.toBeNull()
       expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(MESSAGES.settings)
 
-      sut.remote.press(...Array<RemoteKey>(14).fill(Up))
+      sut.remote.press(...Array<RemoteKey>(15).fill(Up))
 
       await focusedOn('Tempo de cada foto8 s')
       await waitFor(() => {

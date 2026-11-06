@@ -45,6 +45,7 @@ export const SETTINGS_GROUPS: readonly SettingsGroup[] = [
   ]),
   group(SettingsSection.Book, [
     SettingName.BookDensity,
+    SettingName.BookFormat,
     SettingName.ShowBookCover,
     SettingName.ShowPageNumbers,
     SettingName.BookSpread,

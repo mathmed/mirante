@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { allLayouts, BOOK_OPTIONS, defined, lastOf, mixedPhotos } from '../../test/book-photos.ts'
-import { PAGE_ASPECT } from './book-geometry.ts'
+import {
+  allLayouts,
+  BOOK_OPTIONS,
+  defined,
+  lastOf,
+  mixedPhotos,
+  PAGE_SHAPES,
+  WIDE_PAGE,
+} from '../../test/book-photos.ts'
 import { BookDensity } from './book-pagination.ts'
 import {
   firstPhotoOf,
@@ -118,8 +125,13 @@ describe('planBook', () => {
     expect([sut.seed, sut.density, sut.pageAspect]).toStrictEqual([
       42,
       BookDensity.Normal,
-      PAGE_ASPECT,
+      WIDE_PAGE,
     ])
+    expect(planBook([], { ...BOOK_OPTIONS, pageAspect: 1 }).pageAspect).toBe(1)
+  })
+
+  it('should refuse a page that has no shape', () => {
+    expect(() => planBook([], { ...BOOK_OPTIONS, pageAspect: 0 })).toThrow(RangeError)
   })
 
   it('should make an empty book of no photos', () => {
@@ -195,19 +207,29 @@ describe('spreadAt and firstPhotoOf', () => {
 })
 
 describe('imageSizeOf', () => {
-  function frameOf(width: number, height: number): Frame {
-    const photo = { x: 0, y: 0, width: width / PAGE_ASPECT, height }
+  function frameOf(width: number, height: number, pageAspect: number): Frame {
+    const photo = { x: 0, y: 0, width: width / pageAspect, height }
     return { photoId: 'p', weight: 1, cell: photo, photo }
   }
 
-  it.each([
-    [0.3, 0.2, ImageSize.Thumbnail],
-    [0.39, 0.9, ImageSize.Thumbnail],
-    [0.9, 0.39, ImageSize.Thumbnail],
-    [0.4, 0.9, ImageSize.Preview],
-    [0.9, 0.4, ImageSize.Preview],
-    [1.1, 0.8, ImageSize.Preview],
-  ])('should load a photo of %f by %f page heights at the %s size', (width, height, size) => {
-    expect(imageSizeOf(frameOf(width, height))).toBe(size)
-  })
+  // Under 30% of the height of the page on its shorter side, a photo is small.
+  const SIZES: readonly {
+    readonly width: number
+    readonly height: number
+    readonly size: ImageSize
+  }[] = [
+    { width: 0.2, height: 0.1, size: ImageSize.Thumbnail },
+    { width: 0.29, height: 0.9, size: ImageSize.Thumbnail },
+    { width: 0.9, height: 0.29, size: ImageSize.Thumbnail },
+    { width: 0.3, height: 0.9, size: ImageSize.Preview },
+    { width: 0.9, height: 0.3, size: ImageSize.Preview },
+    { width: 0.85, height: 0.8, size: ImageSize.Preview },
+  ]
+
+  it.each(PAGE_SHAPES.flatMap((pageAspect) => SIZES.map((sized) => ({ ...sized, pageAspect }))))(
+    'should load a photo of $width by $height page heights at the $size size (page of aspect $pageAspect)',
+    ({ width, height, size, pageAspect }) => {
+      expect(imageSizeOf(frameOf(width, height, pageAspect), pageAspect)).toBe(size)
+    },
+  )
 })

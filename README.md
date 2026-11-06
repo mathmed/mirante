@@ -80,7 +80,7 @@ in focus in **Todas**, which OK in the viewer does too, for remote controls with
 | Year     | the months with photos, in calendar order                 | opens the month's photos       | years, on the year that was open   |
 | Month    | **Ver como livro**, then the photos, first to last        | opens the book, or the photo   | months, on the month that was open |
 | Viewer   | one photo, full screen; ← and → for the previous and next | starts or pauses the slideshow | the grid, on the photo shown last  |
-| Book     | two pages of photos, a bar of buttons, a strip of spreads | opens the photo, or the button | the photos, on the book's tile     |
+| Book     | two pages of photos, full screen; controls when asked for | opens the photo, or the button | hides the controls, or the tile    |
 | Present  | the library, an album, a year, a month; or a book         | presents it, or opens the list | start                              |
 | Settings | the settings of the presentations, with their values      | flips a switch                 | keeps them, start                  |
 
@@ -132,15 +132,25 @@ with a small cache; a photo without one shows nothing, and nothing on the screen
 ### The book
 
 **Ver como livro**, the first tile of an album or a month (or **Livro de um álbum** and **Livro de
-um mês** on **Apresentar**), opens its photos as a photo book: two facing pages of white paper, the
-fold shaded between them, **Página N** above each one, and, if wanted, a cover with the name of the
-album and the period of its photos. Under the spread, a bar of buttons (‹, **Reproduzir livro**,
-**Visão geral**, **Reorganizar**, ›) and a strip of the spreads in miniature, the one on the screen
-marked. The arrows go from photo to photo; past the edge of the spread ← and → turn the page (a
-short slide and a crossfade), and ↓ reaches the bar, then the strip. OK on a photo opens it full
-screen, and Back returns to the spread of the photo shown last; OK on a spread of the strip, or of
-the **Visão geral** (every spread at once), opens it. **Reproduzir livro** turns a spread every few
-seconds (10 by default), looping or not like the presentations.
+um mês** on **Apresentar**), opens its photos as a photo book that fills the screen: two facing
+pages of white paper, the fold shaded between them, the number of each page small in its outer
+lower corner, as in a printed book, and, if wanted, a cover with the name of the album and the
+period of its photos. Only the TVs' safe area is left around the paper (3.5% of each edge; the
+margins of the pages keep the photos inside the 5% of the other screens). The pages are 8:9, so a
+spread is 16:9, the shape of the TV; **Formato do livro** in the settings brings back the classic
+pages of 4:3, the spread as wide as the screen with a band above and below.
+
+← and → turn the page (a short slide and a crossfade), from any photo; ↑ and ↓ go to the photo
+above or below, a thin amber ring on the one in focus. ↓ from the last photo of the spread, or
+Info, shows the controls over the book for a few seconds (the time of **Esconder a interface
+após**, counted from the last key): at the top the name of the album, the pages on the screen and
+the mark; at the bottom a bar of buttons (‹, **Reproduzir livro**, **Visão geral**,
+**Reorganizar**, ›), a strip of the spreads in miniature, the one on the screen marked, and the
+keys. Back hides them, and, once hidden, leaves the book. OK on a photo opens it full screen, and
+Back returns to the spread of the photo shown last; OK on a spread of the strip, or of the **Visão
+geral** (every spread at once), opens it. **Reproduzir livro** shows the pages alone, with a thin
+amber line filling up at the bottom, and turns a spread every few seconds (10 by default), looping
+or not like the presentations; any arrow or OK pauses it and shows the controls.
 
 Nothing is laid out from a fixed list of templates. How many photos each page takes (one, two side
 by side or one above the other, three, four, five, six or more) follows the shapes and the number
@@ -148,14 +158,16 @@ of the photos and the rhythm of the book: in each spread a page breathes with fe
 other is full, two portraits stand side by side, a panorama counts double. Where they go is an
 optimization, page by page: every way to cut the page across and down, again and again (a
 guillotine), with the sizes of the cuts drawn from the shapes of the photos, is scored, and the one
-that fills the page best wins, every photo whole in its frame, the gap between them constant, a
-margin of 6% of the page around them, no photo too small, and never the same arrangement on two
-pages in a row. A seed makes the same book every time; **Reorganizar** draws a new one, which the TV
+that fills the page best wins, every photo whole in its frame, the gap between them constant (1.5%
+of the width of the page), a margin of 4% of the width of the page around them, no photo too small,
+and never the same arrangement on two pages in a row. The shape of the page is a parameter of the
+layout, so the same photos fill a full screen page and a classic one each in its own way. A seed makes the same book every time; **Reorganizar** draws a new one, which the TV
 keeps for that album or month (`localStorage`, `mirante.books`). The pages are laid out as they are
-first shown, a few at a time, so an album of thousands of photos opens at once. Small photos load
-Immich's thumbnails and large ones its previews, never the original; the next spread is loaded
-ahead and at most two are kept decoded. The caption of the photo in focus shows under the spread,
-in the italic serif, when **Mostrar a legenda** is on.
+first shown, a few at a time, so an album of thousands of photos opens at once. A photo whose
+shorter side takes under 30% of the height of its page loads Immich's thumbnail, a larger one its
+preview, never the original; the next spread is loaded ahead and at most two are kept decoded. The
+caption of the photo in focus shows over the bottom of the book, in the italic serif, when
+**Mostrar a legenda** is on.
 
 ### Settings
 
@@ -166,9 +178,10 @@ list says what the value does. **Restaurar padrões** goes back to the defaults 
 `config.json`, else the app's). Back keeps the settings on the TV (its `localStorage`, under
 `mirante.presentation`, with the version of their shape: settings an older or newer version wrote,
 or anything unreadable, are dropped for the defaults) and they apply at once; the order applies to
-the next presentation. Four settings shape the book: **Densidade do livro** (leve, normal or densa:
-fewer or more photos a page, never a fixed number), **Mostrar a capa do livro**, **Mostrar os
-números das páginas** and **Tempo de cada página dupla**.
+the next presentation. Five settings shape the book: **Densidade do livro** (leve, normal or densa:
+fewer or more photos a page, never a fixed number), **Formato do livro** (**Tela cheia (16:9)**,
+the default, or **Clássico (4:3)**), **Mostrar a capa do livro**, **Mostrar os números das
+páginas** and **Tempo de cada página dupla**.
 
 Loading, empty and error states are explained in Portuguese; on an error the **Tentar novamente**
 button already has the focus.
@@ -186,7 +199,8 @@ cover of a book. The paper of the book stays a neutral, warm white, whatever the
 graphite square with an amber mark: two rounded peaks that make an M, and the sun just above the
 right one, the view from a _mirante_. Cards have round corners on two levels of graphite, the focus
 is an amber ring that grows a little, screens fade in, and the viewer crossfades between photos.
-Captured by `make screenshots` at 1920x1080 (the settings at 1280x720 too), against a fake library:
+Captured by `make screenshots` at 1920x1080 (the settings and the book at 1280x720 too), against a
+fake library:
 
 | Start screen                                     | Albums                                     |
 | ------------------------------------------------ | ------------------------------------------ |
@@ -196,9 +210,13 @@ Captured by `make screenshots` at 1920x1080 (the settings at 1280x720 too), agai
 | ---------------------------------------------- | ---------------------------------------- |
 | ![Every photo](docs/screenshots/15-todas.webp) | ![Viewer](docs/screenshots/05-foto.webp) |
 
-| A book, its cover and first page                   | Two pages laid out differently                |
+| A book, full screen: its cover and first page      | Two pages laid out differently                |
 | -------------------------------------------------- | --------------------------------------------- |
 | ![Book cover](docs/screenshots/16-livro-capa.webp) | ![Book pages](docs/screenshots/17-livro.webp) |
+
+| The controls over the book, when asked for                 | A classic book (4:3 pages)                               |
+| ---------------------------------------------------------- | -------------------------------------------------------- |
+| ![Book controls](docs/screenshots/21-livro-controles.webp) | ![Classic book](docs/screenshots/22-livro-classico.webp) |
 
 Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screenshots/02-inicio.webp),
 [albums](docs/screenshots/03-albuns.webp), [album](docs/screenshots/04-album.webp),
@@ -211,8 +229,14 @@ Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screens
 [the settings scrolled to their end](docs/screenshots/19-ajustes-fim.webp) (and
 [at 1280x720](docs/screenshots/20-ajustes-fim-720p.webp)),
 [every photo](docs/screenshots/15-todas.webp), [a book](docs/screenshots/16-livro-capa.webp),
-[its pages](docs/screenshots/17-livro.webp) and
-[its overview](docs/screenshots/18-livro-visao-geral.webp). The icon was chosen over two
+[its pages](docs/screenshots/17-livro.webp), [its controls](docs/screenshots/21-livro-controles.webp),
+[its overview](docs/screenshots/18-livro-visao-geral.webp),
+[a classic book](docs/screenshots/22-livro-classico.webp) and
+[its controls](docs/screenshots/23-livro-classico-controles.webp), and both books on a TV of
+1280x720 ([full screen](docs/screenshots/24-livro-720.webp),
+[its controls](docs/screenshots/25-livro-controles-720.webp),
+[classic](docs/screenshots/26-livro-classico-720.webp),
+[its controls](docs/screenshots/27-livro-classico-controles-720.webp)). The icon was chosen over two
 alternatives, compared in [docs/screenshots/icone-alternativas.webp](docs/screenshots/icone-alternativas.webp).
 
 ## Configuration
@@ -253,6 +277,7 @@ Mirante reads `config.json` from the folder of its `index.html` when it starts:
   | `hideInterfaceSeconds` | 3 to 20                                        | 4                |
   | `reduceEffects`        | `true`, `false`                                | `false`          |
   | `bookDensity`          | `"light"`, `"normal"`, `"dense"`               | `"normal"`       |
+  | `bookFormat`           | `"wide"` (full screen, 16:9), `"classic"`      | `"wide"`         |
   | `showBookCover`        | `true`, `false`                                | `true`           |
   | `showPageNumbers`      | `true`, `false`                                | `true`           |
   | `bookSpreadSeconds`    | 3 to 60, each spread while a book plays        | 10               |

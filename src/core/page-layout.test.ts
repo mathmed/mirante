@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  CLASSIC_PAGE,
   defined,
   EPSILON,
   isApart,
@@ -8,11 +9,13 @@ import {
   LANDSCAPE,
   mixedAspects,
   NARROW,
+  PAGE_SHAPES,
   PANORAMA,
   PORTRAIT,
   SQUARE,
+  WIDE_PAGE,
 } from '../../test/book-photos.ts'
-import { areaOf, CONTENT, GAP, MARGIN, PAGE_ASPECT } from './book-geometry.ts'
+import { areaOf, type PageGeometry, pageGeometry } from './book-geometry.ts'
 import { zipWith } from './lists.ts'
 import { arrangementsOf, signatureOf } from './page-arrangement.ts'
 import { MAX_TRIED, type PageCandidate, type PagePhoto, searchPage } from './page-layout.ts'
@@ -32,6 +35,10 @@ function page(
   }
   return [first, ...rest]
 }
+
+// The classic page, unless a test says otherwise: the shape these cases were drawn on.
+const GEOMETRY = pageGeometry(CLASSIC_PAGE)
+const { content: CONTENT, gap: GAP, margin: MARGIN, aspect: PAGE_ASPECT } = GEOMETRY
 
 function areas(candidate: PageCandidate): readonly number[] {
   return candidate.placements.map(({ photo }) => areaOf(photo))
@@ -72,66 +79,78 @@ const PAGES = [1, 2, 3, 4, 5, 6, 7, 8, 9].flatMap((count) =>
   [0, 4, 9, 15].map((start) => ({ count, start, seed: count * 31 + start })),
 )
 
-describe('searchPage', () => {
-  it.each(PAGES)(
-    'should keep $count photos (from $start of the mix) whole, apart and inside the margins',
-    ({ count, start, seed }) => {
-      const aspects = mixedAspects(count, start)
-      const { best, others } = searchPage(page(aspects), seed)
+// Every candidate of a page: each photo whole, of its shape, in its order, inside the margins of the
+// page, and apart from the others by the gap.
+function expectWholeAndApart(
+  search: { readonly best: PageCandidate; readonly others: readonly PageCandidate[] },
+  aspects: readonly number[],
+  geometry: PageGeometry,
+): void {
+  for (const candidate of [search.best, ...search.others]) {
+    expect(candidate.placements).toHaveLength(aspects.length)
+    zipWith(candidate.placements, aspects, ({ cell, photo }, aspect) => {
+      expect(isInside(cell, geometry.content)).toBe(true)
+      expect(isInside(photo, cell)).toBe(true)
+      expect(photo.width / photo.height).toBeCloseTo(aspect, 9)
+      expect(areaOf(photo)).toBeGreaterThan(EPSILON)
+    })
+    candidate.placements.forEach(({ cell }, index) => {
+      candidate.placements.slice(index + 1).forEach((other) => {
+        expect(isApart(cell, other.cell, geometry.gap)).toBe(true)
+      })
+    })
+  }
+}
 
-      for (const candidate of [best, ...others]) {
-        expect(candidate.placements).toHaveLength(count)
-        zipWith(candidate.placements, aspects, ({ cell, photo }, aspect) => {
-          expect(isInside(cell, CONTENT)).toBe(true)
-          expect(isInside(photo, cell)).toBe(true)
-          expect(photo.width / photo.height).toBeCloseTo(aspect, 9)
-          expect(areaOf(photo)).toBeGreaterThan(EPSILON)
-        })
-        candidate.placements.forEach(({ cell }, index) => {
-          candidate.placements.slice(index + 1).forEach((other) => {
-            expect(isApart(cell, other.cell, GAP)).toBe(true)
-          })
-        })
-      }
+describe('searchPage', () => {
+  it.each(PAGE_SHAPES.flatMap((pageAspect) => PAGES.map((photos) => ({ ...photos, pageAspect }))))(
+    'should keep $count photos (from $start of the mix) whole, apart and inside the margins of a page of aspect $pageAspect',
+    ({ count, start, seed, pageAspect }) => {
+      const aspects = mixedAspects(count, start)
+      const geometry = pageGeometry(pageAspect)
+
+      expectWholeAndApart(searchPage(page(aspects), seed, geometry), aspects, geometry)
     },
   )
 
   it.each(PAGES)(
     'should score at most MAX_TRIED arrangements for $count photos',
     ({ count, start, seed }) => {
-      expect(searchPage(page(mixedAspects(count, start)), seed).tried).toBeLessThanOrEqual(
-        MAX_TRIED,
-      )
+      expect(
+        searchPage(page(mixedAspects(count, start)), seed, GEOMETRY).tried,
+      ).toBeLessThanOrEqual(MAX_TRIED)
     },
   )
 
   it('should score every arrangement of up to six photos', () => {
-    expect(searchPage(page(mixedAspects(6)), 1).tried).toBe(394)
+    expect(searchPage(page(mixedAspects(6)), 1, GEOMETRY).tried).toBe(394)
   })
 
   it('should stop scoring the halves of a full page when they reach their part of the budget', () => {
     // The halves stop at 1711 (MAX_TRIED less what pairing them may take), and the halves found
     // make 259 pairs; every other half is one column.
-    expect(searchPage(page(mixedAspects(9)), 1).tried).toBe(1970)
+    expect(searchPage(page(mixedAspects(9)), 1, GEOMETRY).tried).toBe(1970)
   })
 
   it('should give the same layout for the same seed', () => {
     const aspects = mixedAspects(5, 2)
 
-    expect(searchPage(page(aspects), 12)).toStrictEqual(searchPage(page(aspects), 12))
+    expect(searchPage(page(aspects), 12, GEOMETRY)).toStrictEqual(
+      searchPage(page(aspects), 12, GEOMETRY),
+    )
   })
 
   it('should vary with the seed among close arrangements', () => {
     const aspects = [SQUARE, SQUARE, SQUARE, SQUARE, SQUARE]
     const signatures = new Set(
-      [...Array(12).keys()].map((seed) => searchPage(page(aspects), seed).best.signature),
+      [...Array(12).keys()].map((seed) => searchPage(page(aspects), seed, GEOMETRY).best.signature),
     )
 
     expect(signatures.size).toBeGreaterThan(1)
   })
 
   it('should rank the best first, then two other arrangements', () => {
-    const { best, others } = searchPage(page(mixedAspects(4)), 3)
+    const { best, others } = searchPage(page(mixedAspects(4)), 3, GEOMETRY)
 
     const [second, third] = others
 
@@ -142,7 +161,7 @@ describe('searchPage', () => {
   })
 
   it('should give a single photo the whole width of the page, in the middle of its height', () => {
-    const { best, others } = searchPage(page([LANDSCAPE]), 1)
+    const { best, others } = searchPage(page([LANDSCAPE]), 1, GEOMETRY)
     const { photo } = defined(best.placements[0])
 
     expect(best.signature).toBe('1')
@@ -153,7 +172,7 @@ describe('searchPage', () => {
   })
 
   it('should give a tall photo the whole height of the page, in the middle of its width', () => {
-    const { photo } = defined(searchPage(page([PORTRAIT]), 1).best.placements[0])
+    const { photo } = defined(searchPage(page([PORTRAIT]), 1, GEOMETRY).best.placements[0])
 
     expect(photo.y).toBeCloseTo(MARGIN, 12)
     expect(photo.height).toBeCloseTo(1 - 2 * MARGIN, 12)
@@ -161,18 +180,36 @@ describe('searchPage', () => {
   })
 
   it('should stand two portraits side by side and stack two panoramas', () => {
-    expect(searchPage(page([PORTRAIT, PORTRAIT]), 1).best.signature).toBe('row(1,1)')
-    expect(searchPage(page([PANORAMA, PANORAMA]), 1).best.signature).toBe('column(1,1)')
+    expect(searchPage(page([PORTRAIT, PORTRAIT]), 1, GEOMETRY).best.signature).toBe('row(1,1)')
+    expect(searchPage(page([PANORAMA, PANORAMA]), 1, GEOMETRY).best.signature).toBe('column(1,1)')
   })
 
   it('should put a portrait beside two landscapes stacked', () => {
-    expect(searchPage(page([PORTRAIT, LANDSCAPE, LANDSCAPE]), 1).best.signature).toBe(
+    expect(searchPage(page([PORTRAIT, LANDSCAPE, LANDSCAPE]), 1, GEOMETRY).best.signature).toBe(
       'row(1,column(1,1))',
     )
   })
 
+  it('should lay the same photos out by the shape of the page', () => {
+    const photos = page([PORTRAIT, LANDSCAPE, LANDSCAPE])
+
+    expect(searchPage(photos, 1, pageGeometry(CLASSIC_PAGE)).best.signature).toBe(
+      'row(1,column(1,1))',
+    )
+    expect(searchPage(photos, 1, pageGeometry(WIDE_PAGE)).best.signature).toBe('column(row(1,1),1)')
+  })
+
+  it('should give a single photo the whole width of a full screen page, within its margins', () => {
+    const wide = pageGeometry(WIDE_PAGE)
+    const { photo } = defined(searchPage(page([LANDSCAPE]), 1, wide).best.placements[0])
+
+    expect(photo.x).toBeCloseTo(wide.margin, 12)
+    expect(photo.width).toBeCloseTo(WIDE_PAGE - 2 * wide.margin, 12)
+    expect(photo.y + photo.height / 2).toBeCloseTo(0.5, 12)
+  })
+
   it('should cost the room the photos leave empty', () => {
-    const { best } = searchPage(page([PORTRAIT, PORTRAIT]), 1)
+    const { best } = searchPage(page([PORTRAIT, PORTRAIT]), 1, GEOMETRY)
     const used = areas(best).reduce((total, area) => total + area, 0) / areaOf(CONTENT)
 
     // Two equal photos, of a fair size: only the empty room and the seed count.
@@ -183,7 +220,7 @@ describe('searchPage', () => {
   it('should cost the empty room, the shares off their weights, the small photos and the seed', () => {
     const aspects = [PANORAMA, PANORAMA, NARROW, NARROW, PANORAMA, NARROW]
     const weights = [4, 1, 1, 1, 1, 1]
-    const { best, others } = searchPage(page(aspects, weights), 3)
+    const { best, others } = searchPage(page(aspects, weights), 3, GEOMETRY)
 
     expect(Math.min(...others.flatMap(areas)) / areaOf(CONTENT)).toBeLessThan(0.04)
     for (const candidate of [best, ...others]) {
@@ -198,33 +235,33 @@ describe('searchPage', () => {
       seed: 1,
       signature: 'column(row(1,1,1),row(column(1,1),1,1))',
       tried: 673,
-      cost: 0.267_115_378_196_391_75,
+      cost: 0.227_851_529_932_289_71,
     },
     {
       count: 8,
       seed: 1,
       signature: 'row(column(1,row(1,column(1,1))),column(1,row(1,1),1))',
       tried: 689,
-      cost: 0.300_549_303_453_545_14,
+      cost: 0.252_915_482_308_194_05,
     },
     {
       count: 8,
       seed: 6,
-      signature: 'row(column(row(1,1),row(1,1),1),column(row(1,1),1))',
+      signature: 'row(column(1,row(1,column(1,1))),column(1,row(1,1),1))',
       tried: 689,
-      cost: 0.316_754_302_233_643,
+      cost: 0.294_729_603_921_473_07,
     },
     {
       count: 9,
       seed: 1,
       signature: 'column(row(1,1,1),row(column(row(1,1),row(1,1,1)),1))',
       tried: 1970,
-      cost: 0.284_710_975_534_313_07,
+      cost: 0.237_546_028_824_370_04,
     },
   ])(
     'should pair the best halves of a page of $count photos the same way every time (seed $seed)',
     ({ count, seed, signature, tried, cost }) => {
-      const sut = searchPage(page(mixedAspects(count)), seed)
+      const sut = searchPage(page(mixedAspects(count)), seed, GEOMETRY)
 
       expect(sut.best.signature).toBe(signature)
       expect(sut.tried).toBe(tried)
@@ -234,15 +271,15 @@ describe('searchPage', () => {
 
   it('should give the shares of their weights to the photos of each half', () => {
     const weights = [5, 1, 1, 1, 1, 1, 1, 1, 1]
-    const { best } = searchPage(page(mixedAspects(9, 3), weights), 2)
+    const { best } = searchPage(page(mixedAspects(9, 3), weights), 2, GEOMETRY)
 
     expect(best.signature).toBe('row(column(row(1,column(1,row(1,1))),row(1,1)),column(1,1,1))')
-    expect(best.cost).toBeCloseTo(0.296_618_350_492_591_83, 12)
+    expect(best.cost).toBeCloseTo(0.271_685_272_399_563, 12)
   })
 
   it.each([7, 8, 9])('should rank different arrangements of a page of %i photos', (count) => {
     for (const seed of [1, 2, 3, 4, 5, 6]) {
-      const { best, others } = searchPage(page(mixedAspects(count, seed)), seed)
+      const { best, others } = searchPage(page(mixedAspects(count, seed)), seed, GEOMETRY)
 
       expect(new Set([best, ...others].map(({ signature }) => signature)).size).toBe(3)
     }
@@ -250,8 +287,8 @@ describe('searchPage', () => {
 
   it('should give a photo that weighs more a larger share of the page', () => {
     const aspects = [LANDSCAPE, LANDSCAPE, LANDSCAPE, LANDSCAPE]
-    const even = areas(searchPage(page(aspects), 2).best)
-    const sut = areas(searchPage(page(aspects, [6, 1, 1, 1]), 2).best)
+    const even = areas(searchPage(page(aspects), 2, GEOMETRY).best)
+    const sut = areas(searchPage(page(aspects, [6, 1, 1, 1]), 2, GEOMETRY).best)
 
     expect(Math.max(...even) / Math.min(...even)).toBeLessThan(1.01)
     const [heavy, light] = sut
@@ -261,7 +298,7 @@ describe('searchPage', () => {
   })
 
   it('should keep the photos of a full page large enough to see', () => {
-    const { best } = searchPage(page(mixedAspects(9, 4)), 5)
+    const { best } = searchPage(page(mixedAspects(9, 4)), 5, GEOMETRY)
 
     for (const area of areas(best)) {
       expect(area / areaOf(CONTENT)).toBeGreaterThan(0.03)
@@ -269,15 +306,17 @@ describe('searchPage', () => {
   })
 
   it('should pair only the arrangements of a half that give each of its photos room', () => {
-    const extremes = [0.7, 0.3, 20, 1.5, 0.3, 3, 1.5]
+    const extremes = [0.7, 0.3, 30, 1.5, 0.3, 3, 1.5]
     const squares = extremes.map(() => SQUARE)
 
-    expect(searchPage(page(extremes), 1).tried).toBeLessThan(searchPage(page(squares), 1).tried)
+    expect(searchPage(page(extremes), 1, GEOMETRY).tried).toBeLessThan(
+      searchPage(page(squares), 1, GEOMETRY).tried,
+    )
   })
 
   it('should give room to every photo of a page of panoramas and narrow photos', () => {
     const aspects = [PANORAMA, NARROW, NARROW, PANORAMA, PANORAMA, NARROW, NARROW, PANORAMA]
-    const { best } = searchPage(page(aspects), 1)
+    const { best } = searchPage(page(aspects), 1, GEOMETRY)
 
     expect(Math.min(...areas(best))).toBeGreaterThan(EPSILON)
   })

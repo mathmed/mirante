@@ -1,8 +1,9 @@
 // The screenshots of the docs (make screenshots): the build, opened from file:// in a headless
-// Chromium at 1920x1080 (and the settings at 1280x720 too) like the TV packages, against a fake Immich with a library of landscapes,
-// walked with the remote control. Each screen is written to docs/screenshots/ as a WebP the page
-// itself encodes, under 300 KB, for the owner to review the look of the app; and the icon of the
-// app beside the two alternatives it was chosen against.
+// Chromium at 1920x1080 (and the settings and the book at 1280x720 too) like the TV packages,
+// against a fake Immich with a library of landscapes, walked with the remote control. Each screen
+// is written to docs/screenshots/ as a WebP the page itself encodes, under 300 KB, for the owner to
+// review the look of the app; and the icon of the app beside the two alternatives it was chosen
+// against.
 import { cp, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -29,13 +30,17 @@ const VIEWPORT = { width: 1920, height: 1080 }
 const SMALL_VIEWPORT = { width: 1280, height: 720 }
 // The share of each edge a TV may hide.
 const OVERSCAN = 0.05
-const TO_THE_LAST_SETTING: readonly string[] = Array<string>(14).fill('ArrowDown')
+const TO_THE_LAST_SETTING: readonly string[] = Array<string>(15).fill('ArrowDown')
 // The opening shows the status under the logo after 1.2 s; the slow server answers after this.
 const SLOW_START_MS = 6000
 // How far the line of the slideshow has filled in its screenshot.
 const SLIDESHOW_SHARE = 0.3
 const BACK = 'Escape'
-const TO_THE_STRIP: readonly string[] = Array<string>(6).fill('ArrowDown')
+// The settings the TV keeps (localStorage, mirante.presentation), set before the app starts: the
+// format of the book, and the controls kept on the screen long enough to be captured.
+const SETTINGS_KEY = 'mirante.presentation'
+const WIDE_SETTINGS = { bookFormat: 'wide', hideInterfaceSeconds: 20 }
+const CLASSIC_SETTINGS = { bookFormat: 'classic', hideInterfaceSeconds: 20 }
 // The photos of the book are drawn first, larger than the others.
 const BOOK_TIMEOUT_MS = 180_000
 
@@ -63,6 +68,56 @@ async function open(viewport = VIEWPORT): Promise<Page> {
   const page = await browser.newPage({ viewport })
   await page.goto(indexUrl)
   return page
+}
+
+// The book of the waterfalls, on its cover, in a page that starts with these settings kept.
+async function openBook(
+  viewport: { readonly width: number; readonly height: number },
+  settings: Readonly<Record<string, unknown>>,
+): Promise<Page> {
+  // Drawn before the book asks for them, the images never hold the captions behind them.
+  for (const id of BOOK_PHOTO_IDS) {
+    screenshotImage(id, 'thumbnail')
+    screenshotImage(id, 'preview')
+  }
+  const page = await browser.newPage({ viewport })
+  await page.addInitScript(
+    ({ key, text }) => {
+      window.localStorage.setItem(key, text)
+    },
+    { key: SETTINGS_KEY, text: JSON.stringify({ version: 1, settings }) },
+  )
+  await page.goto(indexUrl)
+  await focusedOn(page, 'Todas')
+  await press(page, 'ArrowRight', 'Enter')
+  await focusedOn(page, 'Viagem a Lisboa')
+  await press(page, 'ArrowDown', 'ArrowRight', 'ArrowRight')
+  await focusedOn(page, BOOK_ALBUM)
+  await press(page, 'Enter')
+  await page.getByRole('heading', { level: 1, name: BOOK_ALBUM }).waitFor()
+  await page.locator('.grid-photos').waitFor()
+  await press(page, 'ArrowLeft')
+  await focusedOn(page, 'Ver como livro')
+  await press(page, 'Enter')
+  await page.locator('.book-cover').waitFor()
+  await page.getByText('O vale ainda na neblina, antes da trilha').waitFor()
+  await settled(page)
+  return page
+}
+
+// The second spread, a photo in focus, with nothing over it; then the controls over it.
+async function shootSpread(page: Page, spread: string, controls: string): Promise<void> {
+  await press(page, 'ArrowRight')
+  await page.locator('.book-layer-pages', { hasText: 'Páginas 2 e 3' }).waitFor()
+  await press(page, 'ArrowDown')
+  await settled(page)
+  await shoot(page, spread)
+
+  await press(page, 'i')
+  await page.locator('.book-layer.is-shown').waitFor()
+  await focusedOn(page, 'Visão geral')
+  await settled(page)
+  await shoot(page, controls)
 }
 
 describe('the screenshots of the docs', () => {
@@ -172,44 +227,43 @@ describe('the screenshots of the docs', () => {
   })
 
   it(
-    'should capture an album as a book, a spread of the strip and the overview',
+    'should capture a book full screen: its cover, a spread, its controls and its overview',
     async () => {
-      // Drawn before the book asks for them, the images never hold the captions behind them.
-      for (const id of BOOK_PHOTO_IDS) {
-        screenshotImage(id, 'thumbnail')
-        screenshotImage(id, 'preview')
-      }
-      const page = await open()
-      await focusedOn(page, 'Todas')
-      await press(page, 'ArrowRight', 'Enter')
-      await focusedOn(page, 'Viagem a Lisboa')
-      await press(page, 'ArrowDown', 'ArrowRight', 'ArrowRight')
-      await focusedOn(page, BOOK_ALBUM)
-      await press(page, 'Enter')
-      await page.getByRole('heading', { level: 1, name: BOOK_ALBUM }).waitFor()
-      await page.locator('.grid-photos').waitFor()
-      await press(page, 'ArrowLeft')
-      await focusedOn(page, 'Ver como livro')
-
-      await press(page, 'Enter')
-      await page.locator('.book-cover').waitFor()
-      await page.getByText('O vale ainda na neblina, antes da trilha').waitFor()
-      await settled(page)
+      const page = await openBook(VIEWPORT, WIDE_SETTINGS)
       await shoot(page, '16-livro-capa')
 
-      // Down reaches the bar, then the strip, whatever the layout of the page; Down there stays.
-      await press(page, ...TO_THE_STRIP, 'ArrowRight', 'Enter')
-      await page.getByText('Página 2', { exact: true }).waitFor()
-      await press(page, 'ArrowRight')
-      await settled(page)
-      await shoot(page, '17-livro')
+      await shootSpread(page, '17-livro', '21-livro-controles')
 
-      await press(page, ...TO_THE_STRIP, 'ArrowUp', 'Enter')
+      await press(page, 'Enter')
       await page.getByRole('dialog', { name: 'Visão geral' }).waitFor()
       await press(page, 'ArrowRight')
       await settled(page)
       await shoot(page, '18-livro-visao-geral')
       await page.close()
+    },
+    BOOK_TIMEOUT_MS,
+  )
+
+  it(
+    'should capture a classic book, and its controls',
+    async () => {
+      const page = await openBook(VIEWPORT, CLASSIC_SETTINGS)
+      await shootSpread(page, '22-livro-classico', '23-livro-classico-controles')
+      await page.close()
+    },
+    BOOK_TIMEOUT_MS,
+  )
+
+  it(
+    'should capture both books on a TV of 1280x720',
+    async () => {
+      const wide = await openBook(SMALL_VIEWPORT, WIDE_SETTINGS)
+      await shootSpread(wide, '24-livro-720', '25-livro-controles-720')
+      await wide.close()
+
+      const classic = await openBook(SMALL_VIEWPORT, CLASSIC_SETTINGS)
+      await shootSpread(classic, '26-livro-classico-720', '27-livro-classico-controles-720')
+      await classic.close()
     },
     BOOK_TIMEOUT_MS,
   )

@@ -1,4 +1,4 @@
-import { areaOf, CONTENT, GAP, type Rect } from './book-geometry.ts'
+import { areaOf, type PageGeometry, type Rect } from './book-geometry.ts'
 import { firstOr, zipWith } from './lists.ts'
 import {
   areasOf,
@@ -70,6 +70,8 @@ interface Target {
   // The share of the photos' area each one asks for, by its weight.
   readonly shares: readonly number[]
   readonly box: Rect
+  // Between two photos.
+  readonly gap: number
 }
 
 interface Search {
@@ -85,18 +87,24 @@ interface Scored {
   readonly cost: number
 }
 
-export function searchPage(photos: readonly [PagePhoto, ...PagePhoto[]], seed: number): PageSearch {
+// On a page of this geometry (book-geometry.ts): its shape makes the room, the margins and the gap.
+export function searchPage(
+  photos: readonly [PagePhoto, ...PagePhoto[]],
+  seed: number,
+  geometry: PageGeometry,
+): PageSearch {
   const budget = budgetOf()
   const search: Search = { random: randomSequence(seed), spend: budget.spend, limit: MAX_TRIED }
   const target: Target = {
     aspects: photos.map((photo) => photo.aspectRatio),
     shares: sharesOf(photos.map((photo) => photo.weight)),
-    box: CONTENT,
+    box: geometry.content,
+    gap: geometry.gap,
   }
   const ranked = distinct(scoredFor(target, search), 1 + OTHERS).map((scored) =>
     candidateOf(scored, target),
   )
-  const best = firstOr(ranked, candidateOf(scoreOf(column(target.aspects), target, search), target))
+  const best = firstOr(ranked, candidateOf(scoreOf(column(target), target, search), target))
   return { best, others: ranked.slice(1), tried: budget.spent() }
 }
 
@@ -115,7 +123,7 @@ function scoredFor(target: Target, search: Search): readonly Scored[] {
 
 function arrangementsFor(target: Target, search: Search): readonly Arrangement[] {
   return target.aspects.length <= ALL_UP_TO
-    ? arrangementsOf(target.aspects, GAP)
+    ? arrangementsOf(target.aspects, target.gap)
     : halvesOf(target, search)
 }
 
@@ -151,7 +159,7 @@ function distinct(scored: readonly Scored[], count: number): readonly Scored[] {
 function candidateOf({ arrangement, cost }: Scored, target: Target): PageCandidate {
   return {
     signature: signatureOf(arrangement),
-    placements: placementsOf(arrangement, naturalBox(arrangement.shape, target.box), GAP),
+    placements: placementsOf(arrangement, naturalBox(arrangement.shape, target.box), target.gap),
     cost,
   }
 }
@@ -169,7 +177,7 @@ function halvesOf(target: Target, search: Search): readonly Arrangement[] {
     ...pairsOf(target, { at, cut: Cut.Row }, halves),
     ...pairsOf(target, { at, cut: Cut.Column }, halves),
   ])
-  return [...([] as Arrangement[]).concat(...wholes), column(target.aspects)]
+  return [...([] as Arrangement[]).concat(...wholes), column(target)]
 }
 
 interface Halving {
@@ -179,10 +187,12 @@ interface Halving {
 
 function pairsOf(target: Target, halving: Halving, search: Search): readonly Arrangement[] {
   const count = target.aspects.length
-  const [firstBox, restBox] = boxesOf(target.box, halving.cut, halving.at / count)
+  const [firstBox, restBox] = boxesOf(target, halving.cut, halving.at / count)
   const firsts = bestParts(partOf(target, { start: 0, end: halving.at }, firstBox), search)
   const rests = bestParts(partOf(target, { start: halving.at, end: count }, restBox), search)
-  const pairs = firsts.map((first) => rests.map((rest) => joined(halving.cut, [first, rest])))
+  const pairs = firsts.map((first) =>
+    rests.map((rest) => joined(halving.cut, [first, rest], target.gap)),
+  )
   return ([] as Arrangement[]).concat(...pairs)
 }
 
@@ -191,14 +201,16 @@ function bestParts(target: Target, search: Search): readonly Arrangement[] {
   const best = scoredFor(target, search)
     .slice(0, PAIRED)
     .map(({ arrangement }) => arrangement)
-  return best.length === 0 ? [column(target.aspects)] : best
+  return best.length === 0 ? [column(target)] : best
 }
 
 // Every photo in one column always fits.
-function column(aspects: readonly number[]): Arrangement {
-  const leaves = aspects.map(leafOf)
+function column(target: Target): Arrangement {
+  const leaves = target.aspects.map(leafOf)
   const [single] = leaves
-  return single !== undefined && leaves.length === 1 ? single : splitOf(Cut.Column, leaves, GAP)
+  return single !== undefined && leaves.length === 1
+    ? single
+    : splitOf(Cut.Column, leaves, target.gap)
 }
 
 // The photos of a run, in their part of the room, with their share of the run's area.
@@ -211,14 +223,16 @@ function partOf(
     aspects: target.aspects.slice(run.start, run.end),
     shares: sharesOf(target.shares.slice(run.start, run.end)),
     box,
+    gap: target.gap,
   }
 }
 
 // The room cut in two, across or down, the gap between them: this share of what is left for the
 // first part. Only their sizes count to score their arrangements.
-function boxesOf(box: Rect, cut: Cut, share: number): readonly [Rect, Rect] {
+function boxesOf(target: Target, cut: Cut, share: number): readonly [Rect, Rect] {
+  const { box } = target
   const isRow = cut === Cut.Row
-  const length = (isRow ? box.width : box.height) - GAP
+  const length = (isRow ? box.width : box.height) - target.gap
   const [first, rest] = [length * share, length * (1 - share)]
   return isRow
     ? [
@@ -232,9 +246,9 @@ function boxesOf(box: Rect, cut: Cut, share: number): readonly [Rect, Rect] {
 }
 
 // Two halves cut the same way as the whole read as one: their parts join the whole's.
-function joined(cut: Cut, halves: readonly Arrangement[]): Arrangement {
+function joined(cut: Cut, halves: readonly Arrangement[], gap: number): Arrangement {
   const parts = halves.map((half) => (!isLeaf(half) && half.cut === cut ? half.parts : [half]))
-  return splitOf(cut, ([] as Arrangement[]).concat(...parts), GAP)
+  return splitOf(cut, ([] as Arrangement[]).concat(...parts), gap)
 }
 
 // The room the photos leave empty, how far their shares of the area are from what their weights

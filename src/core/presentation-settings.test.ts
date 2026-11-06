@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { BookFormat } from './book-geometry.ts'
 import { BookDensity } from './book-pagination.ts'
 import {
   DEFAULT_PRESENTATION,
@@ -40,14 +41,15 @@ describe('DEFAULT_PRESENTATION', () => {
     })
   })
 
-  it('should make books of a normal density, with a cover and numbered pages, 10 s a spread', () => {
+  it('should make full screen books of a normal density, with a cover and numbered pages, 10 s a spread', () => {
     expect(DEFAULT_PRESENTATION).toMatchObject({
       bookDensity: BookDensity.Normal,
+      bookFormat: BookFormat.Wide,
       shouldShowBookCover: true,
       shouldShowPageNumbers: true,
       bookSpreadSeconds: 10,
     })
-    expect(Object.keys(DEFAULT_PRESENTATION)).toHaveLength(14)
+    expect(Object.keys(DEFAULT_PRESENTATION)).toHaveLength(15)
   })
 })
 
@@ -65,6 +67,7 @@ describe('SETTINGS', () => {
       'hideInterfaceSeconds',
       'reduceEffects',
       'bookDensity',
+      'bookFormat',
       'showBookCover',
       'showPageNumbers',
       'bookSpreadSeconds',
@@ -85,6 +88,7 @@ describe('SETTINGS', () => {
     )
     const density = settingNamed(SettingName.BookDensity)
     const spread = settingNamed(SettingName.BookSpread)
+    const format = settingNamed(SettingName.BookFormat)
 
     expect(changed).toMatchObject({ shouldShowBookCover: false, shouldShowPageNumbers: false })
     expect(
@@ -95,6 +99,11 @@ describe('SETTINGS', () => {
     expect(spread.kind === 'seconds' && spread.withValue(changed, 25)).toMatchObject({
       bookSpreadSeconds: 25,
     })
+    expect(format.kind === 'choice' && format.withValue(changed, BookFormat.Classic)).toMatchObject(
+      { bookFormat: BookFormat.Classic },
+    )
+    expect(format).toMatchObject({ options: [BookFormat.Wide, BookFormat.Classic] })
+    expect(format.valueOf(DEFAULT_PRESENTATION)).toBe(BookFormat.Wide)
     expect(density.valueOf(DEFAULT_PRESENTATION)).toBe(BookDensity.Normal)
     expect(spread.valueOf(DEFAULT_PRESENTATION)).toBe(10)
   })

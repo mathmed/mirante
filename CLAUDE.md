@@ -54,8 +54,10 @@ src/core/      pure logic: the startup flow, the runtime configuration, the phot
                seeded shuffle, their sources, the transitions (presentation-effects) and the captions;
                and the photo book: how many photos each page takes (book-pagination), the layout of
                a page as an optimization over guillotine cuts (page-arrangement, page-layout,
-               book-geometry), the book and its spreads (book), its remote control
-               (book-navigation), its sources and the seeds it keeps (book-source, book-seeds)
+               book-geometry, which takes the shape of the page as a parameter), the book and its
+               spreads (book), its remote control (book-navigation, and book-moves: where up and
+               down go among the photos of a spread), its sources and the seeds it keeps
+               (book-source, book-seeds)
 src/immich/    the photo library implemented with @immich/sdk, read only
 src/platform/  what differs between TVs and browsers: config.json, polyfills, the console, the key
                codes of the remote controls of Tizen and webOS (and the Info key Tizen registers),
@@ -165,7 +167,9 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   the library a month at a time as the focus nears the end of what is read, never all of it. Only `transform`
   and `opacity` change, few elements animate, and nothing relies on `overflow`, which Chromium 68
   supports only in part: screens are `position: fixed` and off-screen cells are hidden.
-- **Overscan**: every screen keeps its content inside the safe area, 5% of each edge.
+- **Overscan**: every screen keeps its content inside the safe area, 5% of each edge. The book is
+  the one exception: its paper reaches 3.5% of each edge, and the margins of its pages keep its
+  photos inside the 5%; the layer of its controls stays inside the 5%.
 - **The look** (CONTRIBUTING.md, "The look of the app"): the palette of the logo (neutral graphite
   with one soft amber accent, the `--gold` names; every text at a contrast of 4.5:1 or more, which
   `src/ui/palette.test.ts` checks) as custom properties of `src/ui/styles.css`, the only place a
@@ -174,7 +178,8 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   titles included, tabular figures where numbers count, and the italic of Playfair Display only for
   the captions and the title on the cover of the photo book, Latin-subset
   WOFF2 shipped in `src/ui/fonts`, OFL, `font-display: swap`; never a font or an image from the
-  network but Immich's. Focus: an amber ring, one short glow and `scale(1.04)`. Only `opacity` and `transform` animate; glows stay on the
+  network but Immich's. Focus: an amber ring, one short glow and `scale(1.04)`; on the photos of the book, a thin amber
+  ring and a faint glow alone, discreet on the paper, and none while the book plays. Only `opacity` and `transform` animate; glows stay on the
   focused element; darken with gradients, never `filter: blur` or `backdrop-filter` (Stylelint bans
   `blur()` and the individual `translate`, `scale` and `rotate` properties). The logo is drawn from
   `scripts/logo/mark.ts` (the app's icon and the TV icons too): run `make logo` after changing it,
@@ -209,13 +214,18 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
 - **The photo book** is laid out by an algorithm, never from a fixed list of templates: the number
   of photos of each page (`src/core/book-pagination.ts`) and the arrangement of a page, an
   optimization over guillotine cuts scored by `src/core/page-layout.ts` (every photo whole, never
-  cut nor stretched, a constant gap, a margin of 6% of the page, a bounded search: past six photos,
-  halves paired, at most `MAX_TRIED` arrangements a page). Pages are laid out when first shown,
-  never the whole book at once. What it makes is plain data (pages, rectangles, weights, seed); the
+  cut nor stretched, a gap of 1.5% and a margin of 4% of the width of the page, a bounded search:
+  past six photos, halves paired, at most `MAX_TRIED` arrangements a page). The shape of the page
+  is a parameter (`pageAspect`, from the `bookFormat` setting: 8:9 pages, a 16:9 spread, by
+  default; 4:3 for the classic book), never assumed. Pages are laid out when first shown, never the
+  whole book at once. The book fills the screen; its controls (the title, the bar, the strip) are a
+  layer over it, shown on Down from the last photo or Info, hidden by Back or after
+  `hideInterfaceSeconds`, and absent while the book plays. What it makes is plain data (pages, rectangles, weights, seed); the
   seed of a reorganized book stays on the TV (`mirante.books`, `STORED_SEEDS_VERSION` in
   `src/core/book-seeds.ts`). The paper of its pages (`--paper`, `--ink`) stays neutral and warm,
-  apart from the graphite and the amber. Its images are Immich's thumbnails and previews, at most
-  two spreads decoded.
+  apart from the graphite and the amber. Its images are Immich's thumbnails and previews (a photo
+  under 30% of the height of its page on its shorter side takes the thumbnail), at most two spreads
+  decoded, the next one loaded ahead.
 - **The settings of the presentations** stay on each TV in `localStorage` (`mirante.presentation`),
   with the version of their shape (`STORED_SETTINGS_VERSION` in `src/core/settings-storage.ts`):
   raise it when a reader of the old shape would misread the new one; anything unreadable falls back

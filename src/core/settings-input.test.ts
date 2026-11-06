@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { BookFormat } from './book-geometry.ts'
 import { BookDensity } from './book-pagination.ts'
 import { fieldsOf } from './json.ts'
 import {
@@ -23,6 +24,7 @@ const EVERY_FIELD = {
   hideInterfaceSeconds: 10,
   reduceEffects: true,
   bookDensity: 'dense',
+  bookFormat: 'classic',
   showBookCover: false,
   showPageNumbers: false,
   bookSpreadSeconds: 30,
@@ -40,6 +42,7 @@ const EVERY_SETTING: PresentationSettings = {
   hideInterfaceSeconds: 10,
   shouldReduceEffects: true,
   bookDensity: BookDensity.Dense,
+  bookFormat: BookFormat.Classic,
   shouldShowBookCover: false,
   shouldShowPageNumbers: false,
   bookSpreadSeconds: 30,
@@ -86,6 +89,7 @@ describe('parsePresentation', () => {
     { loop: 1 },
     { reduceEffects: null },
     { bookDensity: 'crowded' },
+    { bookFormat: 'square' },
     { showBookCover: 'yes' },
     { showPageNumbers: 0 },
     { bookSpreadSeconds: 61 },
