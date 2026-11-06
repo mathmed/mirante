@@ -21,8 +21,7 @@ export const FeedRowKind = {
 
 export type FeedRowKind = (typeof FeedRowKind)[keyof typeof FeedRowKind]
 
-// A binary search halves the rows at each step.
-const HALVES = 2
+const NOT_FOUND = -1
 
 export interface FeedRow {
   readonly kind: FeedRowKind
@@ -118,17 +117,8 @@ export function slotOfRow(row: FeedRow, position: GridPosition, layout: FeedLayo
 // The row that holds the photo: the last row starting at it or before it, which is never a heading
 // (a heading starts at the same photo as the row after it).
 export function rowOfPhoto(rows: readonly FeedRow[], photo: number): number {
-  let low = 0
-  let high = rows.length - 1
-  while (low < high) {
-    const middle = Math.ceil((low + high) / HALVES)
-    if (startsAtOrBefore(rows, middle, photo)) {
-      low = middle
-    } else {
-      high = middle - 1
-    }
-  }
-  return low
+  const after = rows.findIndex((row) => row.firstPhoto > photo)
+  return Math.max((after === NOT_FOUND ? rows.length : after) - 1, 0)
 }
 
 type Move = (focus: number, rows: readonly FeedRow[]) => number
@@ -190,10 +180,6 @@ function firstRowShowing(layout: FeedLayout, focusRow: number, topRow: number): 
 
 function topOf(rows: readonly FeedRow[], row: number): number {
   return rowAt(rows, row)?.top ?? 0
-}
-
-function startsAtOrBefore(rows: readonly FeedRow[], row: number, photo: number): boolean {
-  return rows.slice(row, row + 1).every((found) => found.firstPhoto <= photo)
 }
 
 function rowAt(rows: readonly FeedRow[], row: number): FeedRow | undefined {

@@ -61,6 +61,18 @@ describe('startFeed', () => {
     expect(startFeed([later, earlier, later]).months).toStrictEqual([earlier, later, later])
     expect(startFeed([earlier, later]).months).toStrictEqual([earlier, later])
   })
+
+  it('should order three names of the same month by their keys, whatever order they come in', () => {
+    expect(
+      startFeed(['c', 'a', 'b'].map((key) => month(2024, 3, key))).months.map((each) => each.key),
+    ).toStrictEqual(['a', 'b', 'c'])
+  })
+
+  it('should keep the order of two months of the same name', () => {
+    const counted = { ...MARCH, photoCount: 2 }
+
+    expect(startFeed([MARCH, counted]).months).toStrictEqual([MARCH, counted])
+  })
 })
 
 describe('monthToRead', () => {
