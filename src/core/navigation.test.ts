@@ -128,6 +128,14 @@ describe('PRESENT_OPTIONS', () => {
         choice: PresentChoice.Month,
         screen: { kind: ScreenKind.Years, intent: Intent.PresentMonth },
       },
+      {
+        choice: PresentChoice.BookAlbum,
+        screen: { kind: ScreenKind.Albums, intent: Intent.BookAlbum },
+      },
+      {
+        choice: PresentChoice.BookMonth,
+        screen: { kind: ScreenKind.Years, intent: Intent.BookMonth },
+      },
     ])
   })
 })
@@ -140,6 +148,13 @@ describe('albumScreen', () => {
   it('should present the album chosen to present', () => {
     expect(albumScreen(TRIP, Intent.PresentAlbum)).toStrictEqual({
       kind: ScreenKind.Presentation,
+      source: { kind: SourceKind.Album, album: TRIP },
+    })
+  })
+
+  it('should open the album chosen to see as a book', () => {
+    expect(albumScreen(TRIP, Intent.BookAlbum)).toStrictEqual({
+      kind: ScreenKind.Book,
       source: { kind: SourceKind.Album, album: TRIP },
     })
   })
@@ -168,6 +183,18 @@ describe('yearScreen', () => {
       intent: Intent.PresentMonth,
     })
   })
+
+  it('should open the months of the year to choose one to see as a book', () => {
+    expect(yearScreen(YEAR, Intent.BookMonth)).toStrictEqual({
+      kind: ScreenKind.Months,
+      year: YEAR,
+      intent: Intent.BookMonth,
+    })
+  })
+
+  it('should browse the months of a year chosen for no month', () => {
+    expect(yearScreen(YEAR, Intent.BookAlbum)).toMatchObject({ intent: Intent.Browse })
+  })
 })
 
 describe('monthScreen', () => {
@@ -181,6 +208,13 @@ describe('monthScreen', () => {
   it('should present the month chosen to present', () => {
     expect(monthScreen(MARCH, Intent.PresentMonth)).toStrictEqual({
       kind: ScreenKind.Presentation,
+      source: { kind: SourceKind.Month, month: MARCH },
+    })
+  })
+
+  it('should open the month chosen to see as a book', () => {
+    expect(monthScreen(MARCH, Intent.BookMonth)).toStrictEqual({
+      kind: ScreenKind.Book,
       source: { kind: SourceKind.Month, month: MARCH },
     })
   })

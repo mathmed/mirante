@@ -1,6 +1,9 @@
+import { BookDensity } from './book-pagination.ts'
+
 // How a presentation of photos runs: the interval, the order, the transition and what shows over
-// the photo. config.json may set the defaults (its "presentation" block), each TV keeps its own
-// choices (settings-storage.ts), and the settings screen changes them.
+// the photo; and how an album looks as a book. config.json may set the defaults (its
+// "presentation" block), each TV keeps its own choices (settings-storage.ts), and the settings
+// screen changes them.
 export const PlaybackOrder = {
   OldestFirst: 'oldest-first',
   NewestFirst: 'newest-first',
@@ -39,6 +42,12 @@ export interface PresentationSettings {
   readonly hideInterfaceSeconds: number
   // For slow TVs: no zoom, and a plain fade whatever the transition.
   readonly shouldReduceEffects: boolean
+  // How many photos the pages of a book hold.
+  readonly bookDensity: BookDensity
+  readonly shouldShowBookCover: boolean
+  readonly shouldShowPageNumbers: boolean
+  // How long each spread of a book stays on the screen while the book plays.
+  readonly bookSpreadSeconds: number
 }
 
 // The name of each setting in the "presentation" block of config.json and in the stored settings:
@@ -54,6 +63,10 @@ export const SettingName = {
   Loop: 'loop',
   HideInterface: 'hideInterfaceSeconds',
   ReduceEffects: 'reduceEffects',
+  BookDensity: 'bookDensity',
+  ShowBookCover: 'showBookCover',
+  ShowPageNumbers: 'showPageNumbers',
+  BookSpread: 'bookSpreadSeconds',
 } as const
 
 export type SettingName = (typeof SettingName)[keyof typeof SettingName]
@@ -117,6 +130,10 @@ export const DEFAULT_PRESENTATION: PresentationSettings = {
   shouldLoop: true,
   hideInterfaceSeconds: 4,
   shouldReduceEffects: false,
+  bookDensity: BookDensity.Normal,
+  shouldShowBookCover: true,
+  shouldShowPageNumbers: true,
+  bookSpreadSeconds: 10,
 }
 
 // In the order of the settings screen.
@@ -168,6 +185,22 @@ export const SETTINGS: readonly Setting[] = [
   toggle(SettingName.ReduceEffects, {
     valueOf: (settings) => settings.shouldReduceEffects,
     withValue: (settings, shouldReduceEffects) => ({ ...settings, shouldReduceEffects }),
+  }),
+  choice(SettingName.BookDensity, [BookDensity.Light, BookDensity.Normal, BookDensity.Dense], {
+    valueOf: (settings) => settings.bookDensity,
+    withValue: (settings, bookDensity) => ({ ...settings, bookDensity }),
+  }),
+  toggle(SettingName.ShowBookCover, {
+    valueOf: (settings) => settings.shouldShowBookCover,
+    withValue: (settings, shouldShowBookCover) => ({ ...settings, shouldShowBookCover }),
+  }),
+  toggle(SettingName.ShowPageNumbers, {
+    valueOf: (settings) => settings.shouldShowPageNumbers,
+    withValue: (settings, shouldShowPageNumbers) => ({ ...settings, shouldShowPageNumbers }),
+  }),
+  seconds(SettingName.BookSpread, INTERVAL_RANGE, {
+    valueOf: (settings) => settings.bookSpreadSeconds,
+    withValue: (settings, bookSpreadSeconds) => ({ ...settings, bookSpreadSeconds }),
   }),
 ]
 

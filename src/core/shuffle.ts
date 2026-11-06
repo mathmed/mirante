@@ -10,6 +10,8 @@ const ODD_MIX = 61
 const RANGE = 0x1_00_00_00_00
 // Far apart seeds for consecutive rounds (the golden ratio of 2^32).
 const ROUND_STEP = 0x9e_37_79_b9
+const FNV_OFFSET = 2_166_136_261
+const FNV_PRIME = 16_777_619
 
 // Numbers from 0 (included) to 1 (excluded).
 export function randomSequence(seed: number): () => number {
@@ -36,4 +38,13 @@ export function shuffled<T>(items: readonly T[], seed: number): readonly T[] {
 // The seed of a later round of the same presentation.
 export function roundSeed(seed: number, round: number): number {
   return (seed + Math.imul(round, ROUND_STEP)) >>> 0
+}
+
+// A seed from a text, the same on every TV: FNV-1a over its code units, as an unsigned 32-bit number.
+export function textSeed(text: string): number {
+  let hash = FNV_OFFSET
+  for (let index = 0; index < text.length; index += 1) {
+    hash = Math.imul(hash ^ text.charCodeAt(index), FNV_PRIME)
+  }
+  return hash >>> 0
 }

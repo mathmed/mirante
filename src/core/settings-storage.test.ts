@@ -59,6 +59,10 @@ describe('storedText', () => {
         loop: true,
         hideInterfaceSeconds: 4,
         reduceEffects: false,
+        bookDensity: 'normal',
+        showBookCover: true,
+        showPageNumbers: true,
+        bookSpreadSeconds: 10,
       },
     })
     expect(STORED_SETTINGS_VERSION).toBe(1)

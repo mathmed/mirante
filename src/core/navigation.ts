@@ -1,3 +1,4 @@
+import type { BookSource } from './book-source.ts'
 import type { TimelineYear } from './gallery.ts'
 import { type GridPosition, START_POSITION } from './grid.ts'
 import type { Album, TimelineMonth } from './photo-library.ts'
@@ -16,6 +17,8 @@ export const ScreenKind = {
   Present: 'present',
   Presentation: 'presentation',
   Settings: 'settings',
+  // An album or a month as a book of photos.
+  Book: 'book',
 } as const
 
 export type ScreenKind = (typeof ScreenKind)[keyof typeof ScreenKind]
@@ -26,6 +29,8 @@ export const Intent = {
   PresentAlbum: 'present-album',
   PresentYear: 'present-year',
   PresentMonth: 'present-month',
+  BookAlbum: 'book-album',
+  BookMonth: 'book-month',
 } as const
 
 export type Intent = (typeof Intent)[keyof typeof Intent]
@@ -45,6 +50,7 @@ export type Screen =
   | { readonly kind: typeof ScreenKind.Presentation; readonly source: PresentationSource }
   | { readonly kind: typeof ScreenKind.Settings }
   | { readonly kind: typeof ScreenKind.Years; readonly intent: Intent }
+  | { readonly kind: typeof ScreenKind.Book; readonly source: BookSource }
 
 // A screen and where its focus was when another screen opened over it.
 interface NavigationEntry {
@@ -82,6 +88,8 @@ export const PresentChoice = {
   Album: 'album',
   Year: 'year',
   Month: 'month',
+  BookAlbum: 'book-album',
+  BookMonth: 'book-month',
 } as const
 
 export type PresentChoice = (typeof PresentChoice)[keyof typeof PresentChoice]
@@ -92,7 +100,7 @@ export interface PresentOption {
 }
 
 // The choices of a presentation: the whole library starts at once; an album, a year or a month is
-// chosen on the screens of the gallery first.
+// chosen on the screens of the gallery first, and so is the album or the month seen as a book.
 export const PRESENT_OPTIONS: readonly PresentOption[] = [
   {
     choice: PresentChoice.Library,
@@ -101,13 +109,29 @@ export const PRESENT_OPTIONS: readonly PresentOption[] = [
   { choice: PresentChoice.Album, screen: { kind: ScreenKind.Albums, intent: Intent.PresentAlbum } },
   { choice: PresentChoice.Year, screen: { kind: ScreenKind.Years, intent: Intent.PresentYear } },
   { choice: PresentChoice.Month, screen: { kind: ScreenKind.Years, intent: Intent.PresentMonth } },
+  {
+    choice: PresentChoice.BookAlbum,
+    screen: { kind: ScreenKind.Albums, intent: Intent.BookAlbum },
+  },
+  {
+    choice: PresentChoice.BookMonth,
+    screen: { kind: ScreenKind.Years, intent: Intent.BookMonth },
+  },
 ]
 
-// Enter on an album: its photos, or its presentation.
+// The intents that go on from a year to choose one of its months.
+const MONTH_INTENTS: ReadonlySet<Intent> = new Set([Intent.PresentMonth, Intent.BookMonth])
+
+// Enter on an album: its photos, its presentation, or the album as a book.
 export function albumScreen(album: Album, intent: Intent): Screen {
-  return intent === Intent.PresentAlbum
-    ? { kind: ScreenKind.Presentation, source: { kind: SourceKind.Album, album } }
-    : { kind: ScreenKind.Album, album }
+  switch (intent) {
+    case Intent.PresentAlbum:
+      return { kind: ScreenKind.Presentation, source: { kind: SourceKind.Album, album } }
+    case Intent.BookAlbum:
+      return bookScreen({ kind: SourceKind.Album, album })
+    default:
+      return { kind: ScreenKind.Album, album }
+  }
 }
 
 // Enter on a year: its presentation, or its months, to browse or to choose one to present.
@@ -115,15 +139,24 @@ export function yearScreen(year: TimelineYear, intent: Intent): Screen {
   if (intent === Intent.PresentYear) {
     return { kind: ScreenKind.Presentation, source: { kind: SourceKind.Year, year } }
   }
-  const monthsIntent = intent === Intent.PresentMonth ? Intent.PresentMonth : Intent.Browse
+  const monthsIntent = MONTH_INTENTS.has(intent) ? intent : Intent.Browse
   return { kind: ScreenKind.Months, year, intent: monthsIntent }
 }
 
-// Enter on a month: its photos, or its presentation.
+// Enter on a month: its photos, its presentation, or the month as a book.
 export function monthScreen(month: TimelineMonth, intent: Intent): Screen {
-  return intent === Intent.PresentMonth
-    ? { kind: ScreenKind.Presentation, source: { kind: SourceKind.Month, month } }
-    : { kind: ScreenKind.Month, month }
+  switch (intent) {
+    case Intent.PresentMonth:
+      return { kind: ScreenKind.Presentation, source: { kind: SourceKind.Month, month } }
+    case Intent.BookMonth:
+      return bookScreen({ kind: SourceKind.Month, month })
+    default:
+      return { kind: ScreenKind.Month, month }
+  }
+}
+
+export function bookScreen(source: BookSource): Screen {
+  return { kind: ScreenKind.Book, source }
 }
 
 export function startNavigation(): Navigation {
