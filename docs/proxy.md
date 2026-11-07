@@ -17,6 +17,7 @@ Every route is under `/api` of the address in `immichUrl`. Nothing else reaches 
 | `GET`  | `/api/timeline/buckets`      | the months of the timeline (with their counts, for the start screen), or of an album (`albumId`) | `asset.read`      |
 | `GET`  | `/api/timeline/bucket`       | the photos of a month (`timeBucket`), of the timeline or of an album (`albumId`)                 | `asset.read`      |
 | `POST` | `/api/search/random`         | **new**: a random draw of the library for its presentation, 200 photos a round (see below)       | `asset.read`      |
+| `POST` | `/api/search/metadata`       | **new**: the photos of this day in past years, behind the start screen (see below)               | `asset.read`      |
 | `GET`  | `/api/assets/{id}`           | **new**: the detail of one photo, for its caption (`exifInfo.description`)                       | `asset.read`      |
 | `GET`  | `/api/assets/{id}/thumbnail` | the images: `?size=thumbnail` in the grids, `?size=preview` in the viewer; loaded by `<img src>` | `asset.view`      |
 
@@ -26,6 +27,13 @@ Details that matter for the allow list:
   hence the `POST`. Mirante sends this body, with `Content-Type: application/json`, once when a
   presentation of the whole library starts and once more for each later round:
   `{"size": 200, "type": "IMAGE", "visibility": "timeline", "withExif": false}`.
+- **`POST /api/search/metadata` only reads**, like the random draw: a search by date, once a visit
+  of the start screen, one per past year that holds photos near this day (read from
+  `/api/timeline/buckets`), and as many again for the days after it only when no year has a photo
+  on this very day. Each body asks for at most 20 photos of the timeline, without videos or EXIF
+  data, taken in a window of about a month:
+  `{"takenAfter": "2023-10-07T10:00:00.000Z", "takenBefore": "2023-11-08T12:00:00.000Z", "type": "IMAGE", "visibility": "timeline", "withExif": false, "size": 20, "orderBy": {"field": "localDateTime", "direction": "desc"}}`.
+  Refused, it goes to the log and the start screen shows the cover of the most recent album.
 - **`GET /api/assets/{id}` is asked for two photos at a time**: the one on the screen and the next
   one, only while a viewer or a presentation shows captions, and each photo once while it is near
   the screen. It never lists the library. Immich answers `PUT` on the same route (it edits the
@@ -37,7 +45,8 @@ Details that matter for the allow list:
   Immich also answers `size=fullsize` and `size=original` there, which serve the full image: allow
   the two small sizes only.
 - An `OPTIONS` preflight comes before the calls of the packaged apps, which load from `file://`, so
-  that every call crosses origins; for `POST /api/search/random` it asks to send `Content-Type`.
+  that every call crosses origins; for the two searches (`POST /api/search/random` and
+  `POST /api/search/metadata`) it asks to send `Content-Type`.
 
 The key the proxy sends needs `album.read`, `asset.read` and `asset.view`, and nothing more.
 
@@ -48,7 +57,7 @@ Everything else under `/api`, and in particular:
 - `GET /api/assets/{id}/original` and `/api/download/...`: the original files;
 - `GET /api/assets/{id}/video/playback`: the videos (Mirante leaves videos out);
 - `/api/assets/{id}/thumbnail` with `size=fullsize` or `size=original`;
-- any `PUT`, `PATCH` or `DELETE`, and any `POST` but the two above: they upload, edit, favorite,
+- any `PUT`, `PATCH` or `DELETE`, and any `POST` but the three above: they upload, edit, favorite,
   archive or delete.
 
 ## CORS, for the packaged apps
@@ -108,11 +117,12 @@ port, the folder and the address of Immich.
 		import immich
 	}
 
-	@random_draw {
+	# The two searches, which only read: the random draw and the search by date.
+	@searches {
 		method POST
-		path /api/search/random
+		path /api/search/random /api/search/metadata
 	}
-	handle @random_draw {
+	handle @searches {
 		import immich
 	}
 

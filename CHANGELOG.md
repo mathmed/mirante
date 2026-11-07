@@ -91,6 +91,19 @@ All notable changes to Mirante are documented in this file. The format is based 
 
 ### Added
 
+- **This day in past years, behind the start screen.** The cover of the most recent album gives way
+  to the photos taken on today's day in the years before this one, up to 10 a visit, taking turns
+  every 15 seconds with a fade, each with a discreet caption: **Há 3 anos**. Without any on this
+  very day, the nearest day that has some, up to 30 days before or after it in any past year
+  (**Há 3 anos, em 4 de novembro**). Only without photos near this day does the cover of the most
+  recent album come back, and last the plain background. This year's photos and videos never
+  count, a photo's date is the one Immich shows (where it was taken), "today" is the day on the
+  TV's clock, February 29th falls on the 28th of the other years, and the choice stays the same all
+  day long. **The proxy needs one more route**: `POST /api/search/metadata`, a search by date that
+  only reads, once a visit, one per past year with photos near this day
+  ([docs/proxy.md](docs/proxy.md)). A proxy that refuses it leaves the cover of the most recent
+  album behind the start screen, and the refusal in the log.
+
 - **Todas**, every photo of the library, the most recent first, like the "Recents" of a phone: one
   continuous grid with the name of each month and its count above its photos ("Novembro de 2026 ·
   312 fotos"). It reads the months from the most recent one, one at a time, as the focus nears the
