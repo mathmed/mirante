@@ -48,6 +48,37 @@ describe('listenToRemote', () => {
     expect(isDefaultAllowed).toBe(false)
   })
 
+  it.each([8, 37, 39, 73])(
+    'should leave the key code %i to a text field, to type or move in the text',
+    (code) => {
+      const sut = listening()
+      const field = document.createElement('input')
+      document.body.lastElementChild?.append(field)
+
+      const isDefaultAllowed = fireEvent.keyDown(field, { keyCode: code })
+
+      expect(sut.keys).toStrictEqual([])
+      expect(isDefaultAllowed).toBe(true)
+    },
+  )
+
+  it.each([
+    [13, RemoteKey.Enter],
+    [38, RemoteKey.Up],
+    [40, RemoteKey.Down],
+    [461, RemoteKey.Back],
+    [10009, RemoteKey.Back],
+    [27, RemoteKey.Back],
+  ])('should read the key code %i of a text field as %s', (code, key) => {
+    const sut = listening()
+    const field = document.createElement('input')
+    document.body.lastElementChild?.append(field)
+
+    fireEvent.keyDown(field, { keyCode: code })
+
+    expect(sut.keys).toStrictEqual([key])
+  })
+
   it('should leave the other keys to the browser', () => {
     const sut = listening()
 
