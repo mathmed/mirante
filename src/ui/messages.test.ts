@@ -4,6 +4,7 @@ import { StartupFailure } from '../core/startup.ts'
 import {
   counterText,
   failureText,
+  memoryText,
   monthCountText,
   monthName,
   monthTitle,
@@ -116,5 +117,21 @@ describe('the texts of the gallery', () => {
 
     expect(sut).toBe('Viagem …')
     expect(sut).toHaveLength(8)
+  })
+})
+
+describe('memoryText', () => {
+  const memory = { photoId: 'p', yearsAgo: 3, date: { year: 2023, month: 11, day: 4 } }
+
+  it('should say how many years ago a photo of today was taken', () => {
+    expect(memoryText({ ...memory, isSameDay: true })).toBe('Há 3 anos')
+  })
+
+  it('should say one year in the singular', () => {
+    expect(memoryText({ ...memory, yearsAgo: 1, isSameDay: true })).toBe('Há 1 ano')
+  })
+
+  it('should name the day of a photo of the nearest day', () => {
+    expect(memoryText({ ...memory, isSameDay: false })).toBe('Há 3 anos, em 4 de novembro')
   })
 })

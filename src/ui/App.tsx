@@ -1,5 +1,6 @@
 import type { JSX } from 'preact'
 
+import type { PhotoDate } from '../core/photo-library.ts'
 import type { KeySource } from '../core/remote-key.ts'
 import type { TextStorage } from '../core/settings-storage.ts'
 import { LOADING, type StartupOutcome, type StartupState, StartupStatus } from '../core/startup.ts'
@@ -21,6 +22,8 @@ export interface AppProps {
   readonly bookStorage: TextStorage
   // A new seed for each random order.
   readonly newSeed: () => number
+  // The day on the TV's clock, whose photos of past years lie behind the start screen.
+  readonly today: () => PhotoDate
 }
 
 // The opening: the logo fades in while the app connects, and gives way to the gallery as soon as

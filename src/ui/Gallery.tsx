@@ -12,6 +12,7 @@ import {
   ScreenKind,
   startNavigation,
 } from '../core/navigation.ts'
+import type { PhotoDate } from '../core/photo-library.ts'
 import type { PresentationSettings } from '../core/presentation-settings.ts'
 import type { KeySource } from '../core/remote-key.ts'
 import { persistSettings, restoreSettings, type TextStorage } from '../core/settings-storage.ts'
@@ -41,14 +42,16 @@ export interface GalleryProps {
   readonly bookStorage: TextStorage
   // A new seed for each random order.
   readonly newSeed: () => number
+  // The day on the TV's clock, whose photos of past years lie behind the start screen.
+  readonly today: () => PhotoDate
 }
 
 // The screens of the library, one on top of the other: Enter opens the next, Back returns to the
 // one below with the focus where it was; on the start screen, Back leaves the app.
 export function Gallery(props: GalleryProps): JSX.Element {
-  const { session, keys, reportError, leave } = props
+  const { session, keys, reportError, leave, today } = props
   const { navigation, depth, open, back } = useNavigation()
-  const backdropUrl = useBackdrop(session.library, reportError)
+  const backdrop = useBackdrop(session.library, today, reportError)
   const summary = useSummary(session.library, reportError)
   const books = useBookControls(props)
   const screenProps: ScreenProps = {
@@ -68,7 +71,7 @@ export function Gallery(props: GalleryProps): JSX.Element {
         {...screenProps}
         back={leave}
         server={session.server}
-        backdropUrl={backdropUrl}
+        backdrop={backdrop}
         summary={summary}
       />
     )

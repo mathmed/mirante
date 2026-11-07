@@ -4,7 +4,8 @@ import { useState } from 'preact/hooks'
 import type { LibrarySummary } from '../core/library-summary.ts'
 import { HOME_ENTRIES } from '../core/navigation.ts'
 import type { ServerInfo } from '../core/photo-library.ts'
-import { Backdrop } from './Backdrop.tsx'
+import type { BackdropPhoto } from './Backdrop.tsx'
+import { BackdropTurns } from './BackdropTurns.tsx'
 import { Grid } from './Grid.tsx'
 import { HomeIcon } from './HomeIcon.tsx'
 import { Logo, LogoLayout } from './Logo.tsx'
@@ -15,8 +16,9 @@ const SHAPE = { columns: 5, visibleRows: 1 }
 
 export interface HomeScreenProps extends ScreenProps {
   readonly server: ServerInfo
-  // A photo of the library behind the screen; none while it loads, or when there is none.
-  readonly backdropUrl: string | undefined
+  // The photos of the library behind the screen, in turns; none while they load, or when there are
+  // none.
+  readonly backdrop: readonly BackdropPhoto[]
   // How many photos the library holds, over which years; none while it loads, when it fails or
   // for an empty library.
   readonly summary: LibrarySummary | undefined
@@ -25,10 +27,10 @@ export interface HomeScreenProps extends ScreenProps {
 // The ways into the library, every photo, its albums and its timeline, its presentations and their
 // settings, under the logo and what the library holds.
 export function HomeScreen(props: HomeScreenProps): JSX.Element {
-  const { server, backdropUrl, summary } = props
+  const { server, backdrop, summary } = props
   return (
     <main class="screen home">
-      {backdropUrl !== undefined && <Backdrop key={backdropUrl} url={backdropUrl} />}
+      <BackdropTurns photos={backdrop} />
       <header class="home-header">
         <h1 class="home-logo">
           <Logo layout={LogoLayout.Inline} />

@@ -54,6 +54,19 @@ describe('main', () => {
     expect(await screen.findByText('16 fotos · de 2023 a 2024')).toBeTruthy()
   })
 
+  it('should show the photos of the nearest day in past years behind the start screen', async () => {
+    serveConfig(VALID_CONFIG)
+    serveLibrary(SAMPLE_LIBRARY)
+
+    // The trip to Lisbon began on March 20th, 2024: the day before, two years before.
+    await start(new Date(2026, 2, 21, 9))
+
+    expect(await screen.findByText('Há 2 anos, em 20 de março')).toBeTruthy()
+    expect(document.querySelector('.backdrop-photo')?.getAttribute('src')).toMatch(
+      /\/api\/assets\/trip-0[0-7]\/thumbnail\?size=preview$/,
+    )
+  })
+
   it('should explain a rejected API key and log why', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     serveConfig({ ...VALID_CONFIG, apiKey: 'revoked-key' })
@@ -178,16 +191,24 @@ describe('main', () => {
     expect(screen.getByRole('heading', { level: 1, name: MESSAGES.appName })).toBeTruthy()
   })
 
-  it('should read the albums for the photo behind the start screen once for the whole visit', async () => {
+  it('should read the photo behind the start screen once for the whole visit', async () => {
     const albumReads: string[] = []
+    const searches: string[] = []
     fakeServer.events.on('request:start', ({ request }) => {
-      if (new URL(request.url).pathname === '/api/albums') {
+      const path = new URL(request.url).pathname
+      if (path === '/api/albums') {
         albumReads.push(request.url)
+      }
+      if (path === '/api/search/metadata') {
+        searches.push(request.url)
       }
     })
     serveConfig(VALID_CONFIG)
     serveLibrary(SAMPLE_LIBRARY)
     await start()
+    await waitFor(() => {
+      expect(document.querySelector('.backdrop-photo')).not.toBeNull()
+    })
     await onAlbumsCard()
 
     press(KEY.enter)
@@ -197,6 +218,7 @@ describe('main', () => {
 
     expect(document.querySelector('.backdrop-photo')).not.toBeNull()
     expect(albumReads).toHaveLength(2)
+    expect(searches).toHaveLength(1)
   })
 
   it('should walk the timeline by year and month with the remote control', async () => {

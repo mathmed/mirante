@@ -11,6 +11,7 @@ import { StartupFailure, type StartupOutcome, StartupStatus } from '../core/star
 import { App } from './App.tsx'
 import { failureText, homeTitle, MESSAGES } from './messages.ts'
 
+const TODAY = { year: 2026, month: 11, day: 7 }
 const SERVER = { address: '192.168.0.10:2283', version: '3.3.6' }
 const LIBRARY = memoryLibrary({
   server: SERVER,
@@ -67,6 +68,7 @@ function renderApp(
       storage={memoryStorage().storage}
       bookStorage={memoryStorage().storage}
       newSeed={() => 1}
+      today={() => TODAY}
     />,
   )
   return remote
@@ -163,6 +165,7 @@ describe('App', () => {
         storage={memoryStorage().storage}
         bookStorage={memoryStorage().storage}
         newSeed={() => 1}
+        today={() => TODAY}
       />,
     )
     rerender(
@@ -174,6 +177,7 @@ describe('App', () => {
         storage={memoryStorage().storage}
         bookStorage={memoryStorage().storage}
         newSeed={() => 1}
+        today={() => TODAY}
       />,
     )
     expect(await screen.findByText(MESSAGES.albums)).toBeTruthy()
