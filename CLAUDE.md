@@ -7,8 +7,9 @@ Cursor, Codex and other tools that read `AGENTS.md` follow the same rules.
 
 **Mirante** is an open-source (MIT) photo gallery viewer for TVs: it runs in the browsers of a Samsung
 Tizen 6.5 TV (Chromium ~85) and an LG webOS TV (Chromium 68 or later), and as an app packaged for each
-(an unsigned `.wgt` the owner signs, an `.ipk`). It reads the photos of an Immich server with `@immich/sdk`, read only, and is
-driven by the remote control alone. TypeScript and Preact, built with Vite; the tooling runs on Node.js
+(an unsigned `.wgt` the owner signs, an `.ipk`). It reads the photos of an Immich server with `@immich/sdk`
+and, only when the proxy holds a second key for it, manages them (photos to the trash, albums), and
+is driven by the remote control alone. TypeScript and Preact, built with Vite; the tooling runs on Node.js
 24 and npm. See the README for the v1 scope and what is deliberately out of it.
 
 ## Commands
@@ -59,14 +60,21 @@ src/core/      pure logic: the startup flow, the runtime configuration, the phot
                book-geometry, which takes the shape of the page as a parameter), the book and its
                spreads (book), its remote control (book-navigation, and book-moves: where up and
                down go among the photos of a spread), its sources and the seeds it keeps
-               (book-source, book-seeds)
-src/immich/    the photo library implemented with @immich/sdk, read only
+               (book-source, book-seeds); and the changes to the library: the editor interface and
+               what its key allows (library-editor), the changes laid over the reads at once and
+               taken back on a refusal (library-edits, edit-commit), the actions each screen offers
+               and the step each asks for (edit-actions, edit-flow), the selection, the name and
+               the choice of an album (album-name, album-picker) and the focus of a line of choices
+               (line-focus)
+src/immich/    the photo library implemented with @immich/sdk: its reads, and the changes
+               (immich-editor) through the key of the changes the proxy holds
 src/platform/  what differs between TVs and browsers: config.json, polyfills, the console, the key
                codes of the remote controls of Tizen and webOS (and the Info key Tizen registers),
                the localStorage of the settings and of the seeds of the books, the random seeds,
                the day on the TV's clock (local-date)
 src/ui/        Preact components, src/ui/messages.ts (every text people read, with its companions
-               settings-messages.ts and book-messages.ts, split for the size of a file), styles.css, the
+               settings-messages.ts, book-messages.ts and edit-messages.ts, split for the size of a
+               file), styles.css, the
                fonts it ships (src/ui/fonts) and the mark and the icon of the logo (src/ui/assets,
                written by make logo)
 src/main.tsx   composition root: wires the adapters into the UI
@@ -96,8 +104,8 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
 - `src/core` imports nothing from the other layers and no package at all (not even Preact or the
   Immich SDK), and runs without the DOM or Node.js: `make typecheck` checks it with the ES2018
   library alone. Platform services reach it through interfaces it declares (`PhotoLibrary`,
-  `StartupDependencies`, `KeySource`).
-- Only `src/immich` imports `@immich/sdk`. It implements the core `PhotoLibrary` and translates the
+  `StartupDependencies`, `KeySource`, `LibraryEditor`).
+- Only `src/immich` imports `@immich/sdk`. It implements the core `PhotoLibrary` and `LibraryEditor` and translates the
   SDK's DTOs into the core's domain types (`ServerInfo`, `Album`, `Photo`, `TimelineMonth`; videos
   are left out) and its errors into `PhotoLibraryError` with a `LibraryFailure`. Nothing else ever
   sees an SDK type, and every answer is checked where it enters. Every call passes the configured
@@ -111,11 +119,21 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   URLs and never with the key in the URL, so they only load when the proxy adds the key (or the
   browser has an Immich session there). Grids use the `thumbnail` size, the viewer the `preview`;
   never the original.
-- **Read only**: the adapter only calls endpoints that read (the key check `POST /auth/validateToken`
-  changes nothing and needs no permission; `POST /search/random`, the random draw of the library,
-  and `POST /search/metadata`, the search by date of the start screen, only carry their filters). Never upload, edit, delete, favorite or archive. `docs/proxy.md` lists
-  every route and method the app calls, for the owner's proxy to allow exactly those: a change in
-  what reaches Immich updates it, and `CHANGELOG.md` says so.
+- **Reads, and the changes of docs/proxy.md alone**: `PhotoLibrary` only calls endpoints that read
+  (the key check `POST /auth/validateToken` changes nothing and needs no permission;
+  `POST /search/random`, the random draw of the library, and `POST /search/metadata`, the search by
+  date of the start screen, only carry their filters). `LibraryEditor` (`src/immich/immich-editor.ts`)
+  makes the seven changes of `docs/proxy.md`, each with the exact body the proxy matches and a
+  contract test pins: photos to the trash (`DELETE /assets` with `force: false`, **never** `true`)
+  and back, albums created, renamed, deleted and filled. It asks `GET /api-keys/me` what the key of
+  the changes may do, and `GET /server/features` whether Immich keeps a trash: without that key, or
+  without a trash, the app offers no change of that kind and says why. Never upload, edit a photo,
+  favorite, archive, share, empty the trash or delete for good. Every destructive change (photos to
+  the trash, an album deleted) asks for a confirmation that says what goes and how many photos.
+  Changes are optimistic (`src/core/library-edits.ts`): the screen shows them at once and a refusal
+  takes them back with a message. `docs/proxy.md` lists every route, method and body the app sends,
+  for the owner's proxy to allow exactly those: a change in what reaches Immich updates it, and
+  `CHANGELOG.md` says so.
 - **Captions** come from `GET /assets/{id}` (`exifInfo.description`; the listings do not carry
   it), for the photo on the screen and the next one only, through the small cache of
   `src/core/captions.ts`: never for a whole list.
@@ -164,7 +182,11 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   viewer, and presents from the photo in focus in "Todas"; Tizen only sends it once
   `src/platform/tizen-keys.ts` registers it at startup. It is a shortcut: Down opens the same
   settings, and Enter in the viewer starts the same presentation, so that the arrows, Enter and Back
-  still reach everything.
+  still reach everything. The changes to the library are reached with the same keys: Up on the
+  first row of the photos of an album or a month reaches their bar of actions, Up in the viewer
+  opens the actions on its photo. While a text field (the name of an album) has the focus,
+  `src/platform/remote-control.ts` leaves Backspace, the side arrows and the letters to it; Enter,
+  Up, Down and the TVs' Back still reach the screen.
 - **Memory is scarce**: grids render only the rows on the screen and one around them (the rest is
   unmounted, its images unloaded), the viewer keeps at most three images decoded, and "Todas" reads
   the library a month at a time as the focus nears the end of what is read, never all of it. Only `transform`
@@ -242,11 +264,15 @@ and a revert does not undo it. The `pr-writer` reads this list before assigning 
 `risk:critical`. Touching these files does not make a PR critical by itself; what the change can break
 does.
 
-- **What reaches Immich** (`src/immich/`): only reads, with the key of `config.json` (when it has one)
-  in the `x-api-key` header and never in a URL. A call that writes changes the library for good.
-- **The API key**: read from `config.json` (`src/core/runtime-config.ts`,
-  `src/platform/config-file.ts`), kept out of logs, messages, URLs and the repository; `config.json` is
-  gitignored. The TV packages never carry one (`scripts/packaging/packaged-config.ts`).
+- **What reaches Immich** (`src/immich/`): the reads, and the seven changes of `docs/proxy.md` with
+  their exact bodies (photos to the trash with `force: false`, never `true`; albums), with the key
+  of `config.json` (when it has one) in the `x-api-key` header and never in a URL; the proxy adds
+  the read key and the key of the changes. A change Immich takes cannot be reverted by a revert of
+  the code: a body that reached the wrong route, or `force: true`, would delete for good.
+- **The API keys**: the read key, read from `config.json` (`src/core/runtime-config.ts`,
+  `src/platform/config-file.ts`) when the proxy does not add it, and the key of the changes, which
+  only the proxy holds (`docs/proxy.md`), kept out of logs, messages, URLs and the repository;
+  `config.json` is gitignored. The TV packages never carry one (`scripts/packaging/packaged-config.ts`).
 - **What the TVs run**: the build target, the polyfills and the compatibility checks (`vite.config.ts`,
   `vite.webos.config.ts`, `.escheckrc.json`, `.browser-apis.json`, `scripts/browser-apis/`,
   `src/platform/polyfills.ts`, `src/platform/install-polyfills.ts`, `browserslist`,
@@ -388,7 +414,7 @@ directory is gitignored) after pushing. `pr-writer` checks them against the diff
   (enforced). Never prefix a class name with `_`.
 - **Language**: code, comments, logs, docs and CI reports in English. The text people read on the screen
   is Brazilian Portuguese and lives only in `src/ui/messages.ts` (and its companions
-  `settings-messages.ts` and `book-messages.ts`).
+  `settings-messages.ts`, `book-messages.ts` and `edit-messages.ts`).
 - **Typing**: every function declares its return type (enforced). No `any`: use `unknown` and narrow
   it. Values from outside (`config.json`, server responses, `JSON.parse`) are validated where they
   enter the code.

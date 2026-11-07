@@ -8,6 +8,28 @@ All notable changes to Mirante are documented in this file. The format is based 
 
 ### Changed
 
+- **Mirante can manage the library, when the proxy allows it, and is no longer read only then.**
+  With a second Immich key on the proxy, the key of the changes (permissions `asset.delete`,
+  `album.create`, `album.update`, `album.delete`, `albumAsset.create` and `albumAsset.delete`), a
+  bar above the photos of an album or a month selects them (OK marks), sends them to Immich's trash
+  after a confirmation (never for good; **Desfazer** brings them back for 30 seconds), adds them to
+  an album or a new one (named after their month, or the day, in one press) and takes them out of
+  the album; it also renames and deletes the album (its photos stay). Up in the viewer offers the
+  same for the photo on the screen, the next one taking its place. **Álbuns** starts with **Novo
+  álbum**. Every change shows at once and is taken back, with a line that says why, when Immich
+  refuses it. Without that key nothing changes: no action shows, and Up on a photo says why. The
+  name of an album is typed with the TV's keyboard; in its field, Backspace and I type instead of
+  acting as Back and Info.
+- **The proxy needs new routes to manage the library, and none to keep reading only.** Mirante
+  asks `GET /api/api-keys/me` at startup (a read, which the proxy sends with the key of the
+  changes, or refuses), and `GET /api/server/features` when that key answered. The changes are
+  `DELETE /api/assets` (`"force":false` only), `POST /api/trash/restore/assets`, `POST /api/albums`,
+  `PATCH` and `DELETE /api/albums/{id}`, and `PUT` and `DELETE /api/albums/{id}/assets`, each with
+  its exact body, and the preflight of the TV apps allows `PUT`, `PATCH` and `DELETE`.
+  [docs/proxy.md](docs/proxy.md) lists them, how to create and activate the key, and a Caddyfile
+  that matches each body whole (checked with Caddy v2.11.9). A proxy left as it is keeps Mirante
+  read only.
+
 - **The book fills the screen.** The spread takes the whole safe area (3.5% of each edge for the
   paper alone; the margins of the pages keep the photos inside the 5% of the other screens), in
   pages of 8:9 that make a 16:9 spread, the shape of the TV. The title, the logo, the labels
