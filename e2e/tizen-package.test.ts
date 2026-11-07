@@ -24,11 +24,14 @@ import {
   expectBrowsingAcrossOrigins,
   expectEveryPhoto,
   expectLibraryPresentation,
+  expectManagement,
+  expectReadOnly,
   expectReportedUnreachable,
   launchBrowser,
   openApp,
   type OpenedApp,
   TvSystem,
+  WRITE_PERMISSIONS,
 } from './packaged-app.ts'
 
 const ROOT = join(import.meta.dirname, '..')
@@ -141,6 +144,27 @@ describe('the Tizen package', () => {
 
     await expectBackToLeave(app, TIZEN_BACK)
     await app.page.close()
+  })
+
+  it('should change nothing, and say why, when the proxy holds no key for the changes', async () => {
+    immich.requests.length = 0
+    const app = await open()
+
+    await expectReadOnly(app, immich)
+    await app.page.close()
+  })
+
+  it('should delete, restore and add photos and rename an album with the remote control', async () => {
+    immich.requests.length = 0
+    immich.grantWrites(WRITE_PERMISSIONS)
+    try {
+      const app = await open()
+
+      await expectManagement(app, immich, TIZEN_BACK)
+      await app.page.close()
+    } finally {
+      immich.grantWrites(undefined)
+    }
   })
 
   it('should not reach an Immich that does not answer CORS', async () => {
