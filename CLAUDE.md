@@ -48,7 +48,9 @@ src/core/      pure logic: the startup flow, the runtime configuration, the phot
                its domain types, the order of albums, photos and months, the spatial focus navigation
                of the grids, the scroll that keeps the focus of a long list in view (list-scroll), the feed of every photo ("Todas": photo-feed, its months read on demand,
                and feed-layout, its grid with a heading per month), the count of the library under
-               the logo (library-summary), the stack of screens, the remote control keys, and the presentations:
+               the logo (library-summary), the photos behind the start screen (backdrop: this day
+               in past years, on-this-day, the nearest day up to 30 days away, on the days of the
+               calendar of calendar.ts; else the cover of the latest album), the stack of screens, the remote control keys, and the presentations:
                their settings (presentation-settings, settings-input, settings-storage,
                settings-form), the engine (presentation: playlists, rounds, what loads ahead), the
                seeded shuffle, their sources, the transitions (presentation-effects) and the captions;
@@ -61,7 +63,8 @@ src/core/      pure logic: the startup flow, the runtime configuration, the phot
 src/immich/    the photo library implemented with @immich/sdk, read only
 src/platform/  what differs between TVs and browsers: config.json, polyfills, the console, the key
                codes of the remote controls of Tizen and webOS (and the Info key Tizen registers),
-               the localStorage of the settings and of the seeds of the books, the random seeds
+               the localStorage of the settings and of the seeds of the books, the random seeds,
+               the day on the TV's clock (local-date)
 src/ui/        Preact components, src/ui/messages.ts (every text people read, with its companions
                settings-messages.ts and book-messages.ts, split for the size of a file), styles.css, the
                fonts it ships (src/ui/fonts) and the mark and the icon of the logo (src/ui/assets,
@@ -110,7 +113,7 @@ docs/          docs/webos.md and docs/tizen.md: packaging, Developer Mode, signi
   never the original.
 - **Read only**: the adapter only calls endpoints that read (the key check `POST /auth/validateToken`
   changes nothing and needs no permission; `POST /search/random`, the random draw of the library,
-  only carries its filters). Never upload, edit, delete, favorite or archive. `docs/proxy.md` lists
+  and `POST /search/metadata`, the search by date of the start screen, only carry their filters). Never upload, edit, delete, favorite or archive. `docs/proxy.md` lists
   every route and method the app calls, for the owner's proxy to allow exactly those: a change in
   what reaches Immich updates it, and `CHANGELOG.md` says so.
 - **Captions** come from `GET /assets/{id}` (`exifInfo.description`; the listings do not carry

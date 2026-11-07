@@ -1,5 +1,6 @@
 import type { LibrarySummary } from '../core/library-summary.ts'
 import { Intent, PresentChoice, ScreenKind } from '../core/navigation.ts'
+import type { Memory } from '../core/on-this-day.ts'
 import type { PhotoDate, ServerInfo, TimelineMonth } from '../core/photo-library.ts'
 import { type PresentationSource, SourceKind } from '../core/presentation-source.ts'
 import { MAX_SLIDESHOW_SECONDS, MIN_SLIDESHOW_SECONDS } from '../core/runtime-config.ts'
@@ -232,6 +233,13 @@ export function monthTitle(month: TimelineMonth): string {
 // "12 de março de 2024".
 export function photoDateText(date: PhotoDate): string {
   return `${String(date.day)} de ${monthOf(date.month)} de ${String(date.year)}`
+}
+
+// Over a photo of a past year behind the start screen: "Há 3 anos" when it was taken on today's
+// day, "Há 3 anos, em 4 de novembro" when on the nearest day to it.
+export function memoryText({ yearsAgo, date, isSameDay }: Memory): string {
+  const ago = yearsAgo === 1 ? 'Há 1 ano' : `Há ${String(yearsAgo)} anos`
+  return isSameDay ? ago : `${ago}, em ${String(date.day)} de ${monthOf(date.month)}`
 }
 
 // "12 de 87": the photo on the screen, counted from 1.

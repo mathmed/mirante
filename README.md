@@ -85,8 +85,13 @@ in focus in **Todas**, which OK in the viewer does too, for remote controls with
 | Settings | the settings of the presentations, with their values      | flips a switch                 | keeps them, start                  |
 
 The app opens on its logo while it connects to Immich, and moves on to the start screen as soon as
-the server answers. Behind the start screen lies the cover of the most recent album, darkened (a
-plain background when no album has a cover), under the logo, a line that says what the library
+the server answers. Behind the start screen lie, darkened, the photos taken on this day in past
+years: up to 10, taking turns every 15 seconds with a fade, each with a discreet caption in its
+lower right corner, **Há 3 anos**. Without any on this very day, the nearest day that has some, up
+to 30 days before or after it in any past year (**Há 3 anos, em 4 de novembro**); this year's photos
+never count. The choice stays the same all day long and changes the next day. "Today" is the day on
+the TV's own clock, and a photo's date is the one Immich shows, where it was taken. Without photos
+near this day, the cover of the most recent album; without one, a plain background. Under the logo, a line that says what the library
 holds (**12.340 fotos · de 2019 a 2026**, counted from the months of the timeline, videos included
 as Immich counts them; nothing for an empty library or when the read fails) and five cards:
 **Todas**, **Álbuns**, **Linha do tempo**, **Apresentar** and **Ajustes**.

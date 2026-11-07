@@ -15,6 +15,8 @@ import { fakeRemote, type FakeRemote } from './remote.ts'
 // The gallery of the component tests: a library in memory with a trip of 30 photos, a family album
 // of 3 and an empty one, and a timeline from December 2023 to May 2024 (December holds a video
 // only, May nothing).
+// The day of the start screen: no photo of the library is near it in a past year.
+const TODAY = { year: 2026, month: 11, day: 7 }
 const SERVER = { address: '192.168.0.10:2283', version: '3.3.6' }
 
 export const TRIP = {
@@ -95,6 +97,7 @@ export function showGallery(options: GalleryOptions = {}): ShownGallery {
       storage,
       bookStorage: books.storage,
       newSeed: () => 1,
+      today: () => TODAY,
     }),
   )
   return { remote, reported, leave, written, booksWritten: books.written }

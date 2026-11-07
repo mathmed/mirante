@@ -41,6 +41,9 @@ const BACK = 'Escape'
 const SETTINGS_KEY = 'mirante.presentation'
 const WIDE_SETTINGS = { bookFormat: 'wide', hideInterfaceSeconds: 20 }
 const CLASSIC_SETTINGS = { bookFormat: 'classic', hideInterfaceSeconds: 20 }
+// The day on the clock of the browser: the trip to Lisbon began on it, two years before, so that its
+// photos take turns behind the start screen.
+const TODAY = new Date(2026, 8, 12, 10)
 // The photos of the book are drawn first, larger than the others.
 const BOOK_TIMEOUT_MS = 180_000
 
@@ -66,6 +69,7 @@ afterAll(async () => {
 
 async function open(viewport = VIEWPORT): Promise<Page> {
   const page = await browser.newPage({ viewport })
+  await page.clock.setFixedTime(TODAY)
   await page.goto(indexUrl)
   return page
 }

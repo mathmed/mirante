@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/preact'
 import { render } from 'preact'
-import { expect } from 'vitest'
+import { expect, vi } from 'vitest'
 
 import { fakeServer } from './fake-immich.ts'
 
@@ -47,14 +47,20 @@ export function sources(): (string | null)[] {
   return [...document.querySelectorAll('img.picture')].map((image) => image.getAttribute('src'))
 }
 
-// Runs src/main.tsx again, in a page of its own; vi.resetModules() must come before it.
-export async function startApp(): Promise<void> {
+// The day on the clock of the TV: no photo of the sample library is near it in a past year.
+const APP_DAY = new Date(2026, 10, 7, 12)
+
+// Runs src/main.tsx again, in a page of its own, on that day (or another); vi.resetModules() must
+// come before it. Only the date is faked: the timers run as they do on a TV.
+export async function startApp(day = APP_DAY): Promise<void> {
+  vi.useFakeTimers({ toFake: ['Date'], now: day, shouldAdvanceTime: true })
   document.body.innerHTML = '<div id="app"></div>'
   await import('../src/main.tsx')
 }
 
 // Takes the app off the page, forgets what the TV kept and the requests listened to.
 export function stopApp(): void {
+  vi.useRealTimers()
   fakeServer.events.removeAllListeners()
   const root = document.getElementById('app')
   if (root !== null) {

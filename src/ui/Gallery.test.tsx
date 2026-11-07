@@ -50,8 +50,9 @@ describe('Gallery', () => {
     const sut = show(stubLibrary({ listAlbums: async () => Promise.resolve([]) }))
     await focusedOn(ALL_PHOTOS)
 
+    // The line and the search of the photo behind the screen each log the failed read.
     await waitFor(() => {
-      expect(sut.reported).toHaveLength(1)
+      expect(sut.reported).toHaveLength(2)
     })
     expect(document.querySelector('.home-summary')).toBeNull()
   })
@@ -244,6 +245,9 @@ describe('Gallery', () => {
       }),
     )
     await focusedOn(ALL_PHOTOS)
+    await waitFor(() => {
+      expect(attempts).toBe(1)
+    })
     sut.remote.press(Right, Enter)
 
     expect((await screen.findByRole('alert')).textContent).toContain(

@@ -362,6 +362,22 @@ body {
   opacity: 1;
 }
 
+/* How long ago the photo was taken, discreet in the lower right corner, inside the safe area, over
+   the darkest part of the gradients, and fading with its photo. */
+.backdrop-caption {
+  position: absolute;
+  right: 5vw;
+  bottom: 5vh;
+  z-index: 1;
+  margin: 0;
+  color: var(--text-secondary);
+  font-family: var(--serif);
+  font-size: 26px;
+  font-style: italic;
+  font-variant-numeric: lining-nums;
+  text-shadow: 0 2px 12px rgb(var(--shade-rgb) / 80%);
+}
+
 .backdrop-photo {
   display: block;
   width: 100%;
