@@ -91,6 +91,13 @@ describe('withSlidesBack', () => {
     expect(withSlidesBack(state, left.slice(1))).toBe(state)
   })
 
+  it('should change nothing when a photo of the viewer is not among the slides', () => {
+    const state = startPresentation(SLIDES.slice(0, 3), 1, false)
+    const longer = [...SLIDES.slice(0, 2), ...photos('q', 3).map(slideOf)]
+
+    expect(withSlidesBack(state, longer)).toBe(state)
+  })
+
   it('should change nothing when the slides are others, or of a later round', () => {
     const state = startPresentation(left, 1, false)
     const others = [...photos('q', 5), ...photos('r', 1)].map(slideOf)

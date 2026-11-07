@@ -29,6 +29,12 @@ describe('albumNameOf', () => {
     expect(albumNameOf(long)).toBe('a'.repeat(MAX_ALBUM_NAME_LENGTH - 1))
     expect(MAX_ALBUM_NAME_LENGTH).toBe(100)
   })
+
+  it('should count the length of a name from its first letter, the blanks before it left out', () => {
+    expect(albumNameOf(`   ${'a'.repeat(MAX_ALBUM_NAME_LENGTH)}`)).toBe(
+      'a'.repeat(MAX_ALBUM_NAME_LENGTH),
+    )
+  })
 })
 
 describe('suggestedName', () => {
@@ -49,6 +55,7 @@ describe('suggestedName', () => {
 
     expect(suggestedName(spread, TODAY)).toStrictEqual({ kind: SuggestionKind.Day, date: TODAY })
     expect(suggestedName(spread.slice(1), TODAY).kind).toBe(SuggestionKind.Day)
+    expect(suggestedName(spread.slice(0, 2), TODAY).kind).toBe(SuggestionKind.Day)
     expect(
       suggestedName(
         [spread[0], spread[2]].filter((photo) => photo !== undefined),
