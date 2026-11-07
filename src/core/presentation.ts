@@ -101,6 +101,22 @@ export function extendPresentation(
   return { ...state, slides }
 }
 
+// Photos deleted, or taken out of their album, while the viewer shows them leave it: the slide
+// after the one on the screen takes its place when that one leaves, the last one when it was last.
+export function withoutSlides(
+  state: PresentationState,
+  gone: ReadonlySet<string>,
+): PresentationState {
+  const isKept = (slide: Slide): boolean => !gone.has(slide.key)
+  const slides = state.slides.filter(isKept)
+  if (slides.length === state.slides.length) {
+    return state
+  }
+  const before = state.slides.slice(0, state.index).filter(isKept).length
+  const index = Math.max(0, Math.min(before, slides.length - 1))
+  return { ...state, slides, index, leaving: undefined }
+}
+
 export function currentSlide(state: PresentationState): Slide | undefined {
   return state.slides[state.index]
 }
