@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { dateOf } from '../../test/dated-photos.ts'
 import { API_KEY, fakeServer, IMMICH_URL, serveLibrary } from '../../test/fake-immich.ts'
+import type { FakeLibrary } from '../../test/immich-answers.ts'
 import { failureOf } from '../../test/library-failure.ts'
 import { SAMPLE_LIBRARY } from '../../test/sample-library.ts'
 import {
@@ -23,6 +24,28 @@ function library(): PhotoLibrary {
     config: { immichUrl: IMMICH_URL, apiKey: API_KEY, presentation: DEFAULT_PRESENTATION },
     timeoutMs: TIMEOUT_MS,
   })
+}
+
+// New Year's Eve in Brazil, and six photos past midnight, in the early morning after it: all within
+// the instants a search of December 31st covers.
+const MORNING_AFTER: FakeLibrary = {
+  albums: [],
+  assets: [
+    ...['2025-12-31T20:00:00.000Z', '2025-12-31T22:00:00.000Z'].map((takenAt, index) => ({
+      id: `eve-${String(index + 1)}`,
+      takenAt,
+      offsetHours: -3,
+      isImage: true,
+      albumIds: [],
+    })),
+    ...[1, 2, 3, 4, 5, 6].map((hour) => ({
+      id: `new-year-${String(hour)}`,
+      takenAt: `2026-01-01T0${String(hour + 3)}:00:00.000Z`,
+      offsetHours: -3,
+      isImage: true,
+      albumIds: [],
+    })),
+  ],
 }
 
 function search(from: string, to: string, order: PhotoOrder = PhotoOrder.OldestFirst): DateSearch {
@@ -58,6 +81,7 @@ describe('listPhotosTaken', () => {
         withExif: false,
         size: 3,
         orderBy: { field: 'localDateTime', direction: 'desc' },
+        page: 1,
       },
     ])
     fakeServer.events.removeAllListeners()
@@ -95,6 +119,46 @@ describe('listPhotosTaken', () => {
 
     expect(christmasEve.map((photo) => photo.id)).toStrictEqual(['family-dinner'])
     expect(christmas).toStrictEqual([])
+  })
+
+  it('should read the next page when a full one holds none of the days searched', async () => {
+    serveLibrary(MORNING_AFTER)
+    const sent = bodies()
+
+    const sut = await library().listPhotosTaken(
+      search('2025-12-31', '2025-12-31', PhotoOrder.NewestFirst),
+    )
+
+    expect(sut.map((photo) => photo.id)).toStrictEqual(['eve-2', 'eve-1'])
+    expect(sent).toMatchObject([{ page: 1 }, { page: 2 }, { page: 3 }])
+    fakeServer.events.removeAllListeners()
+  })
+
+  it('should read no further page once one holds a photo of the days searched', async () => {
+    serveLibrary(MORNING_AFTER)
+    const sent = bodies()
+
+    const sut = await library().listPhotosTaken(
+      search('2025-12-31', '2026-01-01', PhotoOrder.NewestFirst),
+    )
+
+    expect(sut.map((photo) => photo.id)).toStrictEqual(['new-year-6', 'new-year-5', 'new-year-4'])
+    expect(sent).toHaveLength(1)
+    fakeServer.events.removeAllListeners()
+  })
+
+  it('should read five pages at most', async () => {
+    serveLibrary(MORNING_AFTER)
+    const sent = bodies()
+
+    const sut = await library().listPhotosTaken({
+      ...search('2025-12-31', '2025-12-31', PhotoOrder.NewestFirst),
+      count: 1,
+    })
+
+    expect(sut).toStrictEqual([])
+    expect(sent).toHaveLength(5)
+    fakeServer.events.removeAllListeners()
   })
 
   it('should fail as not Immich when the answer is not a search', async () => {

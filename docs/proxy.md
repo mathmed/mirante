@@ -32,7 +32,9 @@ Details that matter for the allow list:
   `/api/timeline/buckets`), and as many again for the days after it only when no year has a photo
   on this very day. Each body asks for at most 20 photos of the timeline, without videos or EXIF
   data, taken in a window of about a month:
-  `{"takenAfter": "2023-10-07T10:00:00.000Z", "takenBefore": "2023-11-08T12:00:00.000Z", "type": "IMAGE", "visibility": "timeline", "withExif": false, "size": 20, "orderBy": {"field": "localDateTime", "direction": "desc"}}`.
+  `{"takenAfter": "2023-10-07T10:00:00.000Z", "takenBefore": "2023-11-08T12:00:00.000Z", "type": "IMAGE", "visibility": "timeline", "withExif": false, "size": 20, "orderBy": {"field": "localDateTime", "direction": "desc"}, "page": 1}`.
+  The window covers every time zone, so a full page may hold only photos of the early morning after
+  the last day (a New Year's party): only then is the next page asked for, up to five.
   Refused, it goes to the log and the start screen shows the cover of the most recent album.
 - **`GET /api/assets/{id}` is asked for two photos at a time**: the one on the screen and the next
   one, only while a viewer or a presentation shows captions, and each photo once while it is near

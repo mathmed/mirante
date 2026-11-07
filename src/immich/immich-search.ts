@@ -48,6 +48,10 @@ export function foundPhotosOf(answer: SearchResponseDto, search: DateSearch): re
   })
 }
 
+export function hasNextPage(answer: SearchResponseDto): boolean {
+  return typeof answer.assets.nextPage === 'string'
+}
+
 function instantText(day: PhotoDate, shiftHours: number): string {
   const midnight = Date.UTC(day.year, day.month - 1, day.day)
   return new Date(midnight + shiftHours * MS_PER_HOUR).toISOString()

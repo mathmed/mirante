@@ -33,7 +33,7 @@ import {
   request,
   type RequestOptions,
 } from './immich-request.ts'
-import { foundPhotosOf, metadataSearchOf } from './immich-search.ts'
+import { foundPhotosOf, hasNextPage, metadataSearchOf } from './immich-search.ts'
 
 export type { ImmichLibraryOptions } from './immich-request.ts'
 
@@ -41,6 +41,9 @@ const MEDIA_SIZES: ReadonlyMap<ImageSize, AssetMediaSize> = new Map([
   [ImageSize.Thumbnail, AssetMediaSize.Thumbnail],
   [ImageSize.Preview, AssetMediaSize.Preview],
 ])
+
+// The pages of a search by date read at most, when the first ones hold no photo of its days.
+const MAX_SEARCH_PAGES = 5
 
 // Read only: the app never writes to Immich. Each call gets the address and the key of the
 // configuration instead of the SDK's global defaults.
@@ -98,9 +101,24 @@ async function listPhotosTaken(
   options: ImmichLibraryOptions,
   search: DateSearch,
 ): Promise<readonly Photo[]> {
-  const metadataSearchDto = metadataSearchOf(search)
+  return photosFrom(options, search, 1)
+}
+
+// The search covers more instants than the days asked for: a full page may hold none of them (the
+// photos of the early morning after the last day, with the newest first). Only then is the next page
+// read, up to MAX_SEARCH_PAGES.
+async function photosFrom(
+  options: ImmichLibraryOptions,
+  search: DateSearch,
+  page: number,
+): Promise<readonly Photo[]> {
+  const metadataSearchDto = { ...metadataSearchOf(search), page }
   const answer = await request(options, async (call) => searchAssets({ metadataSearchDto }, call))
-  return foundPhotosOf(answer, search)
+  const photos = foundPhotosOf(answer, search)
+  if (photos.length > 0 || page >= MAX_SEARCH_PAGES || !hasNextPage(answer)) {
+    return photos
+  }
+  return photosFrom(options, search, page + 1)
 }
 
 // The timeline of the library, without the archived and hidden photos, as Immich shows it.
