@@ -79,6 +79,11 @@ describe('sameDayIn', () => {
       month: 3,
       day: 29,
     })
+    expect(sameDayIn({ year: 2028, month: 2, day: 10 }, 2027)).toStrictEqual({
+      year: 2027,
+      month: 2,
+      day: 10,
+    })
     expect(sameDayIn({ year: 2028, month: 1, day: 29 }, 2027)).toStrictEqual({
       year: 2027,
       month: 1,

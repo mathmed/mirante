@@ -126,18 +126,23 @@ function monthIndex({ year, month }: Pick<PhotoDate, 'year' | 'month'>): number 
 // Each photo once, near today's day in a past year, never in this year.
 function placedOf(photos: readonly Photo[], today: PhotoDate): readonly Placed[] {
   const unique = new Map(photos.map((photo) => [photo.id, photo]))
-  return [...unique.values()]
-    .filter((photo) => photo.date.year < today.year)
-    .map((photo) => placeOf(photo, today))
-    .filter((placed) => placed.yearsAgo > 0 && Math.abs(placed.offset) <= WINDOW_DAYS)
+  const placed: Placed[] = []
+  for (const photo of unique.values()) {
+    const near = placeOf(photo, today)
+    if (near !== undefined && photo.date.year < today.year && near.yearsAgo > 0) {
+      placed.push(near)
+    }
+  }
+  return placed
 }
 
-// Near today's day in its own year, or across the turn of the year in the next or the previous.
-function placeOf(photo: Photo, today: PhotoDate): Placed {
-  const own = placeIn(photo, today, photo.date.year)
-  return [photo.date.year + 1, photo.date.year - 1]
-    .map((year) => placeIn(photo, today, year))
-    .reduce((nearest, other) => (isNearer(other.offset, nearest.offset) ? other : nearest), own)
+// Near today's day in its own year, or across the turn of the year in the next or the previous;
+// none when it is near today's day in no year.
+function placeOf(photo: Photo, today: PhotoDate): Placed | undefined {
+  const { year } = photo.date
+  return [year, year + 1, year - 1]
+    .map((anchor) => placeIn(photo, today, anchor))
+    .find((placed) => Math.abs(placed.offset) <= WINDOW_DAYS)
 }
 
 function placeIn(photo: Photo, today: PhotoDate, year: number): Placed {
@@ -145,19 +150,11 @@ function placeIn(photo: Photo, today: PhotoDate, year: number): Placed {
   return { photo, yearsAgo: today.year - year, offset }
 }
 
-// The offset of the nearest day; none (infinity, which no offset equals) without photos.
+// The offset of the nearest day, the day before at as many days as the day after; none (infinity,
+// which no offset equals) without photos.
 function nearestOffset(placed: readonly Placed[]): number {
-  return placed.reduce(
-    (nearest, { offset }) => (isNearer(offset, nearest) ? offset : nearest),
-    Number.POSITIVE_INFINITY,
-  )
-}
-
-// Fewer days away; at as many, the day before.
-function isNearer(offset: number, than: number): boolean {
-  const distance = Math.abs(offset)
-  const other = Math.abs(than)
-  return distance < other || (distance === other && offset < than)
+  const distance = Math.min(...placed.map(({ offset }) => Math.abs(offset)))
+  return placed.some(({ offset }) => offset === -distance) ? -distance : distance
 }
 
 function memoryOf({ photo, yearsAgo }: Placed, today: PhotoDate): Memory {

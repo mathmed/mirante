@@ -133,6 +133,12 @@ describe('pickMemories', () => {
     expect(sut).toStrictEqual([])
   })
 
+  it('should leave out a photo of this January near today in last December', () => {
+    const sut = pickMemories([photoOn('2026-01-05'), photoOn('2025-01-05')], dateOf('2026-12-20'))
+
+    expect(ids(sut)).toStrictEqual(['2025-01-05'])
+  })
+
   it('should take February 28th for the 29th in the years without one', () => {
     const sut = pickMemories(
       [photoOn('2024-02-29'), photoOn('2027-02-28'), photoOn('2027-03-01')],
