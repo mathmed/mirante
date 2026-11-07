@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 
 import { dateOf } from '../../test/dated-photos.ts'
 import { API_KEY, fakeServer, IMMICH_URL, serveLibrary } from '../../test/fake-immich.ts'
-import type { FakeLibrary } from '../../test/immich-answers.ts'
-import { failureOf } from '../../test/library-failure.ts'
+import { type FakeLibrary, searchRejectionOf } from '../../test/immich-answers.ts'
+import { failureOf, libraryErrorOf } from '../../test/library-failure.ts'
 import { SAMPLE_LIBRARY } from '../../test/sample-library.ts'
 import {
   type DateSearch,
@@ -18,6 +18,15 @@ import { createImmichLibrary } from './immich-library.ts'
 // The search by date of the start screen, for the photos of this day in past years.
 const API = `${IMMICH_URL}/api`
 const TIMEOUT_MS = 5000
+const IMMICH_3_SEARCH: ReadonlySet<string> = new Set([
+  'filter',
+  'orderBy',
+  'size',
+  'cursor',
+  'withExif',
+  'withPeople',
+  'withStacked',
+])
 
 function library(): PhotoLibrary {
   return createImmichLibrary({
@@ -74,17 +83,51 @@ describe('listPhotosTaken', () => {
 
     expect(sent).toStrictEqual([
       {
-        takenAfter: '2024-03-19T10:00:00.000Z',
-        takenBefore: '2024-03-22T12:00:00.000Z',
-        type: 'IMAGE',
-        visibility: 'timeline',
+        filter: {
+          takenAt: { gte: '2024-03-19T10:00:00.000Z', lt: '2024-03-22T12:00:00.000Z' },
+          type: { eq: 'IMAGE' },
+          visibility: { eq: 'timeline' },
+        },
         withExif: false,
         size: 3,
         orderBy: { field: 'localDateTime', direction: 'desc' },
-        page: 1,
       },
     ])
     fakeServer.events.removeAllListeners()
+  })
+
+  // The contract of Immich 3.3.6, checked against a real server: beside filter and orderBy it
+  // refuses every deprecated flat filter (takenAfter, takenBefore, type, visibility, page...) with
+  // a 400, so a search mixing them never finds a photo.
+  it('should send only the fields Immich 3.3.6 takes beside filter and orderBy', async () => {
+    serveLibrary(MORNING_AFTER)
+    const sent = bodies()
+
+    await library().listPhotosTaken(search('2025-12-31', '2025-12-31', PhotoOrder.NewestFirst))
+
+    expect(sent).toHaveLength(3)
+    for (const body of sent) {
+      expect(Object.keys(body as object).every((field) => IMMICH_3_SEARCH.has(field))).toBe(true)
+      expect(searchRejectionOf(body)).toBeUndefined()
+    }
+    fakeServer.events.removeAllListeners()
+  })
+
+  it('should fail with the reasons of Immich when it refuses the search', async () => {
+    serveLibrary(SAMPLE_LIBRARY)
+    fakeServer.use(
+      http.post(`${API}/search/metadata`, () =>
+        HttpResponse.json(searchRejectionOf({ orderBy: {}, page: 1 }), { status: 400 }),
+      ),
+    )
+
+    const sut = await libraryErrorOf(library().listPhotosTaken(search('2024-03-20', '2024-03-20')))
+
+    expect(sut).toMatchObject({
+      failure: LibraryFailure.ServerError,
+      message:
+        'HTTP 400: Validation failed (page: Deprecated field page cannot be combined with orderBy)',
+    })
   })
 
   it('should give the photos found, as many as asked for, the oldest first', async () => {
@@ -130,7 +173,11 @@ describe('listPhotosTaken', () => {
     )
 
     expect(sut.map((photo) => photo.id)).toStrictEqual(['eve-2', 'eve-1'])
-    expect(sent).toMatchObject([{ page: 1 }, { page: 2 }, { page: 3 }])
+    expect(sent.map((body): unknown => Reflect.get(body as object, 'cursor'))).toStrictEqual([
+      undefined,
+      btoa('{"offset":3}'),
+      btoa('{"offset":6}'),
+    ])
     fakeServer.events.removeAllListeners()
   })
 

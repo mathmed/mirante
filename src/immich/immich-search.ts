@@ -20,17 +20,27 @@ const LATEST_OFFSET_HOURS = 12
 
 // A search that reads (POST only carries its filters): photos of the timeline, as Immich shows it,
 // taken in the instants that may fall on those days somewhere, ordered by the time on the clock of
-// the place they were taken, without their EXIF data.
-export function metadataSearchOf({ from, to, order, count }: DateSearch): MetadataSearchDto {
+// the place they were taken, without their EXIF data. Immich 3 refuses its deprecated flat filters
+// (takenAfter, type, visibility, page...) next to orderBy: the filters go in filter, and the next
+// page is asked for with the cursor of the previous one.
+export function metadataSearchOf(
+  { from, to, order, count }: DateSearch,
+  cursor: string | undefined,
+): MetadataSearchDto {
   const direction = order === PhotoOrder.OldestFirst ? AssetOrder.Asc : AssetOrder.Desc
   return {
-    takenAfter: instantText(from, -EARLIEST_OFFSET_HOURS),
-    takenBefore: instantText(addDays(to, 1), LATEST_OFFSET_HOURS),
-    type: AssetTypeEnum.Image,
-    visibility: AssetVisibility.Timeline,
+    filter: {
+      takenAt: {
+        gte: instantText(from, -EARLIEST_OFFSET_HOURS),
+        lt: instantText(addDays(to, 1), LATEST_OFFSET_HOURS),
+      },
+      type: { eq: AssetTypeEnum.Image },
+      visibility: { eq: AssetVisibility.Timeline },
+    },
     withExif: false,
     size: count,
     orderBy: { field: SearchOrderField.LocalDateTime, direction },
+    ...(cursor === undefined ? {} : { cursor }),
   }
 }
 
@@ -48,8 +58,10 @@ export function foundPhotosOf(answer: SearchResponseDto, search: DateSearch): re
   })
 }
 
-export function hasNextPage(answer: SearchResponseDto): boolean {
-  return typeof answer.assets.nextPage === 'string'
+// Where the next page starts, when there is one.
+export function nextCursorOf(answer: SearchResponseDto): string | undefined {
+  const cursor: unknown = answer.assets.nextCursor
+  return typeof cursor === 'string' ? cursor : undefined
 }
 
 function instantText(day: PhotoDate, shiftHours: number): string {

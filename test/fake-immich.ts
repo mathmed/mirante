@@ -10,6 +10,7 @@ import {
   type FakeLibrary,
   randomOf,
   searchedOf,
+  searchRejectionOf,
 } from './immich-answers.ts'
 
 // A fake Immich server (MSW): no test reaches a real server or uses a real API key. Requests nobody
@@ -81,7 +82,7 @@ export function serveLibrary(library: FakeLibrary, options: ServeOptions = {}): 
     }),
     http.post(`${api}/search/metadata`, async ({ request }) => {
       const body: unknown = await request.json()
-      return guarded(request, options, () => HttpResponse.json(searchedOf(library, body)))
+      return guarded(request, options, () => searchAnswer(library, body))
     }),
     http.get(`${api}/assets/:id/thumbnail`, ({ request }) =>
       guarded(request, options, () => imageOf(request)),
@@ -90,6 +91,13 @@ export function serveLibrary(library: FakeLibrary, options: ServeOptions = {}): 
       guarded(request, options, () => assetAnswer(library, params['id'])),
     ),
   )
+}
+
+function searchAnswer(library: FakeLibrary, body: unknown): Response {
+  const rejection = searchRejectionOf(body)
+  return rejection === undefined
+    ? HttpResponse.json(searchedOf(library, body))
+    : HttpResponse.json(rejection, { status: 400 })
 }
 
 async function sizeOf(request: Request): Promise<number> {

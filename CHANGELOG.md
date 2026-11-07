@@ -64,6 +64,14 @@ All notable changes to Mirante are documented in this file. The format is based 
 
 ### Fixed
 
+- **"Neste dia, há X anos" finds the photos again.** Immich 3 refused the search by date with a 400
+  ("Validation failed": its deprecated flat filters `takenAfter`, `takenBefore`, `type`,
+  `visibility` and `page` cannot be combined with `orderBy`), so the start screen always fell back
+  on the cover of the latest album. The search now sends its filters in `filter`
+  (`takenAt`, `type`, `visibility`) and reads its next page by `cursor`; the proxy needs no change
+  (still `POST /api/search/metadata`). A call Immich refuses now writes its reasons to the log
+  (`HTTP 400: Validation failed (page: Deprecated field page cannot be combined with orderBy)`),
+  not only `Error: 400`.
 - **The settings no longer run off the screen.** The list of **Ajustes** was taller than the screen,
   and its last rows (the book's and **Restaurar padrões**) could be neither seen nor reached. The
   list now moves with the focus, by `transform` alone with a short transition, so that the row in

@@ -2,6 +2,7 @@ import { isHttpError, isMalformedResponseError } from '@immich/sdk'
 
 import { LibraryFailure, PhotoLibraryError } from '../core/photo-library.ts'
 import type { RuntimeConfig } from '../core/runtime-config.ts'
+import { detailOf } from './immich-errors.ts'
 
 const API_PATH = '/api'
 const API_KEY_HEADER = 'x-api-key'
@@ -59,7 +60,7 @@ function headersOf(config: RuntimeConfig): Readonly<Record<string, string>> {
 
 function translate(error: unknown, config: RuntimeConfig): unknown {
   const failure = failureOf(error, config)
-  return failure === undefined ? error : new PhotoLibraryError(failure, String(error))
+  return failure === undefined ? error : new PhotoLibraryError(failure, detailOf(error))
 }
 
 function failureOf(error: unknown, config: RuntimeConfig): LibraryFailure | undefined {
