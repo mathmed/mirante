@@ -117,6 +117,25 @@ export function withoutSlides(
   return { ...state, slides, index, leaving: undefined }
 }
 
+// Photos back from the trash, or in the album again, come back to the viewer in their place, the
+// photo on the screen kept: the slides of the first round, with more among them.
+export function withSlidesBack(
+  state: PresentationState,
+  slides: readonly Slide[],
+): PresentationState {
+  const current = currentSlide(state)
+  const keys = new Set(slides.map((slide) => slide.key))
+  const isBack =
+    state.round === 0 &&
+    slides.length > state.slides.length &&
+    state.slides.every((slide) => keys.has(slide.key))
+  if (!isBack || current === undefined) {
+    return state
+  }
+  const index = slides.findIndex((slide) => slide.key === current.key)
+  return { ...state, slides, index, leaving: undefined }
+}
+
 export function currentSlide(state: PresentationState): Slide | undefined {
   return state.slides[state.index]
 }

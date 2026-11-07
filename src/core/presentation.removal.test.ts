@@ -7,6 +7,7 @@ import {
   slideOf,
   startPresentation,
   withoutSlides,
+  withSlidesBack,
 } from './presentation.ts'
 import { RemoteKey } from './remote-key.ts'
 
@@ -66,5 +67,41 @@ describe('withoutSlides', () => {
 
     expect(withoutSlides(state, new Set(['other']))).toBe(state)
     expect(withoutSlides(state, new Set())).toBe(state)
+  })
+})
+
+describe('withSlidesBack', () => {
+  const left = SLIDES.filter((slide) => slide.key !== 'p-2')
+
+  it('should put the photos back in their place, the photo on the screen kept', () => {
+    const shown = pressInPresentation(startPresentation(left, 0, false), RemoteKey.Right)
+
+    const sut = withSlidesBack(shown, SLIDES)
+
+    expect(keysOf(sut)).toStrictEqual(['p-1', 'p-2', 'p-3', 'p-4', 'p-5'])
+    expect(sut.index).toBe(2)
+    expect(sut.slides[sut.index]?.key).toBe('p-3')
+    expect(sut.leaving).toBeUndefined()
+  })
+
+  it('should change nothing when no photo came back', () => {
+    const state = startPresentation(left, 1, false)
+
+    expect(withSlidesBack(state, left)).toBe(state)
+    expect(withSlidesBack(state, left.slice(1))).toBe(state)
+  })
+
+  it('should change nothing when the slides are others, or of a later round', () => {
+    const state = startPresentation(left, 1, false)
+    const others = [...photos('q', 5), ...photos('r', 1)].map(slideOf)
+
+    expect(withSlidesBack(state, others)).toBe(state)
+    expect(withSlidesBack({ ...state, round: 1 }, SLIDES)).toStrictEqual({ ...state, round: 1 })
+  })
+
+  it('should change nothing without slides', () => {
+    const state = startPresentation([], 0, false)
+
+    expect(withSlidesBack(state, SLIDES)).toBe(state)
   })
 })
