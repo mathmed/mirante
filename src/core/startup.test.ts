@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { stubEditor } from '../../test/editor-stub.ts'
 import { stubLibrary } from '../../test/library-stub.ts'
 import {
   LibraryFailure,
@@ -23,6 +24,7 @@ const CONFIG: RuntimeConfig = {
 }
 const SERVER: ServerInfo = { address: 'immich.test', version: '3.3.6' }
 const PAGE_ORIGIN = 'http://tv.test'
+const EDITOR = stubEditor({})
 
 interface Recorded {
   readonly dependencies: StartupDependencies
@@ -43,6 +45,7 @@ function dependencies(config: ConfigResult, library: PhotoLibrary): Recorded {
         opened.push(received)
         return library
       },
+      openEditor: () => EDITOR,
       reportError: (error) => reported.push(error),
     },
   }
@@ -61,7 +64,12 @@ describe('startUp', () => {
 
     expect(await startUp(sut.dependencies)).toStrictEqual({
       status: StartupStatus.Connected,
-      session: { server: SERVER, library, presentationDefaults: CONFIG.presentation },
+      session: {
+        server: SERVER,
+        library,
+        editor: EDITOR,
+        presentationDefaults: CONFIG.presentation,
+      },
     })
     expect(sut.opened).toStrictEqual([CONFIG])
     expect(sut.reported).toStrictEqual([])

@@ -2,12 +2,14 @@ import { render, screen, waitFor } from '@testing-library/preact'
 import { h } from 'preact'
 import { expect, type Mock, vi } from 'vitest'
 
+import type { LibraryEditor } from '../src/core/library-editor.ts'
 import { type PhotoLibrary, PhotoOrder } from '../src/core/photo-library.ts'
 import {
   DEFAULT_PRESENTATION,
   type PresentationSettings,
 } from '../src/core/presentation-settings.ts'
 import { Gallery } from '../src/ui/Gallery.tsx'
+import { NO_GRANT, recordingEditor } from './editor-stub.ts'
 import { memoryLibrary, type MemoryLibrary, photos } from './library-stub.ts'
 import { memoryStorage } from './memory-storage.ts'
 import { fakeRemote, type FakeRemote } from './remote.ts'
@@ -73,6 +75,8 @@ export interface ShownGallery {
 
 export interface GalleryOptions {
   readonly library?: PhotoLibrary
+  // The changes it may make; by default, none: the installation reads only.
+  readonly editor?: LibraryEditor
   readonly defaults?: PresentationSettings
   // The settings the TV kept before, as stored.
   readonly stored?: string
@@ -87,10 +91,11 @@ export function showGallery(options: GalleryOptions = {}): ShownGallery {
   const { storage, written } = memoryStorage(options.stored)
   const books = memoryStorage(options.storedBooks)
   const library = options.library ?? memoryLibrary(DATA)
+  const editor = options.editor ?? recordingEditor(NO_GRANT).editor
   const presentationDefaults = options.defaults ?? DEFAULT_PRESENTATION
   render(
     h(Gallery, {
-      session: { server: SERVER, library, presentationDefaults },
+      session: { server: SERVER, library, editor, presentationDefaults },
       keys: remote.keys,
       reportError: (error) => reported.push(error),
       leave,

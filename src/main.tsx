@@ -4,6 +4,7 @@ import './platform/install-polyfills.ts'
 import { render } from 'preact'
 
 import { startUp } from './core/startup.ts'
+import { createImmichEditor } from './immich/immich-editor.ts'
 import { createImmichLibrary } from './immich/immich-library.ts'
 import { leaveApp } from './platform/app-exit.ts'
 import { CONFIG_FILE, readConfigFile } from './platform/config-file.ts'
@@ -34,6 +35,7 @@ const start = async (): ReturnType<typeof startUp> =>
     loadConfig: async () => readConfigFile(configUrl),
     pageOrigin: window.location.origin,
     openLibrary: (config) => createImmichLibrary({ config, timeoutMs: REQUEST_TIMEOUT_MS }),
+    openEditor: (config) => createImmichEditor({ config, timeoutMs: REQUEST_TIMEOUT_MS }),
     reportError: logError,
   })
 

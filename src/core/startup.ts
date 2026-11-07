@@ -1,3 +1,4 @@
+import type { LibraryEditor } from './library-editor.ts'
 import { LoadFailure, loadFailureOf } from './loading.ts'
 import type { PhotoLibrary, ServerInfo } from './photo-library.ts'
 import type { PresentationSettings } from './presentation-settings.ts'
@@ -25,6 +26,8 @@ export const StartupStatus = {
 export interface Session {
   readonly server: ServerInfo
   readonly library: PhotoLibrary
+  // The changes to the library, when the proxy allows them (the gallery asks the server first).
+  readonly editor: LibraryEditor
   // The defaults of the presentations, from config.json; each TV keeps its own choices over them.
   readonly presentationDefaults: PresentationSettings
 }
@@ -41,6 +44,7 @@ export interface StartupDependencies {
   // Where the page was served from: a relative immichUrl points there.
   readonly pageOrigin: string
   readonly openLibrary: (config: RuntimeConfig) => PhotoLibrary
+  readonly openEditor: (config: RuntimeConfig) => LibraryEditor
   readonly reportError: (error: unknown) => void
 }
 
@@ -65,7 +69,8 @@ async function connect(dependencies: StartupDependencies): Promise<StartupOutcom
   const config = resolveImmichUrl(result.config, dependencies.pageOrigin)
   const library = dependencies.openLibrary(config)
   const server = await library.describeServer()
-  const session = { server, library, presentationDefaults: config.presentation }
+  const editor = dependencies.openEditor(config)
+  const session = { server, library, editor, presentationDefaults: config.presentation }
   return { status: StartupStatus.Connected, session }
 }
 

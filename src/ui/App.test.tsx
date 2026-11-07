@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/preact'
 import { describe, expect, it, vi } from 'vitest'
 
+import { NO_GRANT, recordingEditor } from '../../test/editor-stub.ts'
 import { memoryLibrary } from '../../test/library-stub.ts'
 import { memoryStorage } from '../../test/memory-storage.ts'
 import { fakeRemote, type FakeRemote } from '../../test/remote.ts'
@@ -20,9 +21,15 @@ const LIBRARY = memoryLibrary({
   months: [],
   monthPhotos: new Map(),
 })
+const EDITOR = recordingEditor(NO_GRANT).editor
 const CONNECTED: StartupOutcome = {
   status: StartupStatus.Connected,
-  session: { server: SERVER, library: LIBRARY, presentationDefaults: DEFAULT_PRESENTATION },
+  session: {
+    server: SERVER,
+    library: LIBRARY,
+    editor: EDITOR,
+    presentationDefaults: DEFAULT_PRESENTATION,
+  },
 }
 
 function startingWith(outcome: StartupOutcome): () => Promise<StartupOutcome> {
