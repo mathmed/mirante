@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'preact/hooks'
 import { pickableAlbums } from '../core/album-picker.ts'
 import { loadAlbums } from '../core/gallery.ts'
 import type { LibraryEdits } from '../core/library-edits.ts'
-import { Axis } from '../core/line-focus.ts'
+import { Axis, fittingCount } from '../core/line-focus.ts'
 import { type LoadState, LoadStatus } from '../core/loading.ts'
 import type { Album, PhotoLibrary } from '../core/photo-library.ts'
 import type { KeySource } from '../core/remote-key.ts'
@@ -14,8 +14,13 @@ import { photoCountText, shortText } from './messages.ts'
 import { Overlay } from './Overlay.tsx'
 import { useLibraryLoad } from './use-load.ts'
 
-// The items of the list on the screen at once, whatever the number of albums.
-const VISIBLE_ITEMS = 7
+// The items of the list on the screen at once, whatever the number of albums: as many as the
+// height of the screen holds (inside its safe area, less what the dialog shows besides the list),
+// up to seven.
+const MAX_VISIBLE_ITEMS = 7
+const SAFE_SHARE = 0.9
+const DIALOG_PX = 320
+const ITEM_PX = 72
 // What fits on one line of an item.
 const NAME_LENGTH = 40
 const NEW_ALBUM = 0
@@ -37,9 +42,10 @@ export interface AlbumPickerProps {
 // Where the photos go: "Novo álbum" first, ready at once, then the albums as they load, the most
 // recent first. Up and Down choose, Enter adds, Back cancels.
 export function AlbumPicker(props: AlbumPickerProps): JSX.Element {
-  const { keys, onPick, onNew } = props
+  const { keys } = props
   const { state, albums } = usePickable(props)
   const [focus, setFocus] = useState(NEW_ALBUM)
+  const visible = useVisibleItems()
   const title = pickTitle(props.count)
   return (
     <Overlay title={title} keysText={EDIT_MESSAGES.pickKeys}>
@@ -47,17 +53,12 @@ export function AlbumPicker(props: AlbumPickerProps): JSX.Element {
         label={title}
         choices={[{ key: 'new', text: EDIT_MESSAGES.newAlbum }, ...albums.map(choiceOf)]}
         axis={Axis.Column}
-        visible={VISIBLE_ITEMS}
+        visible={visible}
         focus={focus}
         keys={keys}
         onMove={setFocus}
         onChoose={(index) => {
-          const album = albums[index - 1]
-          if (album === undefined) {
-            onNew()
-          } else {
-            onPick(album)
-          }
+          choose(albums[index - 1], props)
         }}
         onLeave={() => undefined}
         onBack={props.onCancel}
@@ -81,6 +82,23 @@ function usePickable(props: AlbumPickerProps): Pickable {
     [state, edits, currentAlbumId],
   )
   return { state, albums }
+}
+
+// "Novo álbum" first, then the albums.
+function choose(album: Album | undefined, { onPick, onNew }: AlbumPickerProps): void {
+  if (album === undefined) {
+    onNew()
+  } else {
+    onPick(album)
+  }
+}
+
+// Measured once, when the list opens.
+function useVisibleItems(): number {
+  const [visible] = useState(() =>
+    fittingCount(window.innerHeight * SAFE_SHARE - DIALOG_PX, ITEM_PX, MAX_VISIBLE_ITEMS),
+  )
+  return visible
 }
 
 function loadedOf(state: LoadState<readonly Album[]>): readonly Album[] {

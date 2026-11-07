@@ -1651,6 +1651,7 @@ body {
 
 .choices-column {
   flex-direction: column;
+  align-self: stretch;
   align-items: stretch;
 }
 
@@ -1672,8 +1673,12 @@ body {
   transition: transform 180ms ease-out;
 }
 
+/* An item of a menu holds one line: an album and its count side by side. */
 .choices-column .choice {
-  padding: 16px 32px;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 32px;
   border-radius: 20px;
 }
 
@@ -1702,7 +1707,7 @@ body {
 }
 
 .choice-detail {
-  margin-top: 4px;
+  margin-left: 32px;
   color: var(--text-secondary);
   font-size: 20px;
   font-variant-numeric: tabular-nums;

@@ -1,5 +1,5 @@
 import { screen } from '@testing-library/preact'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { noticeOf, openTrip, showEditing } from '../../test/editing.ts'
 import { DATA, focused } from '../../test/gallery.ts'
@@ -26,8 +26,21 @@ function albums(count: number): readonly Album[] {
   }))
 }
 
+const SCREEN_HEIGHT = Object.getOwnPropertyDescriptor(window, 'innerHeight')
+
+function screenHeight(height: number): void {
+  Object.defineProperty(window, 'innerHeight', { value: height, configurable: true })
+}
+
+afterEach(() => {
+  if (SCREEN_HEIGHT !== undefined) {
+    Object.defineProperty(window, 'innerHeight', SCREEN_HEIGHT)
+  }
+})
+
 describe('the choice of an album', () => {
-  it('should show a window of a long list around the album in focus', async () => {
+  it('should show as many albums as a full HD screen holds, around the album in focus', async () => {
+    screenHeight(1080)
     const library = memoryLibrary({ ...DATA, albums: [...DATA.albums, ...albums(MANY)] })
     const sut = showEditing({ library })
     await openTrip(sut)
@@ -85,6 +98,19 @@ describe('the choice of an album', () => {
     expect(screen.getByText(EDIT_MESSAGES.loadingAlbums)).toBeTruthy()
     sut.remote.press(Back)
     expect(document.querySelector('.overlay')).toBeNull()
+  })
+})
+
+describe('the choice of an album on a smaller screen', () => {
+  it('should show fewer albums at once', async () => {
+    screenHeight(720)
+    const library = memoryLibrary({ ...DATA, albums: [...DATA.albums, ...albums(MANY)] })
+    const sut = showEditing({ library })
+    await openTrip(sut)
+    sut.remote.press(Up, Enter, Enter, Back, Enter)
+    await screen.findByText('Família')
+
+    expect(items()).toHaveLength(4)
   })
 })
 

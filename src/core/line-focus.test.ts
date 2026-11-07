@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { Axis, leavesGridUp, leavesLine, lineWindow, moveInLine } from './line-focus.ts'
+import {
+  Axis,
+  fittingCount,
+  leavesGridUp,
+  leavesLine,
+  lineWindow,
+  moveInLine,
+} from './line-focus.ts'
 import { RemoteKey } from './remote-key.ts'
 
 const { Up, Down, Left, Right, Enter, Back, Info } = RemoteKey
@@ -70,5 +77,18 @@ describe('lineWindow', () => {
   it('should not move past either end', () => {
     expect(lineWindow(1, 40, 7)).toStrictEqual({ start: 0, end: 7 })
     expect(lineWindow(39, 40, 7)).toStrictEqual({ start: 33, end: 40 })
+  })
+})
+
+describe('fittingCount', () => {
+  it('should fit as many items as the room holds, up to the most', () => {
+    expect(fittingCount(652, 72, 7)).toBe(7)
+    expect(fittingCount(359, 72, 7)).toBe(4)
+    expect(fittingCount(360, 72, 7)).toBe(5)
+  })
+
+  it('should show three items on a screen however small', () => {
+    expect(fittingCount(100, 72, 7)).toBe(3)
+    expect(fittingCount(-40, 72, 7)).toBe(3)
   })
 })

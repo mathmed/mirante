@@ -5,6 +5,8 @@ import { RemoteKey } from './remote-key.ts'
 // above the other. It stops at both ends.
 // The window of a menu keeps the item in focus in its middle, when it can.
 const HALF = 2
+// A menu shows at least this many items, on a screen however small.
+const MIN_LINE_ITEMS = 3
 
 export const Axis = {
   Row: 'row',
@@ -58,6 +60,11 @@ export function leavesGridUp(key: RemoteKey, from: GridPosition, to: GridPositio
 export function lineWindow(focus: number, count: number, visible: number): IndexRange {
   const start = Math.max(0, Math.min(focus - Math.floor(visible / HALF), count - visible))
   return { start, end: Math.min(count, start + visible) }
+}
+
+// How many items of a menu fit in the room it has, each this tall, up to `most`.
+export function fittingCount(room: number, itemSize: number, most: number): number {
+  return Math.max(MIN_LINE_ITEMS, Math.min(most, Math.floor(room / itemSize)))
 }
 
 function isArrow(key: RemoteKey): boolean {
