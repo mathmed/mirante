@@ -122,35 +122,76 @@ export function randomOf(library: FakeLibrary, size: number): AssetResponseDto[]
     .map((asset) => assetResponseOf(asset, false))
 }
 
-// POST /search/metadata: the photos of the timeline taken between takenAfter and takenBefore, by
-// the time on the clock of their place (orderBy), a page of the size asked for at a time (page, from
-// 1). Only the filters the app sends are read.
+// The fields Immich 3.3.6 takes beside filter and orderBy; each of its older flat filters
+// (takenAfter, takenBefore, type, visibility, page, order, albumIds, withDeleted...) is refused with
+// them. Checked against a real Immich 3.3.6, which answers 400 "Validation failed" then.
+const SEARCH_FIELDS: ReadonlySet<string> = new Set([
+  'filter',
+  'orderBy',
+  'size',
+  'cursor',
+  'withExif',
+  'withPeople',
+  'withStacked',
+])
+const NEW_SEARCH_FIELDS: readonly string[] = ['filter', 'orderBy']
+
+// What Immich 3.3.6 answers, with a 400, to a search that mixes its deprecated flat filters with
+// filter or orderBy; undefined when it takes the search.
+export function searchRejectionOf(body: unknown): object | undefined {
+  const fields = typeof body === 'object' && body !== null ? Object.keys(body) : []
+  const newFields = NEW_SEARCH_FIELDS.filter((field) => fields.includes(field))
+  const deprecated = fields.filter((field) => !SEARCH_FIELDS.has(field))
+  if (newFields.length === 0 || deprecated.length === 0) {
+    return undefined
+  }
+  const combined = newFields.join('/')
+  return {
+    message: 'Validation failed',
+    errors: deprecated.map((field) => ({
+      code: 'custom',
+      path: [field],
+      message: `Deprecated field ${field} cannot be combined with ${combined}`,
+    })),
+  }
+}
+
+// POST /search/metadata: the photos of the timeline taken in filter.takenAt (gte, lt), by the time
+// on the clock of their place (orderBy), a page of the size asked for at a time, the next one
+// behind the cursor of the previous one. Only the filters the app sends are read.
 export function searchedOf(library: FakeLibrary, body: unknown): SearchResponseDto {
-  const after = Date.parse(textOf(body, 'takenAfter'))
-  const before = Date.parse(textOf(body, 'takenBefore'))
-  const orderBy: unknown = fieldOf(body, 'orderBy')
-  const sign = fieldOf(orderBy, 'direction') === AssetOrder.Asc ? 1 : -1
+  const takenAt = fieldOf(fieldOf(body, 'filter'), 'takenAt')
+  const after = Date.parse(textOf(takenAt, 'gte'))
+  const before = Date.parse(textOf(takenAt, 'lt'))
+  const sign = fieldOf(fieldOf(body, 'orderBy'), 'direction') === AssetOrder.Asc ? 1 : -1
   const size = Number(fieldOf(body, 'size'))
-  const page = Number(fieldOf(body, 'page') ?? 1)
+  const offset = offsetOf(fieldOf(body, 'cursor'))
   const found = assetsAsked(library, new URL('http://immich.test/'))
     .filter((asset) => asset.isImage)
-    .filter((asset) => Date.parse(asset.takenAt) >= after && Date.parse(asset.takenAt) <= before)
+    .filter((asset) => Date.parse(asset.takenAt) >= after && Date.parse(asset.takenAt) < before)
     .sort((first, second) => sign * (localMsOf(first) - localMsOf(second)))
-  const items = found
-    .slice((page - 1) * size, page * size)
-    .map((asset) => assetResponseOf(asset, false))
-  const nextPage = found.length > page * size ? String(page + 1) : null
+  const items = found.slice(offset, offset + size).map((asset) => assetResponseOf(asset, false))
+  const nextCursor = found.length > offset + size ? cursorOf(offset + size) : null
   return {
     albums: { count: 0, facets: [], items: [], total: 0 },
     assets: {
       count: items.length,
       facets: [],
       items,
-      nextCursor: null,
-      nextPage,
+      nextCursor,
+      nextPage: null,
       total: found.length,
     },
   }
+}
+
+// Immich's cursor, opaque to the app: the offset of the next page, in base64 JSON.
+function cursorOf(offset: number): string {
+  return btoa(JSON.stringify({ offset }))
+}
+
+function offsetOf(cursor: unknown): number {
+  return typeof cursor === 'string' ? Number(fieldOf(JSON.parse(atob(cursor)), 'offset')) : 0
 }
 
 function fieldOf(body: unknown, name: string): unknown {

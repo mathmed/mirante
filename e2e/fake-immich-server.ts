@@ -17,6 +17,7 @@ import {
   type FakeLibrary,
   randomOf,
   searchedOf,
+  searchRejectionOf,
 } from '../test/immich-answers.ts'
 
 export const ALBUM_NAME = 'Viagem a Lisboa'
@@ -57,6 +58,8 @@ interface Asked {
   readonly body: unknown
 }
 
+const SEARCH_CALL = 'POST /api/search/metadata'
+
 type JsonAnswer = (library: FakeLibrary, asked: Asked) => unknown
 
 const JSON_ANSWERS: ReadonlyMap<string, JsonAnswer> = new Map<string, JsonAnswer>([
@@ -69,7 +72,7 @@ const JSON_ANSWERS: ReadonlyMap<string, JsonAnswer> = new Map<string, JsonAnswer
   ],
   ['GET /api/timeline/bucket', (library, { location }) => bucketOf(library, location)],
   ['POST /api/search/random', (library) => randomOf(library, DRAW_SIZE)],
-  ['POST /api/search/metadata', (library, { body }) => searchedOf(library, body)],
+  [SEARCH_CALL, (library, { body }) => searchedOf(library, body)],
 ])
 
 const ASSET = /^\/api\/assets\/([^/]+)$/
@@ -180,16 +183,34 @@ function answer({ request, response, options, isCorsAllowed, body: sent }: Excha
   }
   const call = recorded(request)
   const location = new URL(call.url, 'http://immich.test')
-  const body = jsonAnswer(
-    call,
-    { location, body: sent === '' ? undefined : JSON.parse(sent) },
-    options.library,
-  )
-  if (body !== undefined) {
-    response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(body))
+  const parsed: unknown = sent === '' ? undefined : JSON.parse(sent)
+  const reply = jsonReply(call, { location, body: parsed }, options.library)
+  if (reply !== undefined) {
+    response
+      .writeHead(reply.status, { 'Content-Type': 'application/json' })
+      .end(JSON.stringify(reply.body))
     return
   }
   answerImage(location, response, options)
+}
+
+interface JsonReply {
+  readonly status: number
+  readonly body: unknown
+}
+
+// The JSON a call gets, if any: a search Immich 3.3.6 refuses gets its 400 and the reasons.
+function jsonReply(
+  call: RecordedRequest,
+  asked: Asked,
+  library: FakeLibrary,
+): JsonReply | undefined {
+  const rejection = callOf(call) === SEARCH_CALL ? searchRejectionOf(asked.body) : undefined
+  if (rejection !== undefined) {
+    return { status: 400, body: rejection }
+  }
+  const body = jsonAnswer(call, asked, library)
+  return body === undefined ? undefined : { status: 200, body }
 }
 
 function jsonAnswer(call: RecordedRequest, asked: Asked, library: FakeLibrary): unknown {

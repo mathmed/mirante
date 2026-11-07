@@ -33,7 +33,7 @@ import {
   request,
   type RequestOptions,
 } from './immich-request.ts'
-import { foundPhotosOf, hasNextPage, metadataSearchOf } from './immich-search.ts'
+import { foundPhotosOf, metadataSearchOf, nextCursorOf } from './immich-search.ts'
 
 export type { ImmichLibraryOptions } from './immich-request.ts'
 
@@ -101,7 +101,14 @@ async function listPhotosTaken(
   options: ImmichLibraryOptions,
   search: DateSearch,
 ): Promise<readonly Photo[]> {
-  return photosFrom(options, search, 1)
+  return photosFrom(options, search, { cursor: undefined, pagesRead: 0 })
+}
+
+// Where a search by date goes on: the cursor of the next page (none for the first), and how many
+// pages are read already.
+interface SearchProgress {
+  readonly cursor: string | undefined
+  readonly pagesRead: number
 }
 
 // The search covers more instants than the days asked for: a full page may hold none of them (the
@@ -110,15 +117,17 @@ async function listPhotosTaken(
 async function photosFrom(
   options: ImmichLibraryOptions,
   search: DateSearch,
-  page: number,
+  progress: SearchProgress,
 ): Promise<readonly Photo[]> {
-  const metadataSearchDto = { ...metadataSearchOf(search), page }
+  const metadataSearchDto = metadataSearchOf(search, progress.cursor)
   const answer = await request(options, async (call) => searchAssets({ metadataSearchDto }, call))
   const photos = foundPhotosOf(answer, search)
-  if (photos.length > 0 || page >= MAX_SEARCH_PAGES || !hasNextPage(answer)) {
+  const cursor = nextCursorOf(answer)
+  const pagesRead = progress.pagesRead + 1
+  if (photos.length > 0 || pagesRead >= MAX_SEARCH_PAGES || cursor === undefined) {
     return photos
   }
-  return photosFrom(options, search, page + 1)
+  return photosFrom(options, search, { cursor, pagesRead })
 }
 
 // The timeline of the library, without the archived and hidden photos, as Immich shows it.
