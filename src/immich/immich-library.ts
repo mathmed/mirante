@@ -8,6 +8,7 @@ import {
   getServerVersion,
   getTimeBucket,
   getTimeBuckets,
+  searchAssets,
   searchRandom,
   type ServerVersionResponseDto,
   validateAccessToken,
@@ -15,6 +16,7 @@ import {
 
 import {
   type Album,
+  type DateSearch,
   ImageSize,
   LibraryFailure,
   type Photo,
@@ -31,6 +33,7 @@ import {
   request,
   type RequestOptions,
 } from './immich-request.ts'
+import { foundPhotosOf, metadataSearchOf } from './immich-search.ts'
 
 export type { ImmichLibraryOptions } from './immich-request.ts'
 
@@ -50,6 +53,7 @@ export function createImmichLibrary(options: ImmichLibraryOptions): PhotoLibrary
     listTimelineMonths: async () => monthsOf(await request(options, timelineBuckets)),
     listMonthPhotos: async (month) => listMonthPhotos(options, month),
     listRandomPhotos: async (count) => drawnPhotosOf(await request(options, randomDraw(count))),
+    listPhotosTaken: async (search) => listPhotosTaken(options, search),
     readCaption: async (photoId) =>
       captionOf(await request(options, async (call) => getAssetInfo({ id: photoId }, call))),
     imageUrl: (photoId, size) => imageUrl(options, photoId, size),
@@ -88,6 +92,15 @@ async function listMonthPhotos(
     getTimeBucket({ timeBucket: month.key, visibility: AssetVisibility.Timeline }, call),
   )
   return photosOf(bucket)
+}
+
+async function listPhotosTaken(
+  options: ImmichLibraryOptions,
+  search: DateSearch,
+): Promise<readonly Photo[]> {
+  const metadataSearchDto = metadataSearchOf(search)
+  const answer = await request(options, async (call) => searchAssets({ metadataSearchDto }, call))
+  return foundPhotosOf(answer, search)
 }
 
 // The timeline of the library, without the archived and hidden photos, as Immich shows it.

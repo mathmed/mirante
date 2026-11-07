@@ -2,7 +2,7 @@
 // file://: it answers CORS the way that proxy does (any origin, a 204 to the preflight, GET, HEAD,
 // POST and OPTIONS, and the Content-Type header of the random draw), adds the key itself (it never
 // asks for one) and records every request. It serves a library (by default, one album of two
-// photos, in one month), its random draws and captions, and the images an option draws (by
+// photos, in one month), its random draws, its searches by date and captions, and the images an option draws (by
 // default, a small gray square).
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -16,6 +16,7 @@ import {
   bucketsOf,
   type FakeLibrary,
   randomOf,
+  searchedOf,
 } from '../test/immich-answers.ts'
 
 export const ALBUM_NAME = 'Viagem a Lisboa'
@@ -50,15 +51,25 @@ const TRIP_LIBRARY: FakeLibrary = {
   ],
 }
 
-type JsonAnswer = (library: FakeLibrary, location: URL) => unknown
+// What a request asks for: its address, and the JSON body it sends, if any.
+interface Asked {
+  readonly location: URL
+  readonly body: unknown
+}
+
+type JsonAnswer = (library: FakeLibrary, asked: Asked) => unknown
 
 const JSON_ANSWERS: ReadonlyMap<string, JsonAnswer> = new Map<string, JsonAnswer>([
   ['GET /api/server/version', () => VERSION],
   ['POST /api/auth/validateToken', () => ({ authStatus: true })],
   ['GET /api/albums', (library) => albumsOf(library)],
-  ['GET /api/timeline/buckets', (library, location) => bucketsOf(assetsAsked(library, location))],
-  ['GET /api/timeline/bucket', (library, location) => bucketOf(library, location)],
+  [
+    'GET /api/timeline/buckets',
+    (library, { location }) => bucketsOf(assetsAsked(library, location)),
+  ],
+  ['GET /api/timeline/bucket', (library, { location }) => bucketOf(library, location)],
   ['POST /api/search/random', (library) => randomOf(library, DRAW_SIZE)],
+  ['POST /api/search/metadata', (library, { body }) => searchedOf(library, body)],
 ])
 
 const ASSET = /^\/api\/assets\/([^/]+)$/
@@ -98,12 +109,17 @@ export async function startFakeImmich(
   const server = createServer((request, response) => {
     const call = recorded(request)
     requests.push(call)
-    setTimeout(
-      () => {
-        answer({ request, response, options, isCorsAllowed: settings.isCorsAllowed })
-      },
-      delaysMs.get(callOf(call)) ?? 0,
-    )
+    const chunks: Buffer[] = []
+    request.on('data', (chunk: Buffer) => chunks.push(chunk))
+    request.on('end', () => {
+      const body = Buffer.concat(chunks).toString('utf8')
+      setTimeout(
+        () => {
+          answer({ request, response, options, isCorsAllowed: settings.isCorsAllowed, body })
+        },
+        delaysMs.get(callOf(call)) ?? 0,
+      )
+    })
   })
   const url = `http://127.0.0.1:${String(await listen(server))}`
   return Object.assign(settings, { url, requests, delaysMs, close: async () => closed(server) })
@@ -145,9 +161,11 @@ interface Exchange {
   readonly response: ServerResponse
   readonly options: FakeImmichOptions
   readonly isCorsAllowed: boolean
+  // The body of the request, as sent: empty for most.
+  readonly body: string
 }
 
-function answer({ request, response, options, isCorsAllowed }: Exchange): void {
+function answer({ request, response, options, isCorsAllowed, body: sent }: Exchange): void {
   if (isCorsAllowed) {
     response.setHeader('Access-Control-Allow-Origin', '*')
   }
@@ -162,7 +180,11 @@ function answer({ request, response, options, isCorsAllowed }: Exchange): void {
   }
   const call = recorded(request)
   const location = new URL(call.url, 'http://immich.test')
-  const body = jsonAnswer(call, location, options.library)
+  const body = jsonAnswer(
+    call,
+    { location, body: sent === '' ? undefined : JSON.parse(sent) },
+    options.library,
+  )
   if (body !== undefined) {
     response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(body))
     return
@@ -170,8 +192,8 @@ function answer({ request, response, options, isCorsAllowed }: Exchange): void {
   answerImage(location, response, options)
 }
 
-function jsonAnswer(call: RecordedRequest, location: URL, library: FakeLibrary): unknown {
-  return JSON_ANSWERS.get(callOf(call))?.(library, location) ?? assetAnswer(library, location)
+function jsonAnswer(call: RecordedRequest, asked: Asked, library: FakeLibrary): unknown {
+  return JSON_ANSWERS.get(callOf(call))?.(library, asked) ?? assetAnswer(library, asked.location)
 }
 
 // The detail of a photo, with its caption.

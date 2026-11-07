@@ -4,6 +4,7 @@ import {
   type AssetResponseDto,
   AssetTypeEnum,
   AssetVisibility,
+  type SearchResponseDto,
   type TimeBucketAssetResponseDto,
   type TimeBucketsResponseDto,
 } from '@immich/sdk'
@@ -121,8 +122,43 @@ export function randomOf(library: FakeLibrary, size: number): AssetResponseDto[]
     .map((asset) => assetResponseOf(asset, false))
 }
 
+// POST /search/metadata: the photos of the timeline taken between takenAfter and takenBefore, by
+// the time on the clock of their place (orderBy), up to the size asked for. Only the filters the app
+// sends are read.
+export function searchedOf(library: FakeLibrary, body: unknown): SearchResponseDto {
+  const after = Date.parse(textOf(body, 'takenAfter'))
+  const before = Date.parse(textOf(body, 'takenBefore'))
+  const orderBy: unknown = fieldOf(body, 'orderBy')
+  const sign = fieldOf(orderBy, 'direction') === AssetOrder.Asc ? 1 : -1
+  const size = Number(fieldOf(body, 'size'))
+  const items = assetsAsked(library, new URL('http://immich.test/'))
+    .filter((asset) => asset.isImage)
+    .filter((asset) => Date.parse(asset.takenAt) >= after && Date.parse(asset.takenAt) <= before)
+    .sort((first, second) => sign * (localMsOf(first) - localMsOf(second)))
+    .slice(0, size)
+    .map((asset) => assetResponseOf(asset, false))
+  const page = { count: items.length, facets: [], nextCursor: null, nextPage: null, total: 0 }
+  return {
+    albums: { count: 0, facets: [], items: [], total: 0 },
+    assets: { ...page, items, total: items.length },
+  }
+}
+
+function fieldOf(body: unknown, name: string): unknown {
+  return typeof body === 'object' && body !== null ? Reflect.get(body, name) : undefined
+}
+
+function textOf(body: unknown, name: string): string {
+  const value = fieldOf(body, name)
+  return typeof value === 'string' ? value : ''
+}
+
+function localMsOf(asset: FakeAsset): number {
+  return Date.parse(asset.takenAt) + asset.offsetHours * 3_600_000
+}
+
 function assetResponseOf(asset: FakeAsset, hasExif: boolean): AssetResponseDto {
-  const local = new Date(Date.parse(asset.takenAt) + asset.offsetHours * 3_600_000).toISOString()
+  const local = new Date(localMsOf(asset)).toISOString()
   return {
     checksum: 'checksum',
     createdAt: asset.takenAt,

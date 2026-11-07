@@ -31,6 +31,16 @@ export const PhotoOrder = {
 
 export type PhotoOrder = (typeof PhotoOrder)[keyof typeof PhotoOrder]
 
+// Photos of the timeline taken from one day to another, both included, by the date where they were
+// taken: up to a count, the oldest first (the nearest to the first day) or the newest first (the
+// nearest to the last).
+export interface DateSearch {
+  readonly from: PhotoDate
+  readonly to: PhotoDate
+  readonly order: PhotoOrder
+  readonly count: number
+}
+
 export interface Album {
   readonly id: string
   readonly name: string
@@ -69,6 +79,7 @@ export interface PhotoLibrary {
   readonly listMonthPhotos: (month: TimelineMonth) => Promise<readonly Photo[]>
   // Up to this many photos of the timeline, drawn at random by the server.
   readonly listRandomPhotos: (count: number) => Promise<readonly Photo[]>
+  readonly listPhotosTaken: (search: DateSearch) => Promise<readonly Photo[]>
   // The caption written for the photo in the library (its description); none when it has none.
   readonly readCaption: (photoId: string) => Promise<string | undefined>
   // The address an <img> loads the photo from.

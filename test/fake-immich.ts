@@ -9,6 +9,7 @@ import {
   bucketsOf,
   type FakeLibrary,
   randomOf,
+  searchedOf,
 } from './immich-answers.ts'
 
 // A fake Immich server (MSW): no test reaches a real server or uses a real API key. Requests nobody
@@ -57,7 +58,8 @@ export function serveImmich(options: ServeOptions = {}): void {
 }
 
 // The reads of the gallery: the albums, the months of the timeline and of an album, their assets,
-// the random draws of the presentations, the captions and the images.
+// the random draws of the presentations, the searches by date of the start screen, the captions and
+// the images.
 export function serveLibrary(library: FakeLibrary, options: ServeOptions = {}): void {
   serveImmich(options)
   const api = `${options.url ?? IMMICH_URL}/api`
@@ -76,6 +78,10 @@ export function serveLibrary(library: FakeLibrary, options: ServeOptions = {}): 
     http.post(`${api}/search/random`, async ({ request }) => {
       const size = await sizeOf(request)
       return guarded(request, options, () => HttpResponse.json(randomOf(library, size)))
+    }),
+    http.post(`${api}/search/metadata`, async ({ request }) => {
+      const body: unknown = await request.json()
+      return guarded(request, options, () => HttpResponse.json(searchedOf(library, body)))
     }),
     http.get(`${api}/assets/:id/thumbnail`, ({ request }) =>
       guarded(request, options, () => imageOf(request)),

@@ -5,6 +5,7 @@ import type {
   ServerInfo,
   TimelineMonth,
 } from '../src/core/photo-library.ts'
+import { photosTaken } from './dated-photos.ts'
 
 // A photo library for the tests of the core and of the components, which run without a server:
 // every read the test does not give fails it. The adapter itself is tested against the fake server.
@@ -17,6 +18,7 @@ export function stubLibrary(reads: Partial<PhotoLibrary>): PhotoLibrary {
     listTimelineMonths: unexpected,
     listMonthPhotos: unexpected,
     listRandomPhotos: unexpected,
+    listPhotosTaken: unexpected,
     readCaption: unexpected,
     imageUrl: (photoId, size) => `https://images.test/${size}/${photoId}`,
     ...reads,
@@ -45,6 +47,8 @@ export function memoryLibrary(data: MemoryLibrary): PhotoLibrary {
     // "At random": the first photos of the months, in the order of the map.
     listRandomPhotos: async (count) =>
       Promise.resolve(([] as Photo[]).concat(...data.monthPhotos.values()).slice(0, count)),
+    listPhotosTaken: async (search) =>
+      Promise.resolve(photosTaken(([] as Photo[]).concat(...data.monthPhotos.values()), search)),
     readCaption: async (photoId) => Promise.resolve(data.captions?.get(photoId)),
   })
 }
