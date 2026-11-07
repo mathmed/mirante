@@ -106,6 +106,7 @@ function BookPhotoViewer(
         reader.reopen(reader.photos.slice(index, index + 1).map(({ id }) => id)[0])
         reader.setViewing(undefined)
       }}
+      changes={undefined}
     />
   )
 }

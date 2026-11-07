@@ -1,6 +1,7 @@
 import { act, render, screen } from '@testing-library/preact'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { READ_ONLY_EDITING } from '../../test/editor-stub.ts'
 import { photos, stubLibrary } from '../../test/library-stub.ts'
 import { presentationControls } from '../../test/presentation-controls.ts'
 import { fakeRemote, type FakeRemote } from '../../test/remote.ts'
@@ -47,6 +48,7 @@ function show(
       open={() => undefined}
       back={back}
       presentation={controls}
+      editing={READ_ONLY_EDITING}
     />,
   )
   return { remote, reported, back }

@@ -182,6 +182,7 @@ function FeedViewer(props: FeedViewerProps): JSX.Element {
       shouldPlay={viewing.shouldPlay}
       rounds={rounds}
       onClose={browsing.close}
+      changes={undefined}
     />
   )
 }

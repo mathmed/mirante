@@ -1,5 +1,12 @@
-import { type EditGrant, EditPermission, type LibraryEditor } from '../src/core/library-editor.ts'
+import {
+  AccessBlock,
+  type EditGrant,
+  EditPermission,
+  type LibraryEditor,
+} from '../src/core/library-editor.ts'
+import { NO_EDITS } from '../src/core/library-edits.ts'
 import type { Album } from '../src/core/photo-library.ts'
+import type { EditingControls } from '../src/ui/use-editing.ts'
 
 // The changes to a library for the tests of the core and of the components, which run without a
 // server: every change the test does not give fails it. The adapter itself is tested against the
@@ -20,7 +27,7 @@ export function stubEditor(changes: Partial<LibraryEditor>): LibraryEditor {
 }
 
 // Every permission, and a trash: everything can change.
-const FULL_GRANT: EditGrant = {
+export const FULL_GRANT: EditGrant = {
   permissions: new Set(Object.values(EditPermission)),
   isTrashKept: true,
 }
@@ -70,4 +77,20 @@ function createdAlbum(name: string, photoIds: readonly string[], serial: number)
   }
   const [cover] = photoIds
   return cover === undefined ? album : { ...album, coverPhotoId: cover }
+}
+
+// The changes of a screen that changes nothing: the installation reads only, and a change fails the
+// test.
+export const READ_ONLY_EDITING: EditingControls = {
+  access: { albums: AccessBlock.NoKey, trash: AccessBlock.NoKey },
+  edits: NO_EDITS,
+  canUndo: false,
+  commit: async () => Promise.reject(new Error('unexpected change')),
+  undo: () => {
+    throw new Error('unexpected undo')
+  },
+  notify: () => undefined,
+  notice: undefined,
+  nextSerial: () => 1,
+  today: () => ({ year: 2026, month: 11, day: 7 }),
 }
