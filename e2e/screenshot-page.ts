@@ -97,3 +97,18 @@ export async function focusedBox(
   }
   return { top: Number(box.top), bottom: Number(box.bottom) }
 }
+
+// The second spread, a photo in focus, with nothing over it; then the controls over it.
+export async function shootSpread(page: Page, spread: string, controls: string): Promise<void> {
+  await press(page, 'ArrowRight')
+  await page.locator('.book-layer-pages', { hasText: 'Páginas 2 e 3' }).waitFor()
+  await press(page, 'ArrowDown')
+  await settled(page)
+  await shoot(page, spread)
+
+  await press(page, 'i')
+  await page.locator('.book-layer.is-shown').waitFor()
+  await focusedOn(page, 'Visão geral')
+  await settled(page)
+  await shoot(page, controls)
+}

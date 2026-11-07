@@ -148,7 +148,7 @@ actions out, with the reason beside the others.
   Immich empties its trash after the days of its settings (30 by default). **Apagar álbum** asks
   too, and says the photos stay in the library.
 - **Adicionar ao álbum** opens a list: **Novo álbum** first, then the albums, the most recent first
-  (only seven show at a time, however many there are). **Novo álbum** suggests a name, the month of
+  (up to seven at a time, however many there are, fewer on a smaller screen). **Novo álbum** suggests a name, the month of
   the photos (**Março de 2024**) or else the day, created with one more OK; Up goes to the field to
   type another. **Álbuns** starts with a **Novo álbum** tile too, for an empty album.
 - Every change shows at once, before Immich answers, and a line at the bottom says what happened.
@@ -266,6 +266,10 @@ fake library:
 | ---------------------------------------------------------- | -------------------------------------------------------- |
 | ![Book controls](docs/screenshots/21-livro-controles.webp) | ![Classic book](docs/screenshots/22-livro-classico.webp) |
 
+| Photos marked, with the key of the changes            | Where they go: a new album or another one                     |
+| ----------------------------------------------------- | ------------------------------------------------------------- |
+| ![Selection](docs/screenshots/28-gestao-selecao.webp) | ![Add to an album](docs/screenshots/30-gestao-adicionar.webp) |
+
 Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screenshots/02-inicio.webp),
 [albums](docs/screenshots/03-albuns.webp), [album](docs/screenshots/04-album.webp),
 [photo](docs/screenshots/05-foto.webp), [slideshow](docs/screenshots/06-apresentacao.webp),
@@ -279,6 +283,10 @@ Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screens
 [every photo](docs/screenshots/15-todas.webp), [a book](docs/screenshots/16-livro-capa.webp),
 [its pages](docs/screenshots/17-livro.webp), [its controls](docs/screenshots/21-livro-controles.webp),
 [its overview](docs/screenshots/18-livro-visao-geral.webp),
+[the photos marked](docs/screenshots/28-gestao-selecao.webp),
+[the confirmation of their deletion](docs/screenshots/29-gestao-apagar.webp),
+[the choice of their album](docs/screenshots/30-gestao-adicionar.webp) (and
+[at 1280x720](docs/screenshots/31-gestao-adicionar-720.webp)),
 [a classic book](docs/screenshots/22-livro-classico.webp) and
 [its controls](docs/screenshots/23-livro-classico-controles.webp), and both books on a TV of
 1280x720 ([full screen](docs/screenshots/24-livro-720.webp),
