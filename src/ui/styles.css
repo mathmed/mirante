@@ -374,6 +374,7 @@ body {
   font-family: var(--serif);
   font-size: 26px;
   font-style: italic;
+  font-variant-numeric: lining-nums;
   text-shadow: 0 2px 12px rgb(var(--shade-rgb) / 80%);
 }
 
