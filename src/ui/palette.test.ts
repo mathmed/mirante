@@ -104,6 +104,7 @@ describe('the palette of styles.css', () => {
     ['gold-dark', 'background'],
     ['background', 'gold'],
     ['danger', 'background'],
+    ['danger', 'surface-raised'],
     ['gold-light', 'background'],
     ['ink', 'paper'],
     ['ink-soft', 'paper'],

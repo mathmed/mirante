@@ -5,7 +5,7 @@
 import { type Browser, chromium, type Page } from 'playwright'
 import { expect } from 'vitest'
 
-import { ALBUM_NAME, CAPTION, type FakeImmich, PHOTO_IDS } from './fake-immich-server.ts'
+import { ALBUM_ID, ALBUM_NAME, CAPTION, type FakeImmich, PHOTO_IDS } from './fake-immich-server.ts'
 import { emulateChromium68 } from './legacy-chromium.ts'
 
 // The TV whose system the page gets: webOS's PalmSystem or Tizen's tizen global.
@@ -179,4 +179,137 @@ export async function expectReportedUnreachable(app: OpenedApp): Promise<void> {
   const alert = app.page.getByRole('alert')
   await alert.waitFor()
   expect(await alert.textContent()).toContain('O Immich não respondeu')
+}
+
+// The permissions of the key of the changes docs/proxy.md asks for.
+export const WRITE_PERMISSIONS = [
+  'asset.delete',
+  'album.create',
+  'album.update',
+  'album.delete',
+  'albumAsset.create',
+  'albumAsset.delete',
+]
+
+// The changes the app asked for, with their bodies, as they reached the proxy.
+function changesSent(immich: FakeImmich): readonly string[] {
+  return immich.requests
+    .filter((request) => !['GET', 'OPTIONS'].includes(request.method))
+    .filter(
+      (request) => !request.url.startsWith('/api/search') && !request.url.includes('validateToken'),
+    )
+    .map((request) => `${request.method} ${request.url} ${request.body}`.trim())
+}
+
+async function thumbnailsShown(page: Page): Promise<number> {
+  return page.evaluate(() => document.querySelectorAll('.grid-photos img').length)
+}
+
+// With the key of the changes on the proxy: a photo of the album selected and sent to the trash
+// after a confirmation, then back; the album renamed with the keyboard (an "i" and a Backspace
+// typed into the field, not taken for Info and Back); the photo of the viewer added to a new album.
+// Each change crosses origins after its preflight, with the exact body Immich takes, and no key.
+export async function expectManagement(
+  app: OpenedApp,
+  immich: FakeImmich,
+  backKeyCode: number,
+): Promise<void> {
+  const { page } = app
+  await openAlbumToManage(page)
+  await trashAndUndo(page, immich, backKeyCode)
+  await renameAlbum(page, immich)
+  await addToNewAlbum(page, immich)
+  expect(changesSent(immich)).toStrictEqual([
+    `DELETE /api/assets {"ids":["${PHOTO_IDS[0]}"],"force":false}`,
+    `POST /api/trash/restore/assets {"ids":["${PHOTO_IDS[0]}"]}`,
+    `PATCH /api/albums/${ALBUM_ID} {"albumName":"Lisboa"}`,
+    `POST /api/albums {"albumName":"Março de 2024","assetIds":["${PHOTO_IDS[0]}"]}`,
+  ])
+  const calls = immich.requests.map((request) => `${request.method} ${request.url}`)
+  expect(calls).toContain('OPTIONS /api/assets')
+  expect(calls).toContain(`OPTIONS /api/albums/${ALBUM_ID}`)
+  expect(immich.requests.filter((request) => request.apiKey !== undefined)).toStrictEqual([])
+}
+
+async function openAlbumToManage(page: Page): Promise<void> {
+  await expect.poll(async () => focusedText(page)).toBe('Todas')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => focusedText(page)).toBe('+Novo álbum')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => thumbnailsShown(page)).toBe(PHOTO_IDS.length)
+}
+
+async function trashAndUndo(page: Page, immich: FakeImmich, backKeyCode: number): Promise<void> {
+  await page.keyboard.press('ArrowUp')
+  await expect.poll(async () => focusedText(page)).toBe('Selecionar')
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => page.locator('.tile-mark').count()).toBe(1)
+  await pressKeyCode(page, backKeyCode)
+  await expect.poll(async () => focusedText(page)).toBe('Adicionar ao álbum')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('Enter')
+  await page.getByRole('dialog', { name: 'Apagar esta foto?' }).waitFor()
+  await expect.poll(async () => focusedText(page)).toBe('Cancelar')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => thumbnailsShown(page)).toBe(1)
+  await page.getByText('1 foto foi para a lixeira do Immich · ↑ Desfazer').waitFor()
+  await page.keyboard.press('ArrowUp')
+  await expect.poll(async () => focusedText(page)).toBe('Desfazer')
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => thumbnailsShown(page)).toBe(PHOTO_IDS.length)
+  expect(immich.requests.map((request) => request.method)).toContain('DELETE')
+}
+
+async function renameAlbum(page: Page, immich: FakeImmich): Promise<void> {
+  await page.keyboard.press('ArrowUp')
+  await page.keyboard.press('ArrowRight')
+  await expect.poll(async () => focusedText(page)).toBe('Renomear álbum')
+  await page.keyboard.press('Enter')
+  await page.getByRole('dialog', { name: 'Novo nome do álbum' }).waitFor()
+  // The field takes the focus, its name selected: what is typed takes its place.
+  await expect.poll(async () => page.evaluate(() => document.activeElement?.tagName)).toBe('INPUT')
+  await page.keyboard.type('Lisboaa')
+  await page.keyboard.press('Backspace')
+  await page.keyboard.press('Enter')
+  await page.getByRole('heading', { level: 1, name: 'Lisboa', exact: true }).waitFor()
+  await expect.poll(() => changesSent(immich).length).toBe(3)
+}
+
+async function addToNewAlbum(page: Page, immich: FakeImmich): Promise<void> {
+  await page.keyboard.press('Enter')
+  await page.getByRole('dialog', { name: `1 de ${String(PHOTO_IDS.length)}` }).waitFor()
+  await page.keyboard.press('ArrowUp')
+  await expect.poll(async () => focusedText(page)).toBe('Adicionar ao álbum')
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => focusedText(page)).toBe('Novo álbum')
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => focusedText(page)).toBe('Criar')
+  await page.keyboard.press('Enter')
+  await page.getByText('Álbum “Março de 2024” criado com 1 foto').waitFor()
+  await expect.poll(() => changesSent(immich).length).toBe(4)
+}
+
+// Without the key of the changes on the proxy: no new album, no bar, and Up on a photo says why.
+export async function expectReadOnly(app: OpenedApp, immich: FakeImmich): Promise<void> {
+  const { page } = app
+  await expect.poll(async () => focusedText(page)).toBe('Todas')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => focusedText(page)).toContain(ALBUM_NAME)
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => thumbnailsShown(page)).toBe(PHOTO_IDS.length)
+  expect(await page.locator('.action-bar').count()).toBe(0)
+  await page.keyboard.press('ArrowUp')
+  await page
+    .getByText('Este Mirante só mostra as fotos: o proxy não tem a chave de escrita do Immich.')
+    .waitFor()
+  const calls = immich.requests.map((request) => `${request.method} ${request.url}`)
+  expect(calls).toContain('GET /api/api-keys/me')
+  expect(calls).not.toContain('GET /api/server/features')
+  expect(changesSent(immich)).toStrictEqual([])
 }

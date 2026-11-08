@@ -33,6 +33,11 @@ const KEYS: ReadonlyMap<number, RemoteKey> = new Map([
   [LETTER_I, RemoteKey.Info],
 ])
 
+// While a text field has the focus, these keys are the remote control's (Up and Down leave the
+// field, Enter takes what was typed, the TVs' Back closes the dialog); every other key types, or
+// moves in the text, as the browser and the keyboard of the TV make it.
+const TYPING_KEYS: ReadonlySet<number> = new Set([ENTER, UP, DOWN, TIZEN_BACK, WEBOS_BACK, ESCAPE])
+
 // A held arrow walks the grid; a held Enter, Back or Info acts once.
 const REPEATING: ReadonlySet<RemoteKey> = new Set([
   RemoteKey.Left,
@@ -44,6 +49,7 @@ const REPEATING: ReadonlySet<RemoteKey> = new Set([
 // What the app reads of a keydown event. The TVs only report the code of their own keys.
 type KeyPress = Pick<KeyboardEvent, 'preventDefault' | 'repeat'> & {
   readonly keyCode: number
+  readonly target: unknown
 }
 
 export interface KeyTarget {
@@ -56,7 +62,7 @@ export interface KeyTarget {
 export function listenToRemote(target: KeyTarget): KeySource {
   const listeners = new Set<KeyListener>()
   target.addEventListener('keydown', (event) => {
-    const key = KEYS.get(event.keyCode)
+    const key = remoteKeyOf(event)
     if (key === undefined) {
       return
     }
@@ -76,4 +82,10 @@ export function listenToRemote(target: KeyTarget): KeySource {
       }
     },
   }
+}
+
+// Undefined for a key of no remote control, or one typed into a text field.
+function remoteKeyOf({ target, keyCode }: KeyPress): RemoteKey | undefined {
+  const isTyped = target instanceof HTMLInputElement && !TYPING_KEYS.has(keyCode)
+  return isTyped ? undefined : KEYS.get(keyCode)
 }

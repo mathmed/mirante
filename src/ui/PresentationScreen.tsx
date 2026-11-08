@@ -69,7 +69,9 @@ interface PlanProps extends PlayerProps {
 function Player(props: PlanProps): JSX.Element {
   const { photos, plan, back } = props
   const slides = useMemo(() => playlistOf(photos, plan.order, plan.seed), [photos, plan])
-  return <Viewer {...props} slides={slides} start={0} shouldPlay onClose={back} />
+  return (
+    <Viewer {...props} slides={slides} start={0} shouldPlay onClose={back} changes={undefined} />
+  )
 }
 
 // The order and the seed, drawn once when the presentation starts.

@@ -2,7 +2,8 @@
 // Chromium at 1920x1080 (and the settings and the book at 1280x720 too) like the TV packages,
 // against a fake Immich with a library of landscapes, walked with the remote control. Each screen
 // is written to docs/screenshots/ as a WebP the page itself encodes, under 300 KB, for the owner to
-// review the look of the app; and the icon of the app beside the two alternatives it was chosen
+// review the look of the app (the management of the library with the key of the changes on the
+// proxy too); and the icon of the app beside the two alternatives it was chosen
 // against.
 import { cp, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -15,6 +16,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { writeText } from '../scripts/shared/files.ts'
 import { type FakeImmich, startFakeImmich } from './fake-immich-server.ts'
 import { iconAlternativesPage } from './icon-alternatives.ts'
+import { shootManagement } from './management-screenshots.ts'
 import { launchBrowser } from './packaged-app.ts'
 import {
   BOOK_ALBUM,
@@ -23,7 +25,15 @@ import {
   SCREENSHOT_LIBRARY,
   screenshotImage,
 } from './screenshot-library.ts'
-import { focusedBox, focusedOn, press, progressed, settled, shoot } from './screenshot-page.ts'
+import {
+  focusedBox,
+  focusedOn,
+  press,
+  progressed,
+  settled,
+  shoot,
+  shootSpread,
+} from './screenshot-page.ts'
 
 const ROOT = join(import.meta.dirname, '..')
 const VIEWPORT = { width: 1920, height: 1080 }
@@ -107,21 +117,6 @@ async function openBook(
   await page.getByText('O vale ainda na neblina, antes da trilha').waitFor()
   await settled(page)
   return page
-}
-
-// The second spread, a photo in focus, with nothing over it; then the controls over it.
-async function shootSpread(page: Page, spread: string, controls: string): Promise<void> {
-  await press(page, 'ArrowRight')
-  await page.locator('.book-layer-pages', { hasText: 'Páginas 2 e 3' }).waitFor()
-  await press(page, 'ArrowDown')
-  await settled(page)
-  await shoot(page, spread)
-
-  await press(page, 'i')
-  await page.locator('.book-layer.is-shown').waitFor()
-  await focusedOn(page, 'Visão geral')
-  await settled(page)
-  await shoot(page, controls)
 }
 
 describe('the screenshots of the docs', () => {
@@ -300,6 +295,10 @@ describe('the screenshots of the docs', () => {
     await settled(page)
     await shoot(page, '15-todas')
     await page.close()
+  })
+
+  it('should capture the management of an album, with the key of the changes', async () => {
+    await shootManagement(immich, open)
   })
 
   it('should capture an empty album', async () => {

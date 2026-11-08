@@ -11,14 +11,15 @@ alone: arrows, Enter and Back (and Info, optional).
 > **Status: version 1 in progress.** The gallery works in the browser of the TV: every photo in one
 > grid, albums, the timeline by year and month, the full-screen viewer, presentations of an album,
 > a month, a year or the whole library, with their settings and the captions written in Immich, and
-> an album or a month seen as a photo book, its pages laid out by an algorithm. It also
+> an album or a month seen as a photo book, its pages laid out by an algorithm, and, when the proxy
+> holds a second key for it, photos sent to the trash and albums created and managed. It also
 > packages as an LG webOS app (`.ipk`, see [docs/webos.md](docs/webos.md)) and as a Samsung Tizen
 > app (an unsigned `.wgt` you sign with your own certificates, see [docs/tizen.md](docs/tizen.md)),
 > neither tried on a real TV yet.
 
 ## Scope
 
-Version 1 shows photos, read only:
+Version 1 shows photos and, if the owner allows it, manages them:
 
 - every photo of the library, the most recent first, month by month; albums and the timeline of
   the library; and a full-screen photo viewer with a slideshow;
@@ -28,12 +29,21 @@ Version 1 shows photos, read only:
 - an album or a month as a photo book, in spreads of two pages with several photos on each, laid
   out from the real shapes of the photos (never cut, never stretched), different from page to page,
   played a spread at a time if wanted, and reorganized at will;
+- **management**, only when the proxy in front of Immich holds a second key for the changes
+  (see [Managing photos and albums](#managing-photos-and-albums)): photos sent to Immich's trash
+  (never deleted for good) and back, one at a time or many at once, and albums created, renamed,
+  deleted (their photos kept), filled and emptied;
 - navigation with the remote control only, with the focus always visible;
 - a runtime configuration file, so that the same build serves any Immich server.
 
-Out of scope on purpose: video, people, search, upload, editing and anything else that writes to
-Immich, and, for the book, editing its pages by hand, printing or exporting it. Mirante never
-changes your library.
+Out of scope on purpose: video, people, search, upload, editing photos, favorites, archives,
+sharing, deleting for good and anything else that writes to Immich but the management above, and,
+for the book, editing its pages by hand, printing or exporting it.
+
+> **Mirante is no longer read only once the key of the changes is active.** Without it (the
+> default), Mirante never changes your library. With it, anyone who opens Mirante on the network of
+> the proxy can send photos to Immich's trash and manage the albums, with no login or PIN; every
+> deletion asks for a confirmation that says what goes and how many photos.
 
 ## Supported TVs
 
@@ -66,7 +76,11 @@ The focus is always visible, and every screen is reachable with these keys only;
 mouse or a touch screen. A held arrow keeps moving; a held Enter, Back or Info acts once. Info is
 optional: it opens the settings over the viewer, which Down opens too, and presents from the photo
 in focus in **Todas**, which OK in the viewer does too, for remote controls without it. Tizen only sends Info to an app that registers it, which Mirante does at startup (the
-`tv.inputdevice` privilege of `tizen/config.xml`).
+`tv.inputdevice` privilege of `tizen/config.xml`). When the library can change, Up on the first row
+of the photos of an album or a month reaches the bar of actions above them, and Up in the viewer
+opens the actions on the photo on the screen. The name of an album is typed with the TV's own
+keyboard, which opens when its field takes the focus; in that field, the keys type (Backspace and
+I are no longer Back and Info there).
 
 ## Screens
 
@@ -112,6 +126,35 @@ tries again on the next move.
 Back on the start screen, and on the connecting and error screens before it, leaves the app when
 it runs as a webOS or a Tizen app (the TV returns to its launcher); in a browser it stays on the
 page.
+
+### Managing photos and albums
+
+Only when the proxy holds the key of the changes ([docs/proxy.md](docs/proxy.md#the-changes-optional));
+Mirante asks Immich at startup what that key may do, and whether Immich keeps a trash, and offers
+only what both allow. Without the key, nothing changes from a read-only Mirante: no bar, no new
+album, and Up on a photo says why (**Este Mirante só mostra as fotos: o proxy não tem a chave de
+escrita do Immich.**); a key without some permission, or an Immich without its trash, leaves those
+actions out, with the reason beside the others.
+
+- **Above the photos of an album or a month**, a bar: **Selecionar**, and, in an album,
+  **Renomear álbum** and **Apagar álbum**. Up on the first row reaches it; Down goes back.
+  **Selecionar** marks photos with OK (an amber check), and the bar then offers **Adicionar ao
+  álbum**, **Tirar do álbum** (in an album), **Apagar** and **Concluir**, with how many are marked;
+  Back reaches the bar from anywhere in the grid while it selects.
+- **In the viewer**, Up opens the same actions for the photo on the screen. After a deletion or a
+  removal, the next photo takes its place; Back returns to the grid on it.
+- **Apagar** sends the photos to Immich's trash after a confirmation (**Apagar 3 fotos?**, with
+  Cancelar in focus); **Desfazer**, first in the bar or the menu for 30 seconds, brings them back.
+  Immich empties its trash after the days of its settings (30 by default). **Apagar álbum** asks
+  too, and says the photos stay in the library.
+- **Adicionar ao álbum** opens a list: **Novo álbum** first, then the albums, the most recent first
+  (up to seven at a time, however many there are, fewer on a smaller screen). **Novo álbum** suggests a name, the month of
+  the photos (**Março de 2024**) or else the day, created with one more OK; Up goes to the field to
+  type another. **Álbuns** starts with a **Novo álbum** tile too, for an empty album.
+- Every change shows at once, before Immich answers, and a line at the bottom says what happened.
+  If Immich refuses it, the screen goes back to how it was and the line says why (**Não foi
+  possível apagar 3 fotos. Nada mudou: o Immich não respondeu.**). Nothing waits behind a loading
+  screen.
 
 ### Presentations
 
@@ -223,6 +266,10 @@ fake library:
 | ---------------------------------------------------------- | -------------------------------------------------------- |
 | ![Book controls](docs/screenshots/21-livro-controles.webp) | ![Classic book](docs/screenshots/22-livro-classico.webp) |
 
+| Photos marked, with the key of the changes            | Where they go: a new album or another one                     |
+| ----------------------------------------------------- | ------------------------------------------------------------- |
+| ![Selection](docs/screenshots/28-gestao-selecao.webp) | ![Add to an album](docs/screenshots/30-gestao-adicionar.webp) |
+
 Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screenshots/02-inicio.webp),
 [albums](docs/screenshots/03-albuns.webp), [album](docs/screenshots/04-album.webp),
 [photo](docs/screenshots/05-foto.webp), [slideshow](docs/screenshots/06-apresentacao.webp),
@@ -236,6 +283,10 @@ Every screen: [opening](docs/screenshots/01-abertura.webp), [start](docs/screens
 [every photo](docs/screenshots/15-todas.webp), [a book](docs/screenshots/16-livro-capa.webp),
 [its pages](docs/screenshots/17-livro.webp), [its controls](docs/screenshots/21-livro-controles.webp),
 [its overview](docs/screenshots/18-livro-visao-geral.webp),
+[the photos marked](docs/screenshots/28-gestao-selecao.webp),
+[the confirmation of their deletion](docs/screenshots/29-gestao-apagar.webp),
+[the choice of their album](docs/screenshots/30-gestao-adicionar.webp) (and
+[at 1280x720](docs/screenshots/31-gestao-adicionar-720.webp)),
 [a classic book](docs/screenshots/22-livro-classico.webp) and
 [its controls](docs/screenshots/23-livro-classico-controles.webp), and both books on a TV of
 1280x720 ([full screen](docs/screenshots/24-livro-720.webp),
@@ -316,8 +367,10 @@ timeline load but the images do not. Mirante reports a request the browser block
 respondeu", and an Immich that asked for a key nobody sent as "O Immich pediu uma chave de API". The
 proxy itself is not part of this repository: [docs/proxy.md](docs/proxy.md) lists exactly the
 routes and methods Mirante calls (the reads of the gallery, the random draw of the library and the
-detail of a photo for its caption), what must stay forbidden (originals, videos, anything that
-writes) and a Caddyfile that allows only those.
+detail of a photo for its caption; and, to manage the library, the seven changes with their exact
+bodies), what must stay forbidden (originals, videos, deletions for good, anything else that
+writes), a Caddyfile that allows only those, and how to create and activate the second key, the one
+of the changes, which lives only on the proxy.
 
 ## Running it
 
@@ -367,7 +420,7 @@ installing and opening the app with the Tizen CLI (`tizen package`, `sdb connect
 The TVs have little memory and old engines. Preact keeps React's component and hooks model at a
 fraction of its weight (about 5 kB gzipped against about 60 kB for React 19 with `react-dom`), has no
 dependency, and its output runs on engines much older than Chromium 68. The whole app, Immich SDK
-and every screen included, is about 39 kB of JavaScript gzipped today, plus its four font files
+and every screen included, is about 53 kB of JavaScript gzipped today, plus its four font files
 (about 64 kB: three weights of Manrope and the italic of Playfair Display).
 
 ## Architecture
@@ -380,8 +433,11 @@ src/core/      pure logic, no DOM and no package: the startup flow, the runtime 
                settings and how they are kept, the
                engine (playlists, rounds, seeded shuffles, what loads ahead), their sources, the
                transitions and the captions; and the book: how many photos each page takes, the
-               layout of a page as an optimization, its spreads, its remote control and its seeds
-src/immich/    the photo library implemented with @immich/sdk, read only
+               layout of a page as an optimization, its spreads, its remote control and its seeds;
+               and the changes to the library: what the key allows, the actions each screen
+               offers, the selection, the optimistic changes and how a refusal takes them back
+src/immich/    the photo library implemented with @immich/sdk: the reads, and the changes through
+               the key of the proxy (to the trash, never for good)
 src/platform/  what differs between TVs and browsers: config.json, polyfills, the console, the keys
                of the remote controls (and the Info key Tizen registers), localStorage, the seeds
 src/ui/        Preact components and every user-facing text (Brazilian Portuguese)

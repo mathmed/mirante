@@ -21,6 +21,8 @@ export interface FakeAsset {
   readonly albumIds: readonly string[]
   // Archived assets are in their albums, never in the timeline.
   readonly isArchived?: boolean
+  // Assets in the trash are nowhere, until they are restored.
+  readonly isTrashed?: boolean
   // The caption written for it in Immich.
   readonly description?: string
   // Its width over its height; 3:2 when left out.
@@ -30,7 +32,7 @@ export interface FakeAsset {
 const DEFAULT_RATIO = 1.5
 const HEIGHT = 1000
 
-interface FakeAlbum {
+export interface FakeAlbum {
   readonly id: string
   readonly name: string
   readonly isOldestFirst?: boolean
@@ -42,35 +44,41 @@ export interface FakeLibrary {
 }
 
 export function albumsOf(library: FakeLibrary): AlbumResponseDto[] {
-  return library.albums.map((album) => {
-    const assets = library.assets.filter((asset) => asset.albumIds.includes(album.id))
-    const dates = assets
-      .map((asset) => asset.takenAt)
-      .sort((first, second) => first.localeCompare(second))
-    return {
-      id: album.id,
-      albumName: album.name,
-      albumThumbnailAssetId: assets[0]?.id ?? null,
-      albumUsers: [],
-      assetCount: assets.length,
-      createdAt: '2020-01-01T00:00:00.000Z',
-      description: '',
-      hasSharedLink: false,
-      isActivityEnabled: true,
-      shared: false,
-      updatedAt: '2020-01-01T00:00:00.000Z',
-      order: album.isOldestFirst === true ? AssetOrder.Asc : AssetOrder.Desc,
-      ...(dates.length === 0 ? {} : { startDate: dates[0], endDate: dates[dates.length - 1] }),
-    }
-  })
+  return library.albums.map((album) => albumOf(library, album))
 }
 
-// An album's assets when the request names one, else the timeline: everything not archived.
+export function albumOf(library: FakeLibrary, album: FakeAlbum): AlbumResponseDto {
+  const assets = library.assets.filter(
+    (asset) => asset.albumIds.includes(album.id) && asset.isTrashed !== true,
+  )
+  const dates = assets
+    .map((asset) => asset.takenAt)
+    .sort((first, second) => first.localeCompare(second))
+  return {
+    id: album.id,
+    albumName: album.name,
+    albumThumbnailAssetId: assets[0]?.id ?? null,
+    albumUsers: [],
+    assetCount: assets.length,
+    createdAt: '2020-01-01T00:00:00.000Z',
+    description: '',
+    hasSharedLink: false,
+    isActivityEnabled: true,
+    shared: false,
+    updatedAt: '2020-01-01T00:00:00.000Z',
+    order: album.isOldestFirst === true ? AssetOrder.Asc : AssetOrder.Desc,
+    ...(dates.length === 0 ? {} : { startDate: dates[0], endDate: dates[dates.length - 1] }),
+  }
+}
+
+// An album's assets when the request names one, else the timeline: everything not archived. What
+// is in the trash is in neither.
 export function assetsAsked(library: FakeLibrary, url: URL): readonly FakeAsset[] {
   const albumId = url.searchParams.get('albumId')
+  const kept = library.assets.filter((asset) => asset.isTrashed !== true)
   return albumId === null
-    ? library.assets.filter((asset) => asset.isArchived !== true)
-    : library.assets.filter((asset) => asset.albumIds.includes(albumId))
+    ? kept.filter((asset) => asset.isArchived !== true)
+    : kept.filter((asset) => asset.albumIds.includes(albumId))
 }
 
 // Immich names each month by its first day, newest first.

@@ -12,6 +12,7 @@ import { SourceKind } from '../src/core/presentation-source.ts'
 import { BookScreen } from '../src/ui/BookScreen.tsx'
 import { sourceTitle } from '../src/ui/messages.ts'
 import { mixedPhotos } from './book-photos.ts'
+import { READ_ONLY_EDITING } from './editor-stub.ts'
 import { memoryLibrary } from './library-stub.ts'
 import { presentationControls } from './presentation-controls.ts'
 import { fakeRemote, type FakeRemote } from './remote.ts'
@@ -73,6 +74,7 @@ export function showBook(options: Partial<BookOptions> = {}): ShownBook {
       position: START_POSITION,
       open: () => undefined,
       back,
+      editing: READ_ONLY_EDITING,
       presentation: controls,
       books: {
         seedOf: (key) => seeds.get(key) ?? FIRST_SEED,

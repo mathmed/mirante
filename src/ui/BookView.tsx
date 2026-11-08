@@ -26,7 +26,12 @@ import { Caption, CaptionPlace } from './Caption.tsx'
 import { KeyListener } from './KeyListener.tsx'
 import { Progress } from './Progress.tsx'
 import type { PresentationControls } from './screen-props.ts'
-import { type PresentationControl, SAME_SLIDES, usePresentation } from './use-presentation.ts'
+import {
+  NOTHING_GONE,
+  type PresentationControl,
+  SAME_SLIDES,
+  usePresentation,
+} from './use-presentation.ts'
 
 export interface BookViewProps {
   // The name of the album or of the month.
@@ -72,6 +77,7 @@ export function BookView(props: BookViewProps): JSX.Element {
     rounds: SAME_SLIDES,
     settings,
     isHeld: isOverviewOpen,
+    gone: NOTHING_GONE,
   })
   const spread = spreadAt(book, control.state.index)
   const view = {

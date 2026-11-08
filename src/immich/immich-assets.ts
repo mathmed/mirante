@@ -76,7 +76,7 @@ function instantOf(text: unknown, what: string): number {
   return instant
 }
 
-function albumOf(answer: AlbumResponseDto): Album {
+export function albumOf(answer: AlbumResponseDto): Album {
   const { id, albumName, assetCount, albumThumbnailAssetId, endDate } = answer
   if (typeof id !== 'string' || typeof albumName !== 'string' || typeof assetCount !== 'number') {
     throw malformed('album')

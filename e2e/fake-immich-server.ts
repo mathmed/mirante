@@ -1,9 +1,12 @@
 // A fake Immich behind the owner's proxy, on a real port, for the app that a browser runs from
-// file://: it answers CORS the way that proxy does (any origin, a 204 to the preflight, GET, HEAD,
-// POST and OPTIONS, and the Content-Type header of the random draw), adds the key itself (it never
-// asks for one) and records every request. It serves a library (by default, one album of two
-// photos, in one month), its random draws, its searches by date and captions, and the images an option draws (by
-// default, a small gray square).
+// file://: it answers CORS the way that proxy does (any origin, a 204 to the preflight, the methods
+// of the reads and of the changes, and the Content-Type header of the JSON bodies), adds the keys
+// itself (it never asks for one) and records every request, with its body. It serves a library (by
+// default, one album of two photos, in one month), its random draws, its searches by date and
+// captions, and the images an option draws (by default, a small gray square). The changes to the
+// library go through the key of the changes, which the proxy holds once grantWrites gives its
+// permissions (none at first: the installation reads only), checked as Immich 3.3.6 checks them
+// (test/immich-writes.ts), and kept.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
@@ -19,11 +22,19 @@ import {
   searchedOf,
   searchRejectionOf,
 } from '../test/immich-answers.ts'
+import { FakeWrites } from '../test/immich-writes.ts'
 
 export const ALBUM_NAME = 'Viagem a Lisboa'
 export const CAPTION = 'Bom dia, Lisboa'
-export const PHOTO_IDS = ['photo-1', 'photo-2'] as const
-const ALLOWED_METHODS = 'GET, HEAD, POST, OPTIONS'
+// Immich's ids are version 4 UUIDs, and the changes take nothing else.
+export const PHOTO_IDS = [
+  '0b9f3c1e-3f4a-4c2d-9d1e-2a3b4c5d6e7f',
+  '6a7b8c9d-1e2f-4a3b-8c4d-5e6f7a8b9c0d',
+] as const
+export const ALBUM_ID = 'c3d4e5f6-a7b8-4c9d-ae0f-1a2b3c4d5e6f'
+// The ids of the albums it creates, in turn.
+const CREATED_ALBUM_IDS = ['e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b']
+const ALLOWED_METHODS = 'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS'
 const ALLOWED_HEADERS = 'Content-Type'
 // What the app draws for each round of the whole library.
 const DRAW_SIZE = 200
@@ -32,14 +43,14 @@ const VERSION = { major: 3, minor: 3, patch: 6, prerelease: null }
 const IMAGE = encodePng({ width: 4, height: 4, pixels: new Uint8Array(64).fill(200) })
 
 const TRIP_LIBRARY: FakeLibrary = {
-  albums: [{ id: 'album-trip', name: ALBUM_NAME, isOldestFirst: true }],
+  albums: [{ id: ALBUM_ID, name: ALBUM_NAME, isOldestFirst: true }],
   assets: [
     {
       id: PHOTO_IDS[0],
       takenAt: '2024-03-09T10:00:00.000Z',
       offsetHours: 0,
       isImage: true,
-      albumIds: ['album-trip'],
+      albumIds: [ALBUM_ID],
       description: CAPTION,
     },
     {
@@ -47,7 +58,7 @@ const TRIP_LIBRARY: FakeLibrary = {
       takenAt: '2024-03-10T12:00:00.000Z',
       offsetHours: 0,
       isImage: true,
-      albumIds: ['album-trip'],
+      albumIds: [ALBUM_ID],
     },
   ],
 }
@@ -85,6 +96,8 @@ interface RecordedRequest {
   readonly url: string
   readonly origin: string | undefined
   readonly apiKey: string | undefined
+  // As sent: empty for most.
+  readonly body: string
 }
 
 export interface FakeImmichOptions {
@@ -100,6 +113,9 @@ export interface FakeImmich {
   isCorsAllowed: boolean
   // How long it waits before answering a call, by "<method> <path>": a slow server.
   readonly delaysMs: Map<string, number>
+  // The proxy holds a key for the changes, with these permissions of Immich (undefined: no key),
+  // over the library as it started.
+  readonly grantWrites: (permissions: readonly string[] | undefined) => void
   readonly close: () => Promise<void>
 }
 
@@ -108,24 +124,32 @@ export async function startFakeImmich(
 ): Promise<FakeImmich> {
   const requests: RecordedRequest[] = []
   const delaysMs = new Map<string, number>()
-  const settings = { isCorsAllowed: true }
+  const settings = { isCorsAllowed: true, writes: writesOf(options.library, undefined) }
   const server = createServer((request, response) => {
-    const call = recorded(request)
-    requests.push(call)
     const chunks: Buffer[] = []
     request.on('data', (chunk: Buffer) => chunks.push(chunk))
     request.on('end', () => {
-      const body = Buffer.concat(chunks).toString('utf8')
+      const call = recorded(request, Buffer.concat(chunks).toString('utf8'))
+      requests.push(call)
       setTimeout(
         () => {
-          answer({ request, response, options, isCorsAllowed: settings.isCorsAllowed, body })
+          answer({ request, response, options, call, ...settings })
         },
         delaysMs.get(callOf(call)) ?? 0,
       )
     })
   })
   const url = `http://127.0.0.1:${String(await listen(server))}`
-  return Object.assign(settings, { url, requests, delaysMs, close: async () => closed(server) })
+  // The library as it started, whatever the changes made before.
+  const grantWrites = (permissions: readonly string[] | undefined): void => {
+    settings.writes = writesOf(options.library, permissions)
+  }
+  const close = async (): Promise<void> => closed(server)
+  return Object.assign(settings, { url, requests, delaysMs, grantWrites, close })
+}
+
+function writesOf(library: FakeLibrary, permissions: readonly string[] | undefined): FakeWrites {
+  return new FakeWrites({ library, permissions, isTrashKept: true, albumIds: CREATED_ALBUM_IDS })
 }
 
 async function closed(server: Server): Promise<void> {
@@ -149,13 +173,14 @@ function callOf({ method, url }: RecordedRequest): string {
   return `${method} ${new URL(url, 'http://immich.test').pathname}`
 }
 
-function recorded(request: IncomingMessage): RecordedRequest {
+function recorded(request: IncomingMessage, body: string): RecordedRequest {
   const apiKey = request.headers['x-api-key']
   return {
     method: request.method ?? '',
     url: request.url ?? '/',
     origin: request.headers.origin,
     apiKey: typeof apiKey === 'string' ? apiKey : undefined,
+    body,
   }
 }
 
@@ -164,11 +189,13 @@ interface Exchange {
   readonly response: ServerResponse
   readonly options: FakeImmichOptions
   readonly isCorsAllowed: boolean
-  // The body of the request, as sent: empty for most.
-  readonly body: string
+  readonly call: RecordedRequest
+  // The changes, and the library as they left it.
+  readonly writes: FakeWrites
 }
 
-function answer({ request, response, options, isCorsAllowed, body: sent }: Exchange): void {
+function answer(exchange: Exchange): void {
+  const { request, response, isCorsAllowed } = exchange
   if (isCorsAllowed) {
     response.setHeader('Access-Control-Allow-Origin', '*')
   }
@@ -181,17 +208,31 @@ function answer({ request, response, options, isCorsAllowed, body: sent }: Excha
       .end()
     return
   }
-  const call = recorded(request)
+  answerCall(exchange)
+}
+
+// A change, or a read of JSON, or an image.
+function answerCall({ response, call, writes, options }: Exchange): void {
   const location = new URL(call.url, 'http://immich.test')
-  const parsed: unknown = sent === '' ? undefined : JSON.parse(sent)
-  const reply = jsonReply(call, { location, body: parsed }, options.library)
-  if (reply !== undefined) {
-    response
-      .writeHead(reply.status, { 'Content-Type': 'application/json' })
-      .end(JSON.stringify(reply.body))
+  const changed = writes.answer({ method: call.method, path: location.pathname, body: call.body })
+  const parsed: unknown = call.body === '' ? undefined : JSON.parse(call.body)
+  const reply = changed ?? jsonReply(call, { location, body: parsed }, writes.library)
+  if (reply === undefined) {
+    answerImage(location, response, options)
+  } else {
+    send(response, reply)
+  }
+}
+
+// A change that answers nothing has no body (Immich's 204).
+function send(response: ServerResponse, reply: JsonReply): void {
+  if (reply.body === undefined) {
+    response.writeHead(reply.status).end()
     return
   }
-  answerImage(location, response, options)
+  response
+    .writeHead(reply.status, { 'Content-Type': 'application/json' })
+    .end(JSON.stringify(reply.body))
 }
 
 interface JsonReply {

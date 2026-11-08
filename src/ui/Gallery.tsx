@@ -21,6 +21,7 @@ import { AlbumsScreen } from './AlbumsScreen.tsx'
 import { AllPhotosScreen } from './AllPhotosScreen.tsx'
 import { BookScreen } from './BookScreen.tsx'
 import { HomeScreen } from './HomeScreen.tsx'
+import { Notice } from './Notice.tsx'
 import { AlbumScreen, MonthScreen } from './PhotosScreen.tsx'
 import { PresentationScreen } from './PresentationScreen.tsx'
 import { PresentScreen } from './PresentScreen.tsx'
@@ -28,6 +29,7 @@ import type { BookControls, PresentationControls, ScreenProps } from './screen-p
 import { SettingsScreen } from './SettingsScreen.tsx'
 import { MonthsScreen, YearsScreen } from './TimelineScreens.tsx'
 import { useBackdrop } from './use-backdrop.ts'
+import { useEditing } from './use-editing.ts'
 import { useSummary } from './use-summary.ts'
 
 export interface GalleryProps {
@@ -54,6 +56,7 @@ export function Gallery(props: GalleryProps): JSX.Element {
   const backdrop = useBackdrop(session.library, today, reportError)
   const summary = useSummary(session.library, reportError)
   const books = useBookControls(props)
+  const editing = useEditing(session.editor, reportError, today)
   const screenProps: ScreenProps = {
     library: session.library,
     keys,
@@ -62,17 +65,42 @@ export function Gallery(props: GalleryProps): JSX.Element {
     open,
     back,
     presentation: usePresentationControls(props),
+    editing,
   }
+  return (
+    <>
+      <TopScreen
+        {...{ navigation, depth, screenProps, books, session, leave, backdrop, summary }}
+      />
+      <Notice notice={editing.notice} />
+    </>
+  )
+}
+
+interface TopScreenProps {
+  readonly navigation: Navigation
+  readonly depth: number
+  readonly screenProps: ScreenProps
+  readonly books: BookControls
+  readonly session: Session
+  readonly leave: () => void
+  readonly backdrop: ReturnType<typeof useBackdrop>
+  readonly summary: ReturnType<typeof useSummary>
+}
+
+// The screen on top of the stack; Back on the start screen leaves the app.
+function TopScreen(props: TopScreenProps): JSX.Element {
+  const { navigation, depth, screenProps, books, session } = props
   const screen = navigation.current.screen
   if (screen.kind === ScreenKind.Home) {
     return (
       <HomeScreen
         key={depth}
         {...screenProps}
-        back={leave}
+        back={props.leave}
         server={session.server}
-        backdrop={backdrop}
-        summary={summary}
+        backdrop={props.backdrop}
+        summary={props.summary}
       />
     )
   }

@@ -68,7 +68,9 @@ function failureOf(error: unknown, config: RuntimeConfig): LibraryFailure | unde
     return failureOfStatus(error.status, config)
   }
   if (isMalformedResponseError(error)) {
-    return LibraryFailure.NotImmich
+    return isRefusal(error.status)
+      ? failureOfStatus(error.status, config)
+      : LibraryFailure.NotImmich
   }
   return isNetworkFailure(error) ? LibraryFailure.Unreachable : undefined
 }
@@ -79,9 +81,15 @@ function isNetworkFailure(error: unknown): boolean {
   return error instanceof TypeError || (error instanceof Error && error.name === 'AbortError')
 }
 
+// A refusal is one whatever its body: the proxy refuses a route it does not let through in plain
+// text, where Immich answers JSON.
+function isRefusal(status: number): boolean {
+  return status === HTTP_UNAUTHORIZED || status === HTTP_FORBIDDEN
+}
+
 // A key the server refuses, or one without the permission to read: a new key fixes both.
 function failureOfStatus(status: number, config: RuntimeConfig): LibraryFailure {
-  if (status === HTTP_UNAUTHORIZED || status === HTTP_FORBIDDEN) {
+  if (isRefusal(status)) {
     return config.apiKey === undefined ? LibraryFailure.KeyMissing : LibraryFailure.KeyRejected
   }
   return status === HTTP_NOT_FOUND ? LibraryFailure.NotImmich : LibraryFailure.ServerError

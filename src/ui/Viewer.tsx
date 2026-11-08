@@ -4,7 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'preact/hooks'
 import { createCaptionCache } from '../core/captions.ts'
 import { ImageSize, type PhotoLibrary } from '../core/photo-library.ts'
 import type { PresentationSettings } from '../core/presentation-settings.ts'
-import { currentSlide, decodedSlides, type Slide, slidesAhead } from '../core/presentation.ts'
+import {
+  currentSlide,
+  decodedSlides,
+  type PresentationState,
+  type Slide,
+  slidesAhead,
+} from '../core/presentation.ts'
 import { type KeySource, RemoteKey } from '../core/remote-key.ts'
 import { Caption, CaptionPlace } from './Caption.tsx'
 import { KeyListener } from './KeyListener.tsx'
@@ -12,8 +18,25 @@ import { counterText, MESSAGES } from './messages.ts'
 import type { PresentationControls } from './screen-props.ts'
 import { SettingsPanel } from './SettingsPanel.tsx'
 import { Slides } from './Slides.tsx'
-import { type PresentationControl, type Rounds, usePresentation } from './use-presentation.ts'
+import {
+  NOTHING_GONE,
+  type PresentationControl,
+  type Rounds,
+  usePresentation,
+} from './use-presentation.ts'
 import { ViewerInfo } from './ViewerInfo.tsx'
+
+// The changes to the photos of the viewer, opened from a grid that changes them.
+export interface ViewerChanges {
+  // The photos deleted, or taken out of the album, meanwhile: they leave the viewer at once.
+  readonly gone: ReadonlySet<string>
+  // While a dialog of the changes covers the viewer, it waits and does not listen.
+  readonly isCovered: boolean
+  // Up: the actions on the photo on the screen.
+  readonly onActions: (slide: Slide) => void
+}
+
+const NOT_EDITED = { isCovered: false, gone: NOTHING_GONE } as const
 
 export interface ViewerProps {
   readonly slides: readonly Slide[]
@@ -27,17 +50,22 @@ export interface ViewerProps {
   readonly presentation: PresentationControls
   // Back: the grid takes the focus to the slide on the screen.
   readonly onClose: (index: number) => void
+  // Undefined where nothing changes: a presentation, a book, every photo.
+  readonly changes: ViewerChanges | undefined
 }
 
 // One photo at a time, full screen: left and right move, Enter starts or pauses the slideshow,
-// Info or Down opens its settings over it, and Back closes it.
+// Info or Down opens its settings over it, Up the actions on the photo (when it can change), and
+// Back closes it.
 export function Viewer(props: ViewerProps): JSX.Element {
-  const { library, presentation } = props
+  const { library, presentation, changes } = props
   const { settings } = presentation
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const control = usePresentation({ ...props, settings, isHeld: isSettingsOpen })
+  const { isCovered, gone } = changes ?? NOT_EDITED
+  const isHeld = isSettingsOpen || isCovered
+  const control = usePresentation({ ...props, settings, isHeld, gone })
   const { state, upcoming } = control
-  const viewerRef = useFocusWhileOnTop(isSettingsOpen)
+  const viewerRef = useFocusWhileOnTop(isHeld)
   const ahead = slidesAhead(state, upcoming)
   const current = currentSlide(state)
   return (
@@ -51,7 +79,7 @@ export function Viewer(props: ViewerProps): JSX.Element {
       <Slides state={state} decoded={decodedSlides(state, ahead)} {...{ settings, library }} />
       <Prefetch library={library} slide={ahead[1]} />
       <div class="viewer-vignette" />
-      <ViewerInfo {...{ state, settings }} photo={current?.photos[0]} isHeld={isSettingsOpen} />
+      <ViewerInfo {...{ state, settings, isHeld }} photo={current?.photos[0]} />
       {settings.shouldShowCaption && <ViewerCaption {...props} current={current} next={ahead[0]} />}
       <ViewerControls {...props} {...{ control, isSettingsOpen }} onSettings={setIsSettingsOpen} />
     </div>
@@ -93,7 +121,7 @@ interface ViewerControlsProps extends ViewerProps {
 
 // The keys go to the viewer, or to its settings while they are open: Back keeps them and returns
 // to the photo.
-function ViewerControls(props: ViewerControlsProps): JSX.Element {
+function ViewerControls(props: ViewerControlsProps): JSX.Element | null {
   const { presentation, keys, onSettings } = props
   const { saveSettings } = presentation
   const onKey = useViewerKeys(props)
@@ -104,6 +132,9 @@ function ViewerControls(props: ViewerControlsProps): JSX.Element {
     },
     [saveSettings, onSettings],
   )
+  if (props.changes?.isCovered === true) {
+    return null
+  }
   if (!props.isSettingsOpen) {
     return <KeyListener keys={keys} onKey={onKey} />
   }
@@ -123,17 +154,36 @@ function ViewerControls(props: ViewerControlsProps): JSX.Element {
 function useViewerKeys(props: ViewerControlsProps): (key: RemoteKey) => void {
   const { onClose, onSettings, control } = props
   const { state, press } = control
+  const openActions = useActionsKey(props.changes, state)
   return useCallback(
     (key: RemoteKey) => {
       if (key === RemoteKey.Back) {
         onClose(state.index)
       } else if (key === RemoteKey.Info || key === RemoteKey.Down) {
         onSettings(true)
-      } else {
+      } else if (!openActions(key)) {
         press(key)
       }
     },
-    [state.index, onClose, onSettings, press],
+    [state.index, onClose, onSettings, press, openActions],
+  )
+}
+
+// Up opens the actions on the photo on the screen, where it can change; returns whether it did.
+function useActionsKey(
+  changes: ViewerChanges | undefined,
+  state: PresentationState,
+): (key: RemoteKey) => boolean {
+  return useCallback(
+    (key: RemoteKey) => {
+      const current = currentSlide(state)
+      const isOpening = key === RemoteKey.Up && changes !== undefined && current !== undefined
+      if (isOpening) {
+        changes.onActions(current)
+      }
+      return isOpening
+    },
+    [changes, state],
   )
 }
 

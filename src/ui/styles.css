@@ -62,7 +62,7 @@
   --gold-light: #ffd08a;
   --gold-dark: #b8802d;
 
-  /* For the destructive actions to come; nothing uses it yet. */
+  /* What cannot be undone from the app: deleting photos (to the trash) and albums. */
   --danger: #e5625a;
   --sans: manrope, system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
   --serif: 'Playfair Display', georgia, 'Times New Roman', serif;
@@ -1625,4 +1625,243 @@ body {
 
 .book-layer .book-bar {
   margin-bottom: 2vh;
+}
+
+/* The changes to the library. The bar of actions above a grid: its buttons side by side, and a
+   note beside them (the selection, or why some actions are off). */
+.action-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  margin-bottom: 2vh;
+}
+
+.action-note {
+  margin: 0 0 0 28px;
+  color: var(--text-secondary);
+  font-size: 22px;
+  line-height: 1.3;
+}
+
+/* A line of choices: the bar, the menu of the viewer, the list of albums, the buttons of a
+   dialog. Chromium 68 has no gap in flexbox: margins space them. */
+.choices {
+  display: flex;
+}
+
+.choices-column {
+  flex-direction: column;
+  align-self: stretch;
+  align-items: stretch;
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 14px 32px;
+  border: 0;
+  border-radius: 40px;
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  white-space: nowrap;
+  transition: transform 180ms ease-out;
+}
+
+/* An item of a menu holds one line: an album and its count side by side. */
+.choices-column .choice {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 32px;
+  border-radius: 20px;
+}
+
+.choice.is-danger {
+  color: var(--danger);
+}
+
+.choice:focus {
+  outline: none;
+  background: var(--gold);
+  box-shadow: var(--focus-glow);
+  color: var(--background);
+  transform: scale(var(--focus-scale));
+}
+
+.choice.is-danger:focus {
+  background: var(--danger);
+}
+
+.choices-row .choice + .choice {
+  margin-left: 16px;
+}
+
+.choices-column .choice + .choice {
+  margin-top: 12px;
+}
+
+.choice-detail {
+  margin-left: 32px;
+  color: var(--text-secondary);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+.choice:focus .choice-detail {
+  color: var(--background);
+}
+
+/* A dialog over the screen, which darkens behind it, never blurred. */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 5vh 5vw;
+  background: rgb(var(--background-rgb) / 88%);
+  animation: fade-in 200ms ease-out both;
+}
+
+.overlay-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 720px;
+  max-width: 1200px;
+  padding: 48px 56px;
+  border-radius: var(--radius-large);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--border);
+}
+
+.overlay-title {
+  margin: 0 0 24px;
+  color: var(--text);
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.overlay-hint {
+  max-width: 1000px;
+  margin: 24px 0;
+  color: var(--text-secondary);
+}
+
+.overlay-hint.is-error {
+  color: var(--danger);
+}
+
+.overlay-keys {
+  margin: 32px 0 0;
+  color: var(--text-secondary);
+  font-size: 20px;
+}
+
+/* The name of an album: the field opens the keyboard of the TV when it takes the focus. */
+.name-field {
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 32px;
+  padding: 16px 24px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 32px;
+  outline: none;
+}
+
+.name-field:focus {
+  box-shadow: var(--focus-glow);
+}
+
+/* A photo marked in a selection: an amber check in its corner. */
+.tile-mark {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 3px var(--background);
+}
+
+.tile-mark::after {
+  position: absolute;
+  top: 8px;
+  left: 15px;
+  width: 10px;
+  height: 20px;
+  border: solid var(--background);
+  border-width: 0 4px 4px 0;
+  content: '';
+  transform: rotate(45deg);
+}
+
+/* The tile that creates an album, before the albums. */
+.new-album-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--gold-light);
+}
+
+.new-album-plus {
+  margin-bottom: 12px;
+  color: var(--gold);
+  font-size: 96px;
+  line-height: 1;
+}
+
+/* What a change said, at the bottom of the safe area, over every screen, for a while. */
+.notice {
+  position: fixed;
+  bottom: 5vh;
+  left: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 0;
+  pointer-events: none;
+}
+
+.notice-text {
+  max-width: 80vw;
+  padding: 18px 36px;
+  border-radius: 40px;
+  background: var(--surface-raised);
+  box-shadow:
+    inset 0 0 0 2px var(--border),
+    0 14px 32px rgb(var(--shade-rgb) / 55%);
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 600;
+  animation: fade-in 200ms ease-out both;
+}
+
+.notice.is-error .notice-text {
+  box-shadow:
+    inset 0 0 0 2px var(--danger),
+    0 14px 32px rgb(var(--shade-rgb) / 55%);
 }

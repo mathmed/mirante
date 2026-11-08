@@ -59,6 +59,7 @@ export function showViewer(options: Partial<ViewerOptions> = {}): ShownViewer {
       reportError: (error) => reported.push(error),
       presentation: controls,
       onClose: (index) => closed.push(index),
+      changes: undefined,
     }),
   )
   return { remote, closed, saved, reported }

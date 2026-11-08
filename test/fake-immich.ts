@@ -12,6 +12,7 @@ import {
   searchedOf,
   searchRejectionOf,
 } from './immich-answers.ts'
+import { type Call, FakeWrites, type WriteOptions } from './immich-writes.ts'
 
 // A fake Immich server (MSW): no test reaches a real server or uses a real API key. Requests nobody
 // answers fail the test (`onUnhandledFrame: 'error'` in test/setup.ts). Its answers have the shapes
@@ -47,13 +48,25 @@ export function serveConfigStatus(status: number, body = ''): void {
   fakeServer.use(http.get(CONFIG_URL, () => new HttpResponse(body, { status })))
 }
 
-// The two calls the app makes to say which server it reached: the public version and the key check.
+// The permissions of the read-only key of config.json.
+const READ_PERMISSIONS = ['album.read', 'asset.read', 'asset.view']
+
+// The calls the app makes to say which server it reached (the public version and the key check),
+// and to know what it may change: Immich keeps a trash, but the proxy has no key for the changes and
+// refuses the route that tells (in plain text, as the owner's proxy does), and the key of config.json
+// reads only. serveChanges stands in for a proxy that has one.
 export function serveImmich(options: ServeOptions = {}): void {
   const api = `${options.url ?? IMMICH_URL}/api`
   fakeServer.use(
     http.get(`${api}/server/version`, () => HttpResponse.json(IMMICH_VERSION)),
     http.post(`${api}/auth/validateToken`, ({ request }) =>
       guarded(request, options, () => HttpResponse.json({ authStatus: true })),
+    ),
+    http.get(`${api}/server/features`, () => HttpResponse.json({ trash: true })),
+    http.get(`${api}/api-keys/me`, ({ request }) =>
+      request.headers.get('x-api-key') === API_KEY
+        ? HttpResponse.json({ id: 'read-key', name: 'Mirante', permissions: READ_PERMISSIONS })
+        : HttpResponse.text('Caminho não permitido pelo proxy do Mirante.', { status: 403 }),
     ),
   )
 }
@@ -91,6 +104,40 @@ export function serveLibrary(library: FakeLibrary, options: ServeOptions = {}): 
       guarded(request, options, () => assetAnswer(library, params['id'])),
     ),
   )
+}
+
+export interface ServedChanges {
+  readonly writes: FakeWrites
+  // Each change asked for (and each read of what may change), with its body as sent and the key it
+  // carried, if any.
+  readonly calls: (Call & { readonly apiKey: string | null })[]
+}
+
+// The changes to a library, behind a proxy that adds the key of the changes (whose permissions the
+// options give): checked as Immich 3.3.6 checks them, and kept. Any other call goes on to the
+// handlers of the reads.
+export function serveChanges(options: WriteOptions, url = IMMICH_URL): ServedChanges {
+  const writes = new FakeWrites(options)
+  const calls: ServedChanges['calls'] = []
+  const api = `${url}/api`
+  fakeServer.use(
+    http.all(`${api}/*`, async ({ request }) => {
+      const call = {
+        method: request.method,
+        path: new URL(request.url).pathname,
+        body: await request.clone().text(),
+      }
+      const answer = writes.answer(call)
+      if (answer === undefined) {
+        return undefined
+      }
+      calls.push({ ...call, apiKey: request.headers.get('x-api-key') })
+      return answer.body === undefined
+        ? new HttpResponse(null, { status: answer.status })
+        : HttpResponse.json(answer.body as JsonBodyType, { status: answer.status })
+    }),
+  )
+  return { writes, calls }
 }
 
 function searchAnswer(library: FakeLibrary, body: unknown): Response {

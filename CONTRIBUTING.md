@@ -69,8 +69,12 @@ load where the key reaches them without the app.
    **Quality Report** comment; a failing check means it is not ready.
 
 The fields of `config.json` are the public contract: every installation has one, so do not remove or
-rename a field unless that is the point of the change. Mirante only reads from Immich: a change that
-writes is out of scope.
+rename a field unless that is the point of the change. Mirante reads from Immich and, through the
+second key the proxy may hold, makes only the seven changes of [docs/proxy.md](docs/proxy.md)
+(photos to the trash, never for good, and albums): another change, or another body for one of them,
+is out of scope unless the task asks for it, and then needs a contract test that pins its body, the
+fake Immich (`test/immich-writes.ts`) checking it as Immich does, and the same change in
+`docs/proxy.md` and its Caddyfile.
 
 ## Writing for the TVs
 
@@ -86,8 +90,8 @@ writes is out of scope.
   and Backspace on the desktop). Every action is reachable with them, the focus is always visible
   (style `:focus`, never `:focus-visible`) and never lost when a screen changes.
 - **Relative paths, no service worker**: the packaged apps load from the file system.
-- **Text people read** lives in `src/ui/messages.ts` and its companions `settings-messages.ts` and
-  `book-messages.ts`, in Brazilian Portuguese; everything else is in English.
+- **Text people read** lives in `src/ui/messages.ts` and its companions `settings-messages.ts`,
+  `book-messages.ts` and `edit-messages.ts`, in Brazilian Portuguese; everything else is in English.
 
 ## The look of the app
 

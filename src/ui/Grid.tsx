@@ -10,6 +10,7 @@ import {
   renderedRange,
   slotOf,
 } from '../core/grid.ts'
+import { leavesGridUp } from '../core/line-focus.ts'
 import { type KeySource, RemoteKey } from '../core/remote-key.ts'
 import { useRemoteKeys } from './use-remote-keys.ts'
 
@@ -36,7 +37,15 @@ export interface GridProps<T> {
   readonly onMove: (position: GridPosition) => void
   readonly onOpen: (item: T, position: GridPosition) => void
   readonly onBack: () => void
+  // Up on the first row, to what is above the grid; without it, Up stops there.
+  readonly onLeaveUp?: () => void
+  // While the focus is away (on the bar above the grid, or a dialog over it), the grid neither
+  // listens nor shows its focus.
+  readonly isAway?: boolean
 }
+
+// What an away grid listens to: nothing.
+const NO_KEYS: KeySource = { subscribe: () => () => undefined }
 
 // A grid driven by the arrows, which only renders the rows on the screen and a few around them.
 export function Grid<T>(props: GridProps<T>): JSX.Element {
@@ -54,7 +63,7 @@ export function Grid<T>(props: GridProps<T>): JSX.Element {
             key={keyOf(item)}
             shape={shape}
             slot={slotOf(index, position, layout)}
-            isFocused={index === position.focus}
+            isFocused={props.isAway !== true && index === position.focus}
           >
             {renderTile(item)}
           </Cell>
@@ -65,7 +74,8 @@ export function Grid<T>(props: GridProps<T>): JSX.Element {
 }
 
 function useGridKeys<T>(props: GridProps<T>, layout: GridLayout, position: GridPosition): void {
-  const { items, onMove, onOpen, onBack } = props
+  const { items, onOpen, onBack } = props
+  const move = useMove(props, layout, position)
   const onKey = useCallback(
     (key: RemoteKey) => {
       const item = items[position.focus]
@@ -74,12 +84,31 @@ function useGridKeys<T>(props: GridProps<T>, layout: GridLayout, position: GridP
       } else if (key === RemoteKey.Enter) {
         openItem(item, position, onOpen)
       } else {
-        onMove(moveInGrid(position, key, layout))
+        move(key)
       }
     },
-    [items, layout, position, onMove, onOpen, onBack],
+    [items, position, move, onOpen, onBack],
   )
-  useRemoteKeys(props.keys, onKey)
+  useRemoteKeys(props.isAway === true ? NO_KEYS : props.keys, onKey)
+}
+
+function useMove<T>(
+  props: GridProps<T>,
+  layout: GridLayout,
+  position: GridPosition,
+): (key: RemoteKey) => void {
+  const { onMove, onLeaveUp } = props
+  return useCallback(
+    (key: RemoteKey) => {
+      const next = moveInGrid(position, key, layout)
+      if (onLeaveUp !== undefined && leavesGridUp(key, position, next)) {
+        onLeaveUp()
+      } else {
+        onMove(next)
+      }
+    },
+    [layout, position, onMove, onLeaveUp],
+  )
 }
 
 function openItem<T>(

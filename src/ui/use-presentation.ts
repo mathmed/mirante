@@ -10,6 +10,8 @@ import {
   type Slide,
   startPresentation,
   type Upcoming,
+  withoutSlides,
+  withSlidesBack,
 } from '../core/presentation.ts'
 import type { RemoteKey } from '../core/remote-key.ts'
 
@@ -32,6 +34,9 @@ export interface Rounds {
   readonly onShow: (index: number) => void
 }
 
+// Where no photo leaves meanwhile: a book, a presentation.
+export const NOTHING_GONE: ReadonlySet<string> = new Set()
+
 // The viewer opened from a grid plays the same photos again, in the same order.
 export const SAME_SLIDES: Rounds = {
   after: ({ slides }) => slides,
@@ -48,6 +53,8 @@ export interface PresentationOptions {
   readonly settings: PresentationSettings
   // While something covers the viewer (its settings), the presentation waits.
   readonly isHeld: boolean
+  // The photos deleted, or taken out of the album shown, meanwhile: they leave it at once.
+  readonly gone: ReadonlySet<string>
 }
 
 export interface PresentationControl {
@@ -56,20 +63,29 @@ export interface PresentationControl {
   readonly press: (key: RemoteKey) => void
 }
 
+// The slides as they are now: more of them came, some came back, some left.
+function syncedPresentation(
+  state: PresentationState,
+  slides: readonly Slide[],
+  gone: ReadonlySet<string>,
+): PresentationState {
+  return withoutSlides(withSlidesBack(extendPresentation(state, slides), slides), gone)
+}
+
 // The state of the presentation and its clock: while it plays, the next slide comes after the
 // interval; any change starts the interval over.
 export function usePresentation(options: PresentationOptions): PresentationControl {
-  const { slides, rounds, settings } = options
+  const { slides, rounds, settings, gone } = options
   const [started, setStarted] = useState(() =>
     startPresentation(slides, options.start, options.shouldPlay),
   )
   // The slides that came since it started, for a source read a little at a time.
-  const state = useMemo(() => extendPresentation(started, slides), [started, slides])
+  const state = useMemo(() => syncedPresentation(started, slides, gone), [started, slides, gone])
   const change = useCallback(
     (next: (current: PresentationState) => PresentationState) => {
-      setStarted((previous) => next(extendPresentation(previous, slides)))
+      setStarted((previous) => next(syncedPresentation(previous, slides, gone)))
     },
-    [slides],
+    [slides, gone],
   )
   const upcoming = useUpcoming(state, rounds, settings)
   useEffect(() => {

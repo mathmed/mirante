@@ -3,6 +3,7 @@ import type { Screen } from '../core/navigation.ts'
 import type { PhotoLibrary } from '../core/photo-library.ts'
 import type { PresentationSettings } from '../core/presentation-settings.ts'
 import type { KeySource } from '../core/remote-key.ts'
+import type { EditingControls } from './use-editing.ts'
 
 // The settings of the presentations, kept by the gallery for the whole visit.
 export interface PresentationControls {
@@ -25,6 +26,8 @@ export interface ScreenProps {
   readonly open: (from: GridPosition, screen: Screen) => void
   readonly back: () => void
   readonly presentation: PresentationControls
+  // The changes of the visit to the library, and what may change.
+  readonly editing: EditingControls
 }
 
 // The seed of each book, kept by the gallery for the whole visit and on the TV.

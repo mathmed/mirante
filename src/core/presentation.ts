@@ -101,6 +101,41 @@ export function extendPresentation(
   return { ...state, slides }
 }
 
+// Photos deleted, or taken out of their album, while the viewer shows them leave it: the slide
+// after the one on the screen takes its place when that one leaves, the last one when it was last.
+export function withoutSlides(
+  state: PresentationState,
+  gone: ReadonlySet<string>,
+): PresentationState {
+  const isKept = (slide: Slide): boolean => !gone.has(slide.key)
+  const slides = state.slides.filter(isKept)
+  if (slides.length === state.slides.length) {
+    return state
+  }
+  const before = state.slides.slice(0, state.index).filter(isKept).length
+  const index = Math.max(0, Math.min(before, slides.length - 1))
+  return { ...state, slides, index, leaving: undefined }
+}
+
+// Photos back from the trash, or in the album again, come back to the viewer in their place, the
+// photo on the screen kept: the slides of the first round, with more among them.
+export function withSlidesBack(
+  state: PresentationState,
+  slides: readonly Slide[],
+): PresentationState {
+  const current = currentSlide(state)
+  const keys = new Set(slides.map((slide) => slide.key))
+  const isBack =
+    state.round === 0 &&
+    slides.length > state.slides.length &&
+    state.slides.every((slide) => keys.has(slide.key))
+  if (!isBack || current === undefined) {
+    return state
+  }
+  const index = slides.findIndex((slide) => slide.key === current.key)
+  return { ...state, slides, index, leaving: undefined }
+}
+
 export function currentSlide(state: PresentationState): Slide | undefined {
   return state.slides[state.index]
 }
